@@ -1,65 +1,15 @@
-import { faFacebook, faInstagram, faLinkedin, faWebAwesome, faWebflow, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
-import { faGlobe, faPhone } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Divider } from './divider';
-import { LinkPreview } from '../ui/link-preview';
-
+import Image from 'next/image';
+import Link from 'next/link';
+import { FiArrowUpRight, FiInstagram, FiLinkedin, FiMessageCircle } from 'react-icons/fi';
 
 export default function Footer() {
-  const socialMedia = [
-    {
-      title: 'Whatsapp',
-      url: 'https://wa.me/6285882514394',
-      icon: faWhatsapp
-    },
-    {
-      title: 'Website',
-      url: '/',
-      icon: faGlobe
-    },
-    {
-      title: 'Instagram',
-      url: 'https://www.instagram.com/campusinnovate',
-      icon: faInstagram
-    },
-    {
-      title: 'Linkedin',
-      url: 'https://www.linkedin.com/company/104864849/admin/dashboard/',
-      icon: faLinkedin
-    },
-    {
-      title: 'Facebook',
-      url: 'https://www.facebook.com/profile.php?id=61567887567029',
-      icon: faFacebook
-    },
-  ];
-
-  return (
-    <footer className="bg-black">
-      <main className="md:p-[120px] p-[32px] flex flex-col md:gap-5 gap-3">
-        <section className="min-h-[240px] flex flex-col justify-between w-full">
-          <article className="flex md:flex-row flex-col justify-between md:gap-[80px] gap-4">
-            <p className="md:text-[16px] text-[12px] text-white font-normal leading-[32px] text-justify md:w-[70%] w-full">
-              Campus Innovate berkomitmen memberdayakan mahasiswa dan pelajar untuk menjadi pemimpin serta organisator yang hebat. Kami mengutamakan pengembangan keterampilan melalui program mentoring, leadership development, organizational
-              development, career development dan capacity building/outbound yang dinamis dan interaktif. Layanan ini tidak hanya dirancang untuk mahasiswa, tetapi juga terbuka bagi korporasi, perusahaan, sekolah, dan perguruan tinggi yang
-              ingin memperkuat kerja tim dan kepemimpinan.
-            </p>
-            <figure className="w-[30%] ">
-              <h4 className="text-white text-[20px] font-bold">Hubungi Kami:</h4>
-              {socialMedia.map((data) => (
-                <LinkPreview className="flex w-fit text-[16px] font-bold text-secondary" key={data.title} url={data.url}>
-                  <FontAwesomeIcon icon={data.icon} className='mr-2 mt-1' />{data.title}
-                </LinkPreview>
-              ))}
-            </figure>
-          </article>
-          <Divider />
-        </section>
-        <section className="flex justify-between items-center">
-          <h1 className="text-[24px] text-white font-bold">Campus Innovate</h1>
-          <h5 className="text-[14px] font-normal text-[#9CA2A5]">© 2024 Campus Innovate • All Rights Reserved</h5>
-        </section>
-      </main>
-    </footer>
-  );
+  return <footer className="site-footer">
+    <div className="page-container footer-main">
+      <div className="footer-brand"><Link href="/home" className="brand-lockup brand-lockup-light"><Image src="/assets/logos/logo-campus-innovate.png" width={48} height={48} alt="Logo Campus Innovate" /><span><strong>Campus</strong> Innovate</span></Link><p>Mengembangkan pemimpin, memperkuat organisasi, dan menciptakan pengalaman belajar yang berdampak.</p></div>
+      <div className="footer-column"><strong>Jelajahi</strong><Link href="/services">Program</Link><Link href="/about">Tentang kami</Link><Link href="/portofolio">Portofolio</Link></div>
+      <div className="footer-column"><strong>Terhubung</strong><a href="https://www.instagram.com/campusinnovate" target="_blank" rel="noreferrer"><FiInstagram /> Instagram</a><a href="https://www.linkedin.com/company/104864849" target="_blank" rel="noreferrer"><FiLinkedin /> LinkedIn</a><a href="https://wa.me/6285882514394" target="_blank" rel="noreferrer"><FiMessageCircle /> WhatsApp</a></div>
+      <div className="footer-column"><strong>Tim Campus Innovate</strong><Link href="/internal">Masuk portal internal <FiArrowUpRight /></Link></div>
+    </div>
+    <div className="page-container footer-bottom"><span>© {new Date().getFullYear()} Campus Innovate</span><span>Grow people. Strengthen teams.</span></div>
+  </footer>;
 }

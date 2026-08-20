@@ -1,130 +1,84 @@
-'use client'
+'use client';
 
-import { motion } from "framer-motion";
-import {Button} from '@/components/ui/moving-border'
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { DirectionAwareHover } from "@/components/ui/direction-aware-hover";
-import React, { useState } from "react";
-import { Highlight } from "@/components/ui/hero-highlight";
-import { AnimatedTooltip } from "@/components/ui/animated-tooltip";
-import LoadingButton from "@/components/custom/Loading/loadingButton";
+import Image from 'next/image';
+import Link from 'next/link';
+import { FiArrowRight, FiCheck, FiCompass, FiLayers, FiTrendingUp, FiUsers } from 'react-icons/fi';
 
-const transition = { duration: 1, ease: [.25,.1,.25,1] };
-const variants = {
-  hidden: { filter: "blur(10px)", transform: "translateY(20%)", opacity: 0 },
-  visible: { filter: "blur(0)", transform: "translateY(0)", opacity: 1 },
-};
+const services = [
+  { icon: FiUsers, eyebrow: 'People', title: 'Leadership & Mentoring', description: 'Program pengembangan pemimpin muda yang praktis, reflektif, dan relevan dengan tantangan organisasi.' },
+  { icon: FiLayers, eyebrow: 'Organization', title: 'Organization Development', description: 'Pendampingan untuk membangun tim, sistem kerja, dan budaya organisasi yang lebih sehat dan terukur.' },
+  { icon: FiCompass, eyebrow: 'Experience', title: 'Event & Capacity Building', description: 'Pengalaman belajar, outbound, dan kegiatan kolaboratif yang dirancang sesuai tujuan setiap organisasi.' },
+];
 
-const text = "Campus Innovate";
-const clientText = 'Our Client'
+const impact = [
+  { value: '360°', label: 'pendekatan pengembangan individu dan organisasi' },
+  { value: '5+', label: 'format program yang dapat disesuaikan' },
+  { value: '1:1', label: 'pendampingan dari kebutuhan hingga evaluasi' },
+];
 
-const events = [
-     {
-          id: 1,
-          name: "KLHK",
-          designation: "Kementerian Lingkungan Hidup dan Kehutanan",
-          image: "/assets/logos/logo-klhk.png"
-               // "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3387&q=80",
-     },
-     {
-          id: 2,
-          name: "IPB",
-          designation: "CDA - IPB University",
-          image:
-               "https://www.clipartmax.com/png/small/252-2525928_berkas-logo-ipb-svg-bogor-agricultural-university.png",
-     }
-]
+export default function HomePage() {
+  return (
+    <main className="public-home">
+      <section className="hero-shell">
+        <div className="hero-grid" aria-hidden="true" />
+        <div className="page-container hero-layout">
+          <div className="hero-copy">
+            <span className="eyebrow-pill"><span /> Learning partner for growing teams</span>
+            <h1>Tumbuh sebagai pemimpin. <em>Bergerak</em> sebagai tim.</h1>
+            <p>Campus Innovate membantu individu dan organisasi berkembang melalui pengalaman belajar yang terarah, relevan, dan benar-benar bisa diterapkan.</p>
+            <div className="hero-actions">
+              <a className="button-primary" href="https://wa.me/6285882514394" target="_blank" rel="noreferrer">Diskusikan kebutuhan <FiArrowRight /></a>
+              <Link className="button-quiet" href="/services">Jelajahi program</Link>
+            </div>
+            <div className="hero-proof">
+              <div className="avatar-stack"><span>CI</span><span>IPB</span><span>KLHK</span></div>
+              <p>Dipercaya untuk menghadirkan pengalaman belajar yang bermakna.</p>
+            </div>
+          </div>
 
-export default function DashboardPage(){
-     const words = text.split(" ");  
-     const wordsClient = clientText.split(" ");  
-     // const imageUrl = `https://images.unsplash.com/photo-1533929736458-ca588d08c8be?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80`
-     const [loading, setLoading] = useState<boolean>(false)
+          <div className="hero-visual">
+            <div className="image-frame"><Image src="/assets/images/fullteam.JPG" alt="Tim Campus Innovate" fill priority sizes="(max-width: 900px) 90vw, 46vw" /></div>
+            <div className="floating-note note-top"><span className="note-icon"><FiTrendingUp /></span><div><strong>Belajar terarah</strong><small>Dari insight menjadi aksi</small></div></div>
+            <div className="floating-note note-bottom"><span className="note-check"><FiCheck /></span><div><strong>Program kontekstual</strong><small>Disesuaikan dengan kebutuhan tim</small></div></div>
+          </div>
+        </div>
+      </section>
 
-     const handleToCallViaWa = (e: React.FormEvent<HTMLFormElement>) => {
-          e.preventDefault()
-          setLoading(true)
-          setTimeout(() => {
-               setLoading(false)
-               // const urlToWhatsapp = `https://wa.me/628112012626?text=Halo Kak, Nama: ${name}, Pesan: ${message}`
-                const urlToWhatsapp = `https://wa.me/6285882514394`;
-               window.open(urlToWhatsapp, "_blank")
+      <section className="page-container impact-strip" aria-label="Dampak program">
+        {impact.map((item) => <div key={item.value} className="impact-item"><strong>{item.value}</strong><span>{item.label}</span></div>)}
+      </section>
 
-          }, 2000)
-     }
+      <section className="page-container section-block">
+        <div className="section-heading">
+          <div><span className="section-kicker">Cara kami membantu</span><h2>Program yang bergerak bersama kebutuhanmu.</h2></div>
+          <p>Kami tidak memulai dari paket. Kami memulai dari tantangan, tujuan, dan konteks orang-orang di dalamnya.</p>
+        </div>
+        <div className="service-grid">
+          {services.map((service, index) => {
+            const Icon = service.icon;
+            return <article className="service-card" key={service.title}>
+              <div className="service-card-top"><span className="service-icon"><Icon /></span><small>0{index + 1}</small></div>
+              <span className="service-eyebrow">{service.eyebrow}</span><h3>{service.title}</h3><p>{service.description}</p>
+              <Link href="/services">Lihat program <FiArrowRight /></Link>
+            </article>;
+          })}
+        </div>
+      </section>
 
-     return (
-          <main className="text-white md:grid md:grid-cols-9 md:py-[100px] flex flex-col gap-5 p-5">
-                  {/* <main className="flex flex-col gap-5 md:px-[120px] px-[18px] md:py-[44px] py-[12px]"></main> */}
-              <motion.section
-                    initial="hidden"
-                    whileInView="visible"
-                    transition={{ staggerChildren: 0.06 }}
-                    className="md:col-span-2 md:col-start-2 md:col-span-4"
-               >
-                    <h1 className="font-bold md:text-[5.5rem] text-[3.5rem] text-secondary">
-                         {words.map((word, index) => (
-                              <React.Fragment key={index}>
-                              <motion.span className="inline-block" transition={transition} variants={variants}>
-                              {word}
-                              </motion.span>
-                              {index < words.length - 1 && ' '}
-                              </React.Fragment>
-                         ))}
-                    </h1>
-                    <motion.label className="font-semibold text-lg" transition={transition} variants={variants}>
-                        {/* "We want help you become a leader and organizer" */}
-                        <TextGenerateEffect 
-                              words={`We want help you become a leader and organizer`} 
-                              className="text-white" 
-                              duration={1} 
-                         />
-                    </motion.label>
-                    <motion.p className="justify-stretch mt-[3rem] leading-loose" transition={transition} variants={variants}>
-                         <Highlight className="text-primary font-semibold dark:text-primary font-semibold">Campus Innovate</Highlight> tidak hanya memberikan program substansial mengenai akselerasi kemajuan organisasi, 
-                         namun juga memberikan dukungan bagi individu yang aktif di organisasi membantu 
-                         <Highlight className="text-primary font-semibold">meningkatkan keterampilan kepemimpinan</Highlight> untuk menjadi <Highlight className="text-primary dark:text-primary font-semibold">pemimpin inovatif</Highlight>.
-                    </motion.p>
-                     <motion.div className="pt-4 mt-2" transition={transition} variants={variants}>
-                            <Button borderRadius="1.35rem" onClick={handleToCallViaWa}>{loading ? <div className="flex gap-2"><LoadingButton /> Loading...</div> : "Hubungi Kami"}</Button>
-                    </motion.div>
-               </motion.section>
+      <section className="page-container story-section">
+        <div className="story-image"><Image src="/assets/images/campus-innovate-team.png" alt="Kolaborasi tim Campus Innovate" fill sizes="(max-width: 900px) 90vw, 45vw" /></div>
+        <div className="story-copy">
+          <span className="section-kicker">Mengapa Campus Innovate</span><h2>Bukan sekadar sesi. Kami merancang perjalanan belajar.</h2>
+          <p>Setiap program dibangun agar peserta memahami, mencoba, merefleksikan, lalu membawa pembelajaran ke cara mereka bekerja sehari-hari.</p>
+          <ul><li><FiCheck /> Berangkat dari kebutuhan nyata peserta dan organisasi</li><li><FiCheck /> Difasilitasi dengan metode aktif dan kolaboratif</li><li><FiCheck /> Memiliki hasil dan tindak lanjut yang jelas</li></ul>
+          <Link className="text-link" href="/about">Kenali kami lebih dekat <FiArrowRight /></Link>
+        </div>
+      </section>
 
-               <motion.section
-                    initial="hidden"
-                    whileInView="visible"
-                    transition={{ staggerChildren: 0.04 }}
-                    className="md:col-span-3 flex justify-center items-center mt-3 pt-3"
-               >
-                    <motion.div transition={transition} variants={variants}>
-                         {/* className="md:h-[40rem] md:w-[32rem] w-60 h-96 mb-3"> */}
-                         <DirectionAwareHover imageUrl={`/assets/images/fullteam.JPG`} className="md:h-[30rem] md:w-[32rem] w-[27rem] h-[30rem]">
-                              <p className="font-bold text-xl">Campus Innovate Teams</p>
-                              <p className="font-normal text-sm">Media Campus Innovate - All Right Reserved @2024</p>
-                         </DirectionAwareHover>
-                    </motion.div>
-               </motion.section>
-
-               <motion.div
-                         initial="hidden"
-                         whileInView="visible"
-                         transition={{ staggerChildren: 0.04 }}
-                         className="col-span-2 col-start-2"
-                    >
-                         <h3 className="font-bold text-[2rem] text-secondary">
-                              {wordsClient.map((word, index) => (
-                                   <React.Fragment key={index}>
-                                   <motion.span className="inline-block" transition={transition} variants={variants}>
-                                   {word}
-                                   </motion.span>
-                                   {index < words.length - 1 && ' '}
-                                   </React.Fragment>
-                              ))}
-                         </h3>
-                         <div className="flex flex-row w-full mt-[2rem]">
-                              <AnimatedTooltip items={events} width={90}   />
-                         </div>
-               </motion.div>
-          </main>
-     )
+      <section className="page-container cta-panel">
+        <div><span>Mulai dari percakapan sederhana</span><h2>Apa tantangan yang sedang timmu hadapi?</h2></div>
+        <a className="button-light" href="https://wa.me/6285882514394" target="_blank" rel="noreferrer">Ceritakan kepada kami <FiArrowRight /></a>
+      </section>
+    </main>
+  );
 }
