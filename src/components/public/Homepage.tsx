@@ -210,7 +210,7 @@ function ExtendedBottomPanel() {
   return (
     <footer className="extended-bottom-panel">
       <div className="extended-bottom-brand"><BrandLogo className="extended-bottom-logo" /><p>Building systems. Developing leaders.<br />Your educational transformation partner.</p></div>
-      <nav className="extended-bottom-column" aria-label="Extended footer navigation"><strong>Explore</strong><a href="/home#services">Our Service</a><a href="/home#workfolio">Workfolio</a><a href="/home#contact">Contact</a></nav>
+      <nav className="extended-bottom-column" aria-label="Extended footer navigation"><strong>Explore</strong><a href="#services">Our Service</a><a href="#workfolio">Workfolio</a><a href="#contact">Contact</a></nav>
       <div className="extended-bottom-column"><strong>Connect</strong><a href="mailto:innovatecampus@gmail.com">innovatecampus@gmail.com</a><a href="https://wa.me/6285882514394" target="_blank" rel="noopener noreferrer">+62 858-8251-4394</a><a href="https://www.instagram.com/campusinnovate" target="_blank" rel="noopener noreferrer">@campusinnovate</a></div>
       <div className="extended-bottom-column extended-bottom-office"><strong>Campus Innovate</strong><p>Jl. Duta Pelita B2 No.5,<br />Tanah Sareal, Kota Bogor,<br />Jawa Barat 16164</p></div>
       <div className="extended-bottom-legal"><span>© {new Date().getFullYear()} Campus Innovate</span><span>Building Systems. Developing Leaders.</span></div>
