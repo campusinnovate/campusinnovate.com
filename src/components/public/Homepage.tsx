@@ -60,6 +60,14 @@ const trustedMarks = Array.from(
 const solutionIcons = [FiCompass, FiUsers, FiCode, FiLayers, FiZap];
 const serviceDetailIds = solutions.map((solution) => solution.id);
 
+const serviceNeeds = [
+  { title: 'Run an Event', category: solutions[0].title, id: solutions[0].id, description: 'Plan and deliver professional events from concept to on-site execution.', examples: ['Seminars & conferences', 'Expo & awarding', 'Outbound & capacity building'] },
+  { title: 'Build an Educational Program', category: solutions[1].title, id: solutions[1].id, description: 'Develop structured educational programs with clear objectives, journeys, and outcomes.', examples: ['Leadership development', 'Student programs', 'Institutional programs'] },
+  { title: 'Create a Website or Digital System', category: solutions[2].title, id: solutions[2].id, description: 'Build digital platforms that make programs and organizational workflows easier to manage.', examples: ['Websites & landing pages', 'Registration & portals', 'Dashboards & custom systems'] },
+  { title: 'Organize a Training Program', category: solutions[3].title, id: solutions[3].id, description: 'Deliver practical learning experiences that strengthen people, teams, and institutions.', examples: ['Leadership & communication', 'Team development', 'Customized training'] },
+  { title: 'Produce Creative and Media Assets', category: solutions[4].title, id: solutions[4].id, description: 'Create the identity, communication materials, and media needed to strengthen an initiative.', examples: ['Branding & design', 'Content & campaigns', 'Documentation & video'] },
+] as const;
+
 const whatWeDo = [
   { title: 'Our work focuses on helping institutions', copy: 'Turning educational ideas into solutions that can be implemented, measured, and improved.', icon: FiCompass },
   { title: 'Develop impactful student programs', copy: 'Designing relevant programs that connect student potential with meaningful learning outcomes.', icon: FiUsers },
@@ -513,40 +521,49 @@ export default function Homepage() {
         <section className="page-slide solutions-slide" id="services" aria-labelledby="solutions-title">
           <div className="service-overview">
             <div className="glow service-overview-glow" aria-hidden="true" />
-            <div className="slide-shell content-shell service-overview-shell">
-              <div className="page-heading service-overview-heading">
-                <p className="eyebrow"><span /> Our service</p>
-                <h2 id="solutions-title">Five services. <em>One partner.</em></h2>
-                <p>One connected partner from the first brief to the final experience.</p>
-              </div>
-              <div className="solution-card-grid">
-                {solutions.map((solution, index) => {
+            <div className="service-overview-shell">
+              <header className="service-needs-hero">
+                <div className="service-needs-heading">
+                  <p className="eyebrow"><span /> Our service</p>
+                  <h2 id="solutions-title">What do you need<br /><em>help bringing to life?</em></h2>
+                </div>
+                <div className="service-needs-intro">
+                  <p>Campus Innovate helps institutions design programs, deliver events, develop digital systems, run capability-building initiatives, and produce the creative assets needed to make them work.</p>
+                  <div className="service-needs-actions"><a href="#choose-service">Explore What We Can Do <FiArrowRight /></a><a href="https://wa.me/6285882514394?text=Halo%20Campus%20Innovate%2C%20saya%20ingin%20mendiskusikan%20project" target="_blank" rel="noopener noreferrer">Discuss Your Project <FiMessageCircle /></a></div>
+                </div>
+              </header>
+
+              <div className="service-choice-heading" id="choose-service"><span>Start with your need</span><h3>Choose what you need.</h3><p>Start with one specific need—or connect several capabilities under one Campus Innovate partnership.</p></div>
+              <div className="service-needs-grid">
+                {serviceNeeds.map((need, index) => {
                   const Icon = solutionIcons[index];
-                  return <article className={`solution-gloss solution-tone-${index + 1}`} key={solution.title}>
-                    <Image src={solution.image} alt={`${solution.title} by Campus Innovate`} fill sizes="20vw" />
-                    <div className="solution-wash" /><span className="solution-count">{solution.number}</span><span className="solution-card-icon"><Icon /></span>
-                    <div><h3>{solution.title}</h3><p>{solution.description}</p><a className="card-link" href={`#${solution.id}`} onClick={(event) => scrollToServiceDetail(event, solution.id)}>Explore <FiArrowRight /></a></div>
+                  return <article className={`service-need-card service-need-${index + 1}`} key={need.id}>
+                    <div className="service-need-top"><span className="service-need-icon"><Icon /></span><small>0{index + 1}</small></div>
+                    <div className="service-need-copy"><span>{need.category}</span><h3>{need.title}</h3><p>{need.description}</p></div>
+                    <div className="service-need-examples">{need.examples.map((example) => <span key={example}>{example}</span>)}</div>
+                    <a href={`#${need.id}`} onClick={(event) => scrollToServiceDetail(event, need.id)}>Explore this solution <FiArrowRight /></a>
                   </article>;
                 })}
               </div>
-              <div className="service-overview-note glass-panel"><strong>Independent when needed. Stronger together.</strong><span>Use one capability—or connect several layers under one Campus Innovate partnership.</span></div>
             </div>
           </div>
 
           <section className="service-connected" aria-labelledby="connected-services-title">
             <div className="service-connected-shell">
               <div className="service-connected-copy">
-                <p className="service-kicker">One connected ecosystem</p>
-                <h2 id="connected-services-title">Five capabilities.<br /><em>One project journey.</em></h2>
-                <p>Each service can stand independently. When the project needs more, Campus Innovate can connect the program, experience, system, capability, and communication in one coordinated partnership.</p>
+                <p className="service-kicker">Need an integrated partner?</p>
+                <h2 id="connected-services-title">Or let us handle<br /><em>everything.</em></h2>
+                <p>For initiatives involving multiple moving parts, Campus Innovate connects strategy, program design, digital systems, event operations, training, and creative production under one coordinated partnership.</p>
+                <div className="service-connected-statement"><strong>One partner. One connected workflow.</strong><span>A stronger institutional outcome.</span></div>
+                <a className="service-connected-cta" href="https://wa.me/6285882514394?text=Halo%20Campus%20Innovate%2C%20saya%20ingin%20mendiskusikan%20integrated%20project" target="_blank" rel="noopener noreferrer">Discuss an Integrated Project <FiArrowRight /></a>
               </div>
               <div className="service-connection-flow">
                 {[
-                  ['01', 'Program', 'What are we building?'],
-                  ['02', 'Event & Experience', 'How will people experience it?'],
-                  ['03', 'Digital System', 'What system enables it?'],
-                  ['04', 'Training', 'What capability will people gain?'],
-                  ['05', 'Creative & Media', 'How will it be communicated?'],
+                  ['01', 'Understand', 'Objectives, audience, challenges, and expected outcomes.'],
+                  ['02', 'Design', 'Concept, program journey, operational plan, and required system.'],
+                  ['03', 'Build', 'Platforms, materials, communication assets, and resources.'],
+                  ['04', 'Deliver', 'Execution, participants, stakeholders, vendors, and operations.'],
+                  ['05', 'Evaluate & Improve', 'Results, documentation, insights, and continued development.'],
                 ].map(([number, title, copy]) => <article key={number}><span>{number}</span><div><strong>{title}</strong><small>{copy}</small></div><FiArrowRight /></article>)}
               </div>
             </div>
