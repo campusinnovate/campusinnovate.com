@@ -1,6 +1,16 @@
 /** @type {import('next').NextConfig} */
+const isGitHubPages = process.env.GITHUB_ACTIONS === 'true';
+const repositoryBasePath = isGitHubPages ? '/campusinnovate.com' : '';
+
 const nextConfig = {
+  ...(isGitHubPages ? {
+    output: 'export',
+    basePath: repositoryBasePath,
+    assetPrefix: repositoryBasePath,
+    trailingSlash: true,
+  } : {}),
   images: {
+    unoptimized: isGitHubPages,
     domains: [
       'api.microlink.io', // Microlink Image Preview
     ],
@@ -21,15 +31,6 @@ const nextConfig = {
   },
    experimental: {
     missingSuspenseWithCSRBailout: false,
-  },
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/home',
-        permanent: false,
-      },
-    ];
   },
 };
 
