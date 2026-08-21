@@ -4769,6 +4769,7 @@ img {
 }
 
 .hero-slide>.slide-shell {
+  height: auto;
   min-height: 100%;
 }
 
@@ -4779,6 +4780,21 @@ img {
 .hero-copy-new h1 em,
 .hero-copy-new h1 strong {
   font-weight: 950;
+}
+
+.hero-copy-new h1>span {
+  display: block;
+  white-space: nowrap;
+}
+
+@media (min-width: 761px) {
+  .hero-copy-new h1 {
+    font-size: clamp(42px, 3.75vw, 58px);
+  }
+
+  .hero-stage {
+    transform: translateY(-30px);
+  }
 }
 
 .public-site:has(.horizontal-home) .official-logo.nav-official-logo>img {
