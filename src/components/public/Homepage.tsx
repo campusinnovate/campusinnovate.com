@@ -530,11 +530,11 @@ export default function Homepage() {
                 <div className="service-needs-intro">
                   <p>Campus Innovate helps institutions design programs, deliver events, develop digital systems, run capability-building initiatives, and produce the creative assets needed to make them work.</p>
                   <div className="service-needs-actions"><a href="#choose-service">Explore What We Can Do <FiArrowRight /></a><a href="https://wa.me/6285882514394?text=Halo%20Campus%20Innovate%2C%20saya%20ingin%20mendiskusikan%20project" target="_blank" rel="noopener noreferrer">Discuss Your Project <FiMessageCircle /></a></div>
+                  <div className="service-choice-cue"><span>Choose what you need.</span><small>Explore one solution or combine several capabilities.</small></div>
                 </div>
               </header>
 
-              <div className="service-choice-heading" id="choose-service"><span>Start with your need</span><h3>Choose what you need.</h3><p>Start with one specific need—or connect several capabilities under one Campus Innovate partnership.</p></div>
-              <div className="service-needs-grid">
+              <div className="service-needs-grid" id="choose-service">
                 {serviceNeeds.map((need, index) => {
                   const Icon = solutionIcons[index];
                   return <article className={`service-need-card service-need-${index + 1}`} key={need.id}>
