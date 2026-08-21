@@ -354,8 +354,9 @@ export default function Homepage() {
     if (updateUrl) {
       const hash = `${window.location.pathname}#${pages[safeNext].id}`;
       window.history.replaceState(null, '', hash);
-      window.dispatchEvent(new HashChangeEvent('hashchange'));
     }
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollLeft = 0;
     window.requestAnimationFrame(() => document.getElementById(pages[safeNext].id)?.scrollTo({ top: 0 }));
   }, []);
 
@@ -379,10 +380,17 @@ export default function Homepage() {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     syncFromHash();
+    const syncFromNavigation = (event: Event) => {
+      const id = (event as CustomEvent<{ id: string }>).detail.id;
+      const index = pages.findIndex((page) => page.id === id);
+      if (index >= 0) goTo(index, false);
+    };
     window.addEventListener('hashchange', syncFromHash);
+    window.addEventListener('campus:navigate', syncFromNavigation);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('hashchange', syncFromHash);
+      window.removeEventListener('campus:navigate', syncFromNavigation);
     };
   }, [goTo]);
 
@@ -590,6 +598,7 @@ export default function Homepage() {
                   <h2 id="solutions-title">What do you need<br /><em>help bringing to life?</em></h2>
                 </div>
                 <div className="service-needs-intro">
+                  <p>Campus Innovate helps institutions design programs, deliver events, develop digital systems, run capability-building initiatives, and produce the creative assets needed to make them work.</p>
                   <div className="service-needs-actions"><a href="#choose-service">Explore What We Can Do <FiArrowRight /></a><a href="https://wa.me/6285882514394?text=Halo%20Campus%20Innovate%2C%20saya%20ingin%20mendiskusikan%20project" target="_blank" rel="noopener noreferrer">Discuss Your Project <FiMessageCircle /></a></div>
                   <div className="service-choice-cue"><span>Choose what you need.</span><small>Explore one solution or combine several capabilities.</small></div>
                 </div>
