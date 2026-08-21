@@ -8,6 +8,8 @@ import {
   FiArrowRight,
   FiBriefcase,
   FiCheckCircle,
+  FiChevronLeft,
+  FiChevronRight,
   FiCode,
   FiCompass,
   FiExternalLink,
@@ -20,6 +22,7 @@ import {
   FiStar,
   FiUsers,
   FiZap,
+  FiX,
 } from 'react-icons/fi';
 import {
   approach,
@@ -128,7 +131,7 @@ function ServiceDetail({ detail, icon: Icon }: ServiceDetailProps) {
   );
 }
 
-function WorkfolioCard({ project, index }: { project: WorkfolioProject; index: number }) {
+function WorkfolioCard({ project, index, onOpen }: { project: WorkfolioProject; index: number; onOpen: () => void }) {
   return (
     <article className="workfolio-card" data-project-slug={project.slug}>
       <div className="workfolio-card-media">
@@ -142,14 +145,61 @@ function WorkfolioCard({ project, index }: { project: WorkfolioProject; index: n
         <span className="workfolio-card-number">{String(index + 1).padStart(2, '0')}</span>
       </div>
       <div className="workfolio-card-body">
-        <div className="workfolio-card-meta"><span>{project.year}</span><small>Selected work</small></div>
+        <div className="workfolio-card-meta"><span>{project.year}</span></div>
         <h3>{project.title}</h3>
         <p className="workfolio-client">{project.client}</p>
         <div className="workfolio-tags">{project.services.map((service) => <span key={service}>{service}</span>)}</div>
         <p className="workfolio-description">{project.description}</p>
-        <span className="workfolio-view">View project <FiArrowRight /></span>
+        <button className="workfolio-view" type="button" onClick={onOpen} aria-label={`View ${project.title}`}>View project <FiArrowRight /></button>
       </div>
     </article>
+  );
+}
+
+type WorkfolioModalProps = {
+  projects: readonly WorkfolioProject[];
+  index: number;
+  onChange: (index: number) => void;
+  onClose: () => void;
+};
+
+function WorkfolioModal({ projects, index, onChange, onClose }: WorkfolioModalProps) {
+  const project = projects[index];
+  const previous = () => onChange((index - 1 + projects.length) % projects.length);
+  const next = () => onChange((index + 1) % projects.length);
+
+  return (
+    <div className="workfolio-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="workfolio-modal-title" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="workfolio-modal-device">
+        <div className="workfolio-modal-bar">
+          <span>{String(index + 1).padStart(2, '0')} / {String(projects.length).padStart(2, '0')}</span>
+          <div className="workfolio-modal-notch" aria-hidden="true" />
+          <button type="button" onClick={onClose} aria-label="Close project"><FiX /></button>
+        </div>
+        <div className="workfolio-modal-content" key={project.slug}>
+          <div className="workfolio-modal-media">
+            <Image src={project.image} alt={project.imageAlt} fill priority sizes="(max-width: 760px) 94vw, 62vw" />
+            <div className="workfolio-modal-shade" />
+            <button className="workfolio-modal-arrow is-previous" type="button" onClick={previous} aria-label="Previous project"><FiChevronLeft /></button>
+            <button className="workfolio-modal-arrow is-next" type="button" onClick={next} aria-label="Next project"><FiChevronRight /></button>
+          </div>
+          <div className="workfolio-modal-details">
+            <div className="workfolio-modal-logo">{project.logo ? <Image src={project.logo} alt={`${project.client} logo`} width={92} height={40} /> : <span>{project.logoText}</span>}</div>
+            <p className="workfolio-modal-meta">{project.year} · {project.client}</p>
+            <h2 id="workfolio-modal-title">{project.title}</h2>
+            <div className="workfolio-modal-tags">{project.services.map((service) => <span key={service}>{service}</span>)}</div>
+            <p>{project.description}</p>
+            <div className="workfolio-modal-project-nav">
+              <button type="button" onClick={previous}><FiChevronLeft /> Previous</button>
+              <button type="button" onClick={next}>Next <FiChevronRight /></button>
+            </div>
+          </div>
+        </div>
+        <div className="workfolio-modal-thumbnails" aria-label="Choose project">
+          {projects.map((item, itemIndex) => <button className={itemIndex === index ? 'is-active' : ''} type="button" key={item.slug} onClick={() => onChange(itemIndex)} aria-label={`Open ${item.title}`}><Image src={item.image} alt="" fill sizes="72px" /></button>)}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -296,6 +346,7 @@ function ContactForm() {
 
 export default function Homepage() {
   const [active, setActive] = useState(0);
+  const [selectedWorkIndex, setSelectedWorkIndex] = useState<number | null>(null);
 
   const goTo = useCallback((next: number, updateUrl = true) => {
     const safeNext = Math.max(0, Math.min(pages.length - 1, next));
@@ -334,6 +385,17 @@ export default function Homepage() {
       window.removeEventListener('hashchange', syncFromHash);
     };
   }, [goTo]);
+
+  useEffect(() => {
+    if (selectedWorkIndex === null) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedWorkIndex(null);
+      if (event.key === 'ArrowLeft') setSelectedWorkIndex((current) => current === null ? null : (current - 1 + workfolioProjects.length) % workfolioProjects.length);
+      if (event.key === 'ArrowRight') setSelectedWorkIndex((current) => current === null ? null : (current + 1) % workfolioProjects.length);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedWorkIndex]);
 
   const scrollToServiceDetail = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
@@ -578,14 +640,13 @@ export default function Homepage() {
           <div className="workfolio-ambient workfolio-ambient-gold" aria-hidden="true" />
           <div className="workfolio-page-shell">
             <header className="workfolio-intro">
-              <p className="eyebrow"><span /> Selected portfolio</p>
               <div>
                 <h2 id="work-title">Our <em>Workfolio.</em></h2>
                 <p>A collection of programs, experiences, systems, and creative work built together with organizations, institutions, and communities.</p>
               </div>
             </header>
             <div className="workfolio-grid" aria-label="Campus Innovate selected projects">
-              {workfolioProjects.map((project, index) => <WorkfolioCard key={project.slug} project={project} index={index} />)}
+              {workfolioProjects.map((project, index) => <WorkfolioCard key={project.slug} project={project} index={index} onOpen={() => setSelectedWorkIndex(index)} />)}
             </div>
           </div>
           <ExtendedBottomPanel />
@@ -726,6 +787,7 @@ export default function Homepage() {
           </div>
         </section>
       </div>
+      {selectedWorkIndex !== null && <WorkfolioModal projects={workfolioProjects} index={selectedWorkIndex} onChange={setSelectedWorkIndex} onClose={() => setSelectedWorkIndex(null)} />}
       <a className="whatsapp-widget" href="https://wa.me/6285882514394?text=Halo%20Campus%20Innovate%2C%20saya%20ingin%20bertanya" target="_blank" rel="noreferrer" aria-label="Chat with Campus Innovate on WhatsApp"><FiMessageCircle /><span><strong>WhatsApp</strong><small>Chat with our team</small></span></a>
     </main>
   );
