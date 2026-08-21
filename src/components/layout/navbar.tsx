@@ -20,10 +20,12 @@ export default function Navbar() {
   const navigate = (event: React.MouseEvent, id: string) => {
     setOpen(false);
     setActiveHash(id);
-    if (window.location.pathname !== '/home') return;
+    const target = document.getElementById(id);
+    if (!target) return;
     event.preventDefault();
-    window.history.replaceState(null, '', `/home#${id}`);
+    window.history.replaceState(null, '', `${window.location.pathname}#${id}`);
     window.dispatchEvent(new HashChangeEvent('hashchange'));
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return <header className="site-header"><nav className="site-container nav-shell" aria-label="Main navigation">
