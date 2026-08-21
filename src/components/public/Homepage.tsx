@@ -454,6 +454,11 @@ export default function Homepage() {
               <p className="eyebrow"><span /> Who we are</p>
               <h2 id="about-title">We turn ideas into<br /><em>impactful solutions.</em></h2>
               <p>Campus Innovate combines education, programs, systems, events, digital solutions, and creative production to create real impact for institutions and future leaders.</p>
+              <div className="about-intro-points">
+                <article><FiCompass /><span><strong>Purpose-led</strong><small>Every solution starts from a real institutional need.</small></span></article>
+                <article><FiLayers /><span><strong>Connected capabilities</strong><small>Programs, systems, events, and creative work move together.</small></span></article>
+                <article><FiCheckCircle /><span><strong>Built for impact</strong><small>Designed to be implemented, measured, and strengthened.</small></span></article>
+              </div>
             </div>
             <div className="about-photo glossy-card">
               <Image src="/assets/site-2026/cda-ipb-activity.jpg" alt="Campus Innovate learning activity" fill sizes="44vw" />
@@ -465,10 +470,11 @@ export default function Homepage() {
           <div className="about-follow-section about-vision-section">
             <div className="about-section-shell">
               <div className="about-section-heading"><p className="eyebrow"><span /> Our Vision</p><h2><span>One direction.</span><span className="vision-title-accent">Long-term impact.</span></h2></div>
+              <div className="vision-principle-row"><span><b>01</b> Partnership-led</span><span><b>02</b> System-oriented</span><span><b>03</b> Built to last</span></div>
               <div className="vision-layout">
                 <div className="vision-photo-card glossy-card"><Image src="/assets/site-2026/cda-ipb-aerial.jpg" alt="Campus Innovate educational program with students" fill sizes="(max-width: 760px) 92vw, 40vw" /><div><span>Educational ecosystems</span><strong>Built through partnership.</strong></div></div>
                 <article className="vision-statement-card glossy-card">
-                  <span className="about-large-icon"><FiCompass /></span><small></small>
+                  <span className="about-large-icon"><FiCompass /></span><small>Our shared direction</small>
                   <p>To become a strategic partner in building innovative and impactful education ecosystems that empower the next generation of leaders.</p>
                   <div className="vision-focus-list"><span>Innovative ecosystems</span><span>Strategic partnership</span><span>Future leaders</span></div>
                 </article>
@@ -478,7 +484,7 @@ export default function Homepage() {
 
           <div className="about-follow-section about-mission-section">
             <div className="about-section-shell about-mission-shell">
-              <div className="about-section-heading dark-heading"><p className="eyebrow"><span /> Our Mission</p><h2>Clear commitments.<br /><em>Meaningful progress.</em></h2><p>Four commitments guide how Campus Innovate turns educational ideas into systems, programs, and experiences that work.</p><div className="mission-note"><FiZap /><span><small>From strategy to delivery</small><strong>Programs, systems, experiences, and people move forward together.</strong></span></div></div>
+              <div className="about-section-heading dark-heading"><p className="eyebrow"><span /> Our Mission</p><h2>Clear commitments.<br /><em>Meaningful progress.</em></h2><p>Four commitments guide how Campus Innovate turns educational ideas into systems, programs, and experiences that work.</p><div className="mission-operating-pillars"><span><FiCompass />Purpose</span><span><FiLayers />Systems</span><span><FiUsers />People</span></div><div className="mission-note"><FiZap /><span><small>From strategy to delivery</small><strong>Programs, systems, experiences, and people move forward together.</strong></span></div></div>
               <div className="mission-large-grid">
                 <article><span>01</span><strong>Develop innovative and relevant educational programs</strong></article>
                 <article><span>02</span><strong>Build modern and effective organizational systems</strong></article>
