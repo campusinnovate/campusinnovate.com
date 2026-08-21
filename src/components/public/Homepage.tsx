@@ -357,7 +357,7 @@ export default function Homepage() {
           <div className="slide-shell hero-shell">
             <div className="hero-copy-new">
               <p className="eyebrow hero-eyebrow">Educational Transformation Partner</p>
-              <h1 id="hero-title">Building <em>Systems.</em><br />Developing <strong>Leaders.</strong></h1>
+              <h1 id="hero-title"><span>Building <em>Systems.</em></span><span>Developing <strong>Leaders.</strong></span></h1>
               <p>Campus Innovate is an educational solutions partner that helps schools, universities, and educational organizations create impactful programs, efficient systems, and meaningful learning experiences.</p>
               <div className="hero-actions-new">
                 <button className="gloss-button gold-button" onClick={() => goTo(2)}>Explore Our Service <FiArrowRight /></button>
