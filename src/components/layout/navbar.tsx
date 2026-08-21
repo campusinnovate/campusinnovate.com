@@ -24,7 +24,7 @@ export default function Navbar() {
     if (!target) return;
     event.preventDefault();
     window.history.replaceState(null, '', `${window.location.pathname}#${id}`);
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    window.dispatchEvent(new CustomEvent('campus:navigate', { detail: { id } }));
   };
 
   return <header className="site-header"><nav className="site-container nav-shell" aria-label="Main navigation">
