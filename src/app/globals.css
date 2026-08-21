@@ -2255,7 +2255,8 @@ img {
 }
 
 .hero-copy-new {
-  padding-bottom: 36px;
+  align-self: center;
+  padding: 22px 0 0;
 }
 
 .hero-copy-new h1 {
@@ -2280,7 +2281,7 @@ img {
   max-width: 570px;
   margin: 24px 0 0;
   color: rgba(229, 237, 255, .78);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.7;
 }
 
@@ -2523,14 +2524,33 @@ img {
   font-size: 9px;
 }
 
-.trust-logos {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
+.trust-logo-viewport {
+  min-width: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
 }
 
-.trust-logos>div {
+.trust-logo-track {
+  width: max-content;
+  display: flex;
+  animation: trusted-logo-scroll 36s linear infinite;
+  will-change: transform;
+}
+
+.trust-logo-viewport:hover .trust-logo-track {
+  animation-play-state: paused;
+}
+
+.trust-logo-set {
+  display: flex;
+  gap: 8px;
+  padding-right: 8px;
+}
+
+.trust-logo-set>div {
+  width: 142px;
   height: 46px;
+  flex: 0 0 142px;
   display: grid;
   place-items: center;
   padding: 6px 10px;
@@ -2541,17 +2561,21 @@ img {
   box-shadow: 0 6px 16px rgba(22, 51, 110, .08);
 }
 
-.trust-logos img {
+.trust-logo-set img {
   width: 100%;
   height: 32px;
   object-fit: contain;
 }
 
-.trust-logos span {
+.trust-logo-set span {
   text-align: center;
   font-size: 8px;
   font-weight: 800;
   line-height: 1.2;
+}
+
+@keyframes trusted-logo-scroll {
+  to { transform: translateX(-50%); }
 }
 
 .light-slide {
@@ -3658,7 +3682,7 @@ img {
   }
 
   .hero-copy-new>p:not(.eyebrow) {
-    font-size: 11px;
+    font-size: 13px;
     margin-top: 16px;
   }
 
@@ -3715,20 +3739,18 @@ img {
     display: none;
   }
 
-  .trust-logos {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .trust-logos>div {
+  .trust-logo-set>div {
+    width: 112px;
+    flex-basis: 112px;
     height: 32px;
     padding: 3px 6px
   }
 
-  .trust-logos img {
+  .trust-logo-set img {
     height: 23px
   }
 
-  .trust-logos span {
+  .trust-logo-set span {
     font-size: 6px
   }
 
@@ -3962,7 +3984,7 @@ img {
     min-height: 58px
   }
 
-  .trust-logos>div {
+  .trust-logo-set>div {
     height: 38px
   }
 
@@ -4866,7 +4888,7 @@ img {
   max-width: 620px;
   margin: 18px 0 0;
   color: rgba(229, 237, 255, .68);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.7;
 }
 
@@ -4968,6 +4990,7 @@ img {
   z-index: 2;
   margin: 42px 0 13px;
   font-size: 21px;
+  font-weight: 850;
   line-height: 1.05;
   letter-spacing: -.6px;
 }
@@ -4977,7 +5000,7 @@ img {
   z-index: 2;
   margin: 0;
   color: rgba(235, 241, 255, .64);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.6
 }
 
@@ -6278,7 +6301,7 @@ img {
 .coreva-launch-copy h2 { margin: 24px 0 0; color: #fff; font-size: clamp(50px, 5.1vw, 78px); font-weight: 850; letter-spacing: -.065em; line-height: .94; }
 .coreva-launch-copy h2 em { color: #ffc927; font-style: normal; }
 .coreva-launch-copy h3 { margin: 13px 0 0; color: rgba(241,246,255,.88); font-size: clamp(22px, 2.35vw, 34px); font-weight: 700; letter-spacing: -.04em; line-height: 1.08; }
-.coreva-launch-copy > p { max-width: 530px; margin: 22px 0 0; color: rgba(226,236,255,.65); font-size: 12px; line-height: 1.7; }
+.coreva-launch-copy > p { max-width: 560px; margin: 22px 0 0; color: rgba(226,236,255,.65); font-size: 14px; line-height: 1.7; }
 .coreva-launch-cta { width: fit-content; min-height: 47px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; margin-top: 27px; padding: 11px 18px; color: #08234f; border: 1px solid #ffe679; border-radius: 999px; background: linear-gradient(145deg, #ffe273, #ffb714); box-shadow: inset 0 1px rgba(255,255,255,.75), 0 16px 34px rgba(255,184,18,.21); font-size: 10px; font-weight: 900; text-decoration: none; transition: transform .25s ease, filter .25s ease, box-shadow .25s ease; }
 .coreva-launch-cta svg { transition: transform .25s ease; }
 .coreva-launch-cta:hover { transform: translateY(-3px); filter: brightness(1.04); box-shadow: inset 0 1px rgba(255,255,255,.8), 0 20px 39px rgba(255,184,18,.28); }
@@ -6321,7 +6344,7 @@ img {
   .coreva-launch-panel { grid-template-columns: 1fr; gap: 38px; padding: 26px 19px; border-radius: 28px; }
   .coreva-launch-copy h2 { font-size: clamp(46px, 14vw, 62px); }
   .coreva-launch-copy h3 { font-size: 25px; }
-  .coreva-launch-copy > p { font-size: 11px; }
+  .coreva-launch-copy > p { font-size: 13px; }
   .coreva-launch-cta { width: 100%; }
   .coreva-browser { border-radius: 20px; transform: none; }
   .coreva-browser:hover { transform: translateY(-3px); }
@@ -6331,6 +6354,8 @@ img {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .trust-logo-viewport { overflow-x: auto; }
+  .trust-logo-track { animation: none; }
   .coreva-launch-cta,
   .coreva-launch-cta svg,
   .coreva-browser,
