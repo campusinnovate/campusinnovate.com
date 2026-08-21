@@ -25,7 +25,6 @@ export default function Navbar() {
     event.preventDefault();
     window.history.replaceState(null, '', `${window.location.pathname}#${id}`);
     window.dispatchEvent(new HashChangeEvent('hashchange'));
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return <header className="site-header"><nav className="site-container nav-shell" aria-label="Main navigation">
