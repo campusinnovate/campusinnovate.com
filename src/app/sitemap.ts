@@ -5,38 +5,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: 'https://campusinnovate.com',
       lastModified: new Date(),
-      changeFrequency: 'yearly',
+      changeFrequency: 'weekly',
       priority: 1,
     },
     {
       url: 'https://campusinnovate.com/home',
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 0.8,
-    },
-    {
-      url: 'https://campusinnovate.com/services',
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.8,
-    },
-    {
-      url: 'https://campusinnovate.com/about',
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.8,
-    },
-    {
-      url: 'https://campusinnovate.com/goals',
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.8,
-    },
-    {
-      url: 'https://campusinnovate.com/portofolio',
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.8,
+      priority: 1,
     },
   ]
 }

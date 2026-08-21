@@ -3,23 +3,29 @@ import './globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://campusinnovate.com'),
-  title: 'Campus Innovate — Grow People, Strengthen Teams',
-  description: 'Program leadership, organization development, mentoring, dan capacity building yang dirancang sesuai kebutuhan tim.',
-  authors: [{ name: 'Zidane Ibrahim Fadela' }],
+  title: {
+    default: 'Campus Innovate - Building Systems. Developing Leaders.',
+    template: '%s | Campus Innovate',
+  },
+  description: 'Campus Innovate is an educational solutions partner for impactful programs, efficient systems, and meaningful learning experiences.',
+  authors: [{ name: 'Campus Innovate' }],
+  alternates: { canonical: '/home' },
   icons: {
-    icon: '/assets/logos/logo-campus-innovate.png',
+    icon: '/assets/brand/campus-innovate-official.png',
   },
   openGraph: {
     type: 'website',
-    title: 'Campus Innovate — Grow People, Strengthen Teams',
-    description: 'Pengalaman belajar yang membantu individu bertumbuh dan organisasi bergerak lebih kuat.',
-    images: [{ url: '/og.png', width: 1734, height: 907, alt: 'Campus Innovate — Grow People. Strengthen Teams.' }],
+    url: '/home',
+    siteName: 'Campus Innovate',
+    title: 'Campus Innovate - Building Systems. Developing Leaders.',
+    description: 'Impactful programs, efficient systems, and meaningful learning experiences for institutions and future leaders.',
+    images: [{ url: '/assets/site-2026/hero-team.jpg', width: 2000, height: 1333, alt: 'Campus Innovate team' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Campus Innovate — Grow People, Strengthen Teams',
-    description: 'Pengalaman belajar yang membantu individu bertumbuh dan organisasi bergerak lebih kuat.',
-    images: ['/og.png'],
+    title: 'Campus Innovate - Building Systems. Developing Leaders.',
+    description: 'Impactful programs, efficient systems, and meaningful learning experiences.',
+    images: ['/assets/site-2026/hero-team.jpg'],
   },
 };
 
@@ -29,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
+    <html lang="en">
       <body>{children}</body>
     </html>
   );
