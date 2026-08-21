@@ -284,7 +284,7 @@ export default function Homepage() {
     const safeNext = Math.max(0, Math.min(pages.length - 1, next));
     setActive(safeNext);
     if (updateUrl) {
-      const hash = `/home#${pages[safeNext].id}`;
+      const hash = `${window.location.pathname}#${pages[safeNext].id}`;
       window.history.replaceState(null, '', hash);
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     }
@@ -320,7 +320,7 @@ export default function Homepage() {
 
   const scrollToServiceDetail = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
-    window.history.replaceState(null, '', `/home#${id}`);
+    window.history.replaceState(null, '', `${window.location.pathname}#${id}`);
     const slide = document.getElementById('services');
     const target = document.getElementById(id);
     if (slide && target) slide.scrollTo({ top: target.offsetTop, behavior: 'smooth' });
