@@ -48,6 +48,15 @@ const pages = [
   { id: 'contact', label: 'Contact' },
 ] as const;
 
+const trustedMarks = Array.from(
+  new Map(
+    [
+      ...clientMarks,
+      ...workfolioProjects.flatMap((project) => project.logo ? [{ name: project.client, logo: project.logo }] : []),
+    ].map((client) => [client.logo, client]),
+  ).values(),
+);
+
 const solutionIcons = [FiCompass, FiUsers, FiCode, FiLayers, FiZap];
 const serviceDetailIds = solutions.map((solution) => solution.id);
 
@@ -363,9 +372,6 @@ export default function Homepage() {
                 <button className="gloss-button gold-button" onClick={() => goTo(2)}>Explore Our Service <FiArrowRight /></button>
                 <button className="gloss-button clear-button" onClick={() => goTo(3)}>View Workfolio <FiArrowRight /></button>
               </div>
-              <div className="hero-values">
-                {approach.map((item, index) => <div key={item.number}><span>0{index + 1}</span><strong>{item.title}</strong></div>)}
-              </div>
             </div>
 
             <div className="hero-stage">
@@ -378,7 +384,15 @@ export default function Homepage() {
 
             <div className="trust-glass glass-panel">
               <p>Trusted by<br /><strong>institutions & organizations</strong></p>
-              <div className="trust-logos">{clientMarks.map((client) => <div key={client.name}><Image src={client.logo} alt={client.name} width={92} height={44} /></div>)}</div>
+              <div className="trust-logo-viewport" aria-label="Institutions and organizations that have worked with Campus Innovate">
+                <div className="trust-logo-track">
+                  {[0, 1].map((setIndex) => (
+                    <div className="trust-logo-set" key={setIndex} aria-hidden={setIndex === 1}>
+                      {trustedMarks.map((client) => <div key={`${setIndex}-${client.logo}`}><Image src={client.logo} alt={setIndex === 0 ? client.name : ''} width={108} height={48} /></div>)}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
           </div>
@@ -411,7 +425,7 @@ export default function Homepage() {
               <div className="elfsight-home-frame glossy-card">
                 <div className="elfsight-app-87190d09-35a6-4334-84ee-f753502e1e94" data-elfsight-app-lazy />
               </div>
-              <p className="feed-status"></p>
+              <p className="feed-status">Posting asli dari @campusinnovate · diperbarui melalui Elfsight.</p>
             </div>
           </div>
 
