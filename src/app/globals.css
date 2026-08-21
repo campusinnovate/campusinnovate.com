@@ -5547,16 +5547,8 @@ img {
 }
 
 .workfolio-intro {
-  display: grid;
-  grid-template-columns: .43fr 1.57fr;
-  align-items: end;
-  gap: 40px;
+  display: block;
   padding: 8px 0 38px;
-}
-
-.workfolio-intro .eyebrow {
-  align-self: start;
-  margin-top: 12px;
 }
 
 .workfolio-intro > div {
@@ -5572,11 +5564,13 @@ img {
   font-size: clamp(50px, 5vw, 76px);
   line-height: .92;
   letter-spacing: -.06em;
+  font-weight: 950;
 }
 
 .workfolio-intro h2 em {
   color: #1b57de;
   font-style: normal;
+  font-weight: 950;
 }
 
 .workfolio-intro > div > p {
@@ -5724,6 +5718,7 @@ img {
   font-size: clamp(17px, 1.35vw, 21px);
   line-height: 1.08;
   letter-spacing: -.035em;
+  font-weight: 900;
 }
 
 .workfolio-client {
@@ -5758,7 +5753,7 @@ img {
 .workfolio-description {
   margin: 13px 0 15px;
   color: rgba(224, 233, 252, .58);
-  font-size: 8px;
+  font-size: 11px;
   line-height: 1.55;
 }
 
@@ -5770,6 +5765,11 @@ img {
   color: #ffd037;
   font-size: 7.5px;
   font-weight: 850;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .workfolio-view svg { transition: transform .25s ease; }
@@ -5777,8 +5777,6 @@ img {
 
 @media (max-width: 1100px) {
   .workfolio-page-shell { width: min(100% - 40px, 980px); }
-  .workfolio-intro { grid-template-columns: 1fr; gap: 5px; }
-  .workfolio-intro .eyebrow { margin-top: 0; }
   .workfolio-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .workfolio-card h3 { font-size: 22px; }
   .workfolio-card-body { min-height: 250px; }
@@ -5796,13 +5794,108 @@ img {
   .workfolio-card h3 { font-size: 23px; }
   .workfolio-client { font-size: 9px; }
   .workfolio-tags span { font-size: 7px; }
-  .workfolio-description { font-size: 8.5px; }
+  .workfolio-description { font-size: 11px; }
+}
+
+.workfolio-modal-backdrop {
+  position: fixed;
+  z-index: 1600;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(1, 7, 26, .84);
+  backdrop-filter: blur(18px);
+  animation: workfolio-backdrop-in .28s ease both;
+}
+
+.workfolio-modal-device {
+  width: min(1180px, 100%);
+  height: min(88vh, 820px);
+  display: grid;
+  grid-template-rows: 48px minmax(0, 1fr) 82px;
+  overflow: hidden;
+  color: #fff;
+  border: 1px solid rgba(163, 190, 255, .42);
+  border-radius: 34px;
+  background: linear-gradient(145deg, #0b2868, #06143b 66%, #030b23);
+  box-shadow: inset 0 1px rgba(255,255,255,.27), 0 38px 100px rgba(0,0,0,.58), 0 0 70px rgba(35,99,255,.18);
+  animation: workfolio-device-in .42s cubic-bezier(.18,.78,.2,1) both;
+}
+
+.workfolio-modal-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 0 22px;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  color: rgba(226,235,255,.68);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.workfolio-modal-notch { position: absolute; left: 50%; top: 10px; width: 92px; height: 24px; transform: translateX(-50%); border-radius: 99px; background: rgba(0,4,17,.72); }
+.workfolio-modal-bar button,
+.workfolio-modal-arrow,
+.workfolio-modal-project-nav button { display: inline-flex; align-items: center; justify-content: center; border: 0; color: inherit; background: none; cursor: pointer; font-family: inherit; }
+.workfolio-modal-bar button { z-index: 2; width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.17); border-radius: 50%; color: #fff; font-size: 20px; }
+
+.workfolio-modal-content {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(310px, .65fr);
+  animation: workfolio-slide-in .45s cubic-bezier(.18,.78,.2,1) both;
+}
+
+.workfolio-modal-media { position: relative; min-height: 0; margin: 16px 0 16px 16px; overflow: hidden; border: 1px solid rgba(255,255,255,.2); border-radius: 24px; background: #07163c; }
+.workfolio-modal-media > img { object-fit: cover; }
+.workfolio-modal-shade { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 60%, rgba(2,9,31,.5)); pointer-events: none; }
+.workfolio-modal-arrow { position: absolute; z-index: 3; top: 50%; width: 48px; height: 48px; transform: translateY(-50%); border: 1px solid rgba(255,255,255,.38); border-radius: 50%; background: rgba(3,15,48,.66); backdrop-filter: blur(10px); color: #fff; font-size: 27px; transition: transform .22s ease, background .22s ease; }
+.workfolio-modal-arrow:hover { transform: translateY(-50%) scale(1.08); background: #f5b900; color: #08235d; }
+.workfolio-modal-arrow.is-previous { left: 18px; }
+.workfolio-modal-arrow.is-next { right: 18px; }
+
+.workfolio-modal-details { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 34px 38px; }
+.workfolio-modal-logo { width: 106px; height: 54px; display: grid; place-items: center; padding: 7px 10px; overflow: hidden; border-radius: 13px; color: #092356; background: #fff; }
+.workfolio-modal-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.workfolio-modal-logo span { font-size: 9px; font-weight: 900; text-align: center; }
+.workfolio-modal-meta { margin: 24px 0 8px !important; color: #ffd037 !important; font-size: 10px !important; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.workfolio-modal-details h2 { margin: 0; font-size: clamp(30px, 3.2vw, 50px); line-height: .98; letter-spacing: -.05em; font-weight: 950; }
+.workfolio-modal-details > p:last-of-type { margin: 22px 0 0; color: rgba(229,237,255,.75); font-size: 14px; line-height: 1.65; }
+.workfolio-modal-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+.workfolio-modal-tags span { padding: 7px 10px; border: 1px solid rgba(117,158,255,.35); border-radius: 999px; background: rgba(46,91,197,.28); color: #dce8ff; font-size: 9px; font-weight: 800; }
+.workfolio-modal-project-nav { width: 100%; display: flex; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 26px; }
+.workfolio-modal-project-nav button { gap: 6px; padding: 10px 0; color: #ffd037; font-size: 10px; font-weight: 900; }
+
+.workfolio-modal-thumbnails { min-width: 0; display: flex; gap: 9px; overflow-x: auto; padding: 12px 16px 16px; border-top: 1px solid rgba(255,255,255,.1); scrollbar-width: thin; }
+.workfolio-modal-thumbnails button { position: relative; flex: 0 0 76px; overflow: hidden; border: 2px solid transparent; border-radius: 11px; background: #061436; opacity: .48; cursor: pointer; transition: opacity .2s ease, transform .2s ease, border-color .2s ease; }
+.workfolio-modal-thumbnails button img { object-fit: cover; }
+.workfolio-modal-thumbnails button:hover,
+.workfolio-modal-thumbnails button.is-active { opacity: 1; transform: translateY(-2px); border-color: #ffd037; }
+
+@keyframes workfolio-backdrop-in { from { opacity: 0; } }
+@keyframes workfolio-device-in { from { opacity: 0; transform: translateY(56px) scale(.96); } }
+@keyframes workfolio-slide-in { from { opacity: 0; transform: translateY(44px); } }
+
+@media (max-width: 760px) {
+  .workfolio-modal-backdrop { padding: 8px; }
+  .workfolio-modal-device { height: calc(100dvh - 16px); border-radius: 25px; grid-template-rows: 44px minmax(0, 1fr) 72px; }
+  .workfolio-modal-content { overflow-y: auto; grid-template-columns: 1fr; grid-template-rows: minmax(310px, 52vh) auto; }
+  .workfolio-modal-media { margin: 10px 10px 0; border-radius: 18px; }
+  .workfolio-modal-details { justify-content: flex-start; padding: 24px 22px 30px; }
+  .workfolio-modal-details h2 { font-size: clamp(31px, 10vw, 44px); }
+  .workfolio-modal-details > p:last-of-type { font-size: 13px; }
+  .workfolio-modal-project-nav { margin-top: 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .workfolio-card,
   .workfolio-card-media > img,
-  .workfolio-view svg { transition: none; }
+  .workfolio-view svg,
+  .workfolio-modal-device,
+  .workfolio-modal-content { transition: none; animation: none; }
 }
 
 /* Kawan Inovasi — public employer brand and recruitment story */
