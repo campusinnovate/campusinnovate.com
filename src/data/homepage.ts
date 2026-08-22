@@ -517,7 +517,7 @@ export const communities: readonly Community[] = [
       { title: 'Act', copy: 'Mendorong pembelajaran menjadi kontribusi dan inisiatif bermakna.' },
     ],
     joinUrl: null,
-    websiteUrl: null,
+    websiteUrl: 'https://ylos.site/',
     showJoinCTA: false,
     showDetail: true,
   },
