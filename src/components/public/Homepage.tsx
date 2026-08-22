@@ -671,12 +671,12 @@ export default function Homepage() {
             <div className="kawan-page-shell kawan-hero-grid">
               <div className="kawan-hero-copy">
                 <p className="kawan-kicker">Kawan Inovasi</p>
-                <h2 id="kawan-title">Ruang bertumbuh bagi <em>Kawan Inovasi.</em></h2>
-                <p className="kawan-lead">Kawan Inovasi adalah ruang bagi orang-orang yang tumbuh bersama Campus Innovate—berkolaborasi, belajar, memperbaiki cara kerja, dan menciptakan dampak melalui pekerjaan nyata.</p>
+                <h2 id="kawan-title">A space to grow for <em>Kawan Inovasi</em></h2>
+                <p className="kawan-lead">Kawan Inovasi is a space for individuals growing with Campus Innovate to collaborate, learn, refine their ways of working, and create impact through real work.</p>
                 <div className="kawan-principles" aria-label="Prinsip Kawan Inovasi">
                   {kawanPrinciples.map((principle) => <article key={principle.number}><span>{principle.number}</span><div><strong>{principle.title}</strong><small>{principle.copy}</small></div></article>)}
                 </div>
-                <a className="gloss-button gold-button kawan-button" href="#kawan-recruitment" onClick={(event) => scrollToKawanSection(event, 'kawan-recruitment')}>Lihat Kesempatan Bergabung <FiArrowRight /></a>
+                <a className="gloss-button gold-button kawan-button" href="#kawan-recruitment" onClick={(event) => scrollToKawanSection(event, 'kawan-recruitment')}>View opportunities <FiArrowRight /></a>
               </div>
               <div className="kawan-hero-photos" aria-label="Kegiatan tim Campus Innovate">
                 <div className="kawan-photo kawan-photo-main"><Image src="/images/kawan-inovasi/team-hero.jpg" alt="Tim Campus Innovate bertumbuh dan bekerja bersama" fill priority sizes="(max-width: 760px) 92vw, 43vw" /></div>
@@ -690,17 +690,17 @@ export default function Homepage() {
             <div className="kawan-page-shell kawan-about-grid">
               <div className="kawan-about-photo"><Image src="/images/kawan-inovasi/team-candid.jpg" alt="Kawan Inovasi dalam momen kerja bersama" fill sizes="(max-width: 760px) 92vw, 47vw" /></div>
               <div className="kawan-editorial-copy">
-                <p className="kawan-kicker">Tentang Kawan Inovasi</p>
-                <h2 id="kawan-about-title">Lebih dari sekadar tim.</h2>
-                <p>Kawan Inovasi adalah sebutan bagi orang-orang yang tumbuh bersama Campus Innovate. Kami datang dari peran dan keahlian yang berbeda, tetapi berbagi semangat yang sama: belajar, memperbaiki cara kerja, berkolaborasi, dan menciptakan sesuatu yang bermakna.</p>
-                <div className="kawan-about-note"><span>01</span><p>Kami percaya pekerjaan terbaik lahir dari ruang yang aman untuk bertanya, mencoba, dan bertumbuh bersama.</p></div>
+                <p className="kawan-kicker">About Kawan Inovasi</p>
+                <h2 id="kawan-about-title">More Than Just a Team.</h2>
+                <p>Kawan Inovasi is what we call the people growing together with Campus Innovate. We come from diverse roles and expertise, but we share the same passion: learning, refining our ways of working, collaborating, and creating something meaningful.</p>
+                <div className="kawan-about-note"><span>01</span><p>We believe the best work comes from a safe space to ask, experiment, and grow together.</p></div>
               </div>
             </div>
           </section>
 
           <section className="kawan-section kawan-stories" aria-labelledby="kawan-stories-title">
             <div className="kawan-page-shell">
-              <div className="kawan-section-heading"><p className="kawan-kicker">Cerita Kawan Inovasi</p><h2 id="kawan-stories-title">Bagaimana rasanya tumbuh<br /><em>di Campus Innovate?</em></h2></div>
+              <div className="kawan-section-heading"><p className="kawan-kicker">Kawan Inovasi Stories</p><h2 id="kawan-stories-title">What is it like to grow <br /><em>at Campus Innovate?</em></h2></div>
               <div className="kawan-story-row">
                 {employeeStories.length > 0 ? employeeStories.map((story) => <article className="kawan-story-card" key={story.name}><span className="kawan-quote-mark">“</span><blockquote>{story.quote}</blockquote><div><strong>{story.name}</strong><small>{story.role}</small></div></article>) : <KawanEmptyStory type="employee" />}
               </div>
@@ -709,24 +709,24 @@ export default function Homepage() {
 
           <section className="kawan-section kawan-life" aria-labelledby="kawan-life-title">
             <div className="kawan-page-shell">
-              <div className="kawan-section-heading"><p className="kawan-kicker">Life at Campus Innovate</p><h2 id="kawan-life-title">Di balik setiap karya, ada<br /><em>proses dan kebersamaan.</em></h2></div>
+              <div className="kawan-section-heading"><p className="kawan-kicker">Life at Campus Innovate</p><h2 id="kawan-life-title">Behind every work, there is <br /><em>a process and togetherness.</em></h2></div>
               <div className="kawan-life-grid">{kawanLife.map((moment) => <article key={moment.title}><Image src={moment.image} alt={`${moment.title} bersama Kawan Inovasi`} fill sizes="(max-width: 760px) 72vw, 19vw" /><div><span /><h3>{moment.title}</h3><p>{moment.copy}</p></div></article>)}</div>
             </div>
           </section>
 
           <section className="kawan-section kawan-client-stories" aria-labelledby="kawan-client-title">
             <div className="kawan-page-shell kawan-client-grid">
-              <div className="kawan-section-heading"><p className="kawan-kicker">Dari mereka yang bekerja bersama Kawan Inovasi</p><h2 id="kawan-client-title">Cerita dari mereka yang<br /><em>pernah bekerja bersama kami.</em></h2><p>Budaya kerja internal kami hadir dalam kolaborasi, respons, dan pengalaman yang diterima setiap mitra.</p></div>
+              <div className="kawan-section-heading"><p className="kawan-kicker"></p><h2 id="kawan-client-title">Stories from those who<br /><em>have worked with us.</em></h2><p>Our internal work culture is reflected in our collaboration, responsiveness, and the experience every partner receives.</p></div>
               <div className="kawan-story-row">{clientStories.length > 0 ? clientStories.map((story) => <article className="kawan-story-card" key={`${story.name}-${story.institution}`}><span className="kawan-quote-mark">“</span><blockquote>{story.quote}</blockquote><div><strong>{story.name}</strong><small>{story.position} · {story.institution}</small></div></article>) : <KawanEmptyStory type="client" />}</div>
             </div>
           </section>
 
           <section className="kawan-section kawan-recruitment" id="kawan-recruitment" aria-labelledby="kawan-recruitment-title">
             <div className="kawan-page-shell">
-              <div className="kawan-section-heading"><p className="kawan-kicker">Kesempatan Bergabung</p><h2 id="kawan-recruitment-title">Mungkin kamu,<br /><em>Kawan Inovasi berikutnya.</em></h2><p>Temukan kesempatan untuk tumbuh, berkarya, dan menciptakan dampak bersama Campus Innovate.</p></div>
-              {vacancies.length > 0 ? <div className="kawan-vacancy-grid">{vacancies.map((vacancy) => <article key={vacancy.title}><FiBriefcase /><span>{vacancy.category}</span><h3>{vacancy.title}</h3><p>{vacancy.location} · {vacancy.type}</p><a href={vacancy.applyUrl}>Lihat posisi <FiArrowRight /></a></article>)}</div> : <div className="kawan-vacancy-empty"><div><FiBriefcase /></div><span>Belum ada posisi aktif</span><h3>Belum ada lowongan yang sedang dibuka.</h3><p>Kami hanya menampilkan kesempatan yang telah dikonfirmasi aktif oleh Campus Innovate.</p></div>}
-              <div className="kawan-general-application"><div><span>General application</span><h3>Belum menemukan posisi yang tepat?</h3><p>Kirim profilmu dan mari tetap terhubung untuk kesempatan berikutnya.</p></div><a className="gloss-button gold-button" href="mailto:innovatecampus@gmail.com?subject=General%20Application%20-%20Kawan%20Inovasi">Kirim Profil <FiArrowRight /></a></div>
-              <div className="kawan-internal-entry"><FiLock /><div><span>Sudah menjadi Kawan Inovasi?</span><a href="/ruang-kawan">Masuk ke Ruang Kawan <FiArrowRight /></a></div></div>
+              <div className="kawan-section-heading"><p className="kawan-kicker">JOINING OPPORTUNITIES</p><h2 id="kawan-recruitment-title">You might be<br /><em>the next Kawan Inovasi.</em></h2><p>Find opportunities to grow, create, and make an impact with Campus Innovate.</p></div>
+              {vacancies.length > 0 ? <div className="kawan-vacancy-grid">{vacancies.map((vacancy) => <article key={vacancy.title}><FiBriefcase /><span>{vacancy.category}</span><h3>{vacancy.title}</h3><p>{vacancy.location} · {vacancy.type}</p><a href={vacancy.applyUrl}>Lihat posisi <FiArrowRight /></a></article>)}</div> : <div className="kawan-vacancy-empty"><div><FiBriefcase /></div><span>No job openings currently available</span><h3>No job openings currently available.</h3><p>We only list opportunities that have been actively confirmed by Campus Innovate.</p></div>}
+              <div className="kawan-general-application"><div><span>General application</span><h3>Haven't found the right position yet?</h3><p>Send your profile and let's stay connected for future opportunities.</p></div><a className="gloss-button gold-button" href="mailto:innovatecampus@gmail.com?subject=General%20Application%20-%20Kawan%20Inovasi">Submit Profile <FiArrowRight /></a></div>
+              <div className="kawan-internal-entry"><FiLock /><div><span>Already a Kawan Inovasi?</span><a href="/ruang-kawan">Enter Ruang Kawan <FiArrowRight /></a></div></div>
             </div>
           </section>
           <ExtendedBottomPanel />
@@ -738,7 +738,7 @@ export default function Homepage() {
             <div className="community-overview-light community-overview-light-gold" aria-hidden="true" />
             <div className="community-page-shell community-overview-shell">
               <div className="community-topline">
-                <div className="community-page-heading"><p className="community-kicker">Multi-community platform</p><h2 id="community-title">Communities that<br /><em>move together.</em></h2><p>Tiga karakter komunitas dalam satu ekosistem yang terhubung melalui pengalaman, pembelajaran, dan gerak bersama.</p></div>
+                <div className="community-page-heading"><p className="community-kicker">Multi-community platform</p><h2 id="community-title">Communities that<br /><em>move together.</em></h2><p></p></div>
                 <div className="community-stat-inline"><strong>10,000+</strong><span>community members in Bogor</span></div>
               </div>
               <div className="community-card-grid">
@@ -752,7 +752,7 @@ export default function Homepage() {
                       <div className={`community-logo community-logo-${community.id}`}><Image src={community.logo} alt={`${community.name} logo`} width={220} height={92} /></div>
                       <div className="community-profile-copy"><span>{community.category}</span><h3>{community.name}</h3><p>{community.description}</p><strong>{isStripmate ? 'Explore Stripmate' : 'Explore'} {isStripmate ? <FiExternalLink /> : <FiArrowRight />}</strong></div>
                     </a>
-                    {isStripmate && community.joinUrl && <a className="community-card-secondary" href={community.joinUrl} target="_blank" rel="noopener noreferrer">Gabung Stripmate <FiExternalLink /></a>}
+                    {isStripmate && community.joinUrl && <a className="community-card-secondary" href={community.joinUrl} target="_blank" rel="noopener noreferrer">Join Stripmate <FiExternalLink /></a>}
                   </article>;
                 })}
               </div>
@@ -763,7 +763,7 @@ export default function Homepage() {
 
           <section className="community-closing" aria-labelledby="community-closing-title">
             <div className="community-page-shell community-closing-grid">
-              <div><p className="community-kicker">One connected ecosystem</p><h2 id="community-closing-title">Different communities.<br /><em>One connected ecosystem.</em></h2><p>Community Campus Innovate hadir dalam bentuk dan pengalaman yang berbeda, tetapi bertemu dalam semangat yang sama untuk belajar, terhubung, berkembang, dan menciptakan pengalaman bermakna.</p></div>
+              <div><p className="community-kicker">One connected ecosystem</p><h2 id="community-closing-title">Different communities.<br /><em>One connected ecosystem.</em></h2><p>The Campus Innovate Community manifests in diverse forms and experiences, but converges on a shared vision: to learn, connect, grow, and build meaningful experiences together.</p></div>
               <div className="community-identity-row">{communities.map((community) => <article className={`community-identity-${community.id}`} key={community.id}><Image src={community.logo} alt={`${community.name} identity`} width={220} height={92} /><span>{community.themes.map((theme) => theme.title).join(' · ')}</span></article>)}</div>
             </div>
           </section>
