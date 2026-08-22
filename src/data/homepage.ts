@@ -495,7 +495,7 @@ export const communities: readonly Community[] = [
       { title: 'Exchange', copy: 'Berbagi perspektif, pengalaman, praktik, dan pembelajaran.' },
       { title: 'Build', copy: 'Membawa insight kembali untuk membangun organisasi yang lebih baik.' },
     ],
-    joinUrl: null,
+    joinUrl: 'https://chat.whatsapp.com/HohCnHsmNLIAdvEx6IXT7w?mode=gi_t',
     websiteUrl: null,
     showJoinCTA: true,
     showDetail: true,
