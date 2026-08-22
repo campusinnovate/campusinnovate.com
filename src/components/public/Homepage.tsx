@@ -132,12 +132,13 @@ function ServiceDetail({ detail, icon: Icon }: ServiceDetailProps) {
 }
 
 function WorkfolioCard({ project, index, onOpen }: { project: WorkfolioProject; index: number; onOpen: () => void }) {
+  const preserveFrame = project.services.some((service) => service === 'Digital System' || service === 'Creative & Media');
   return (
     <article className="workfolio-card" data-project-slug={project.slug}>
-      <div className="workfolio-card-media">
+      <div className={`workfolio-card-media ${preserveFrame ? 'has-contain-media' : ''}`}>
         <Image src={project.image} alt={project.imageAlt} fill priority={index < 4} sizes="(max-width: 760px) 92vw, (max-width: 1100px) 46vw, 23vw" />
         <div className="workfolio-media-overlay" />
-        <div className="workfolio-logo-plate">
+        <div className={`workfolio-logo-plate is-${project.logoSurface ?? 'light'}`}>
           {project.logo
             ? <Image src={project.logo} alt={`${project.client} project logo`} width={124} height={56} />
             : <span>{project.logoText}</span>}
@@ -165,38 +166,54 @@ type WorkfolioModalProps = {
 
 function WorkfolioModal({ projects, index, onChange, onClose }: WorkfolioModalProps) {
   const project = projects[index];
-  const previous = () => onChange((index - 1 + projects.length) % projects.length);
-  const next = () => onChange((index + 1) % projects.length);
+  const preserveFrame = project.services.some((service) => service === 'Digital System' || service === 'Creative & Media');
+  const gallery = project.gallery?.length ? project.gallery : [project.image];
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const previousProject = () => onChange((index - 1 + projects.length) % projects.length);
+  const nextProject = () => onChange((index + 1) % projects.length);
+  const previousPhoto = () => setPhotoIndex((current) => (current - 1 + gallery.length) % gallery.length);
+  const nextPhoto = () => setPhotoIndex((current) => (current + 1) % gallery.length);
+
+  useEffect(() => setPhotoIndex(0), [index]);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+      if (event.key === 'ArrowLeft') previousPhoto();
+      if (event.key === 'ArrowRight') nextPhoto();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 
   return (
     <div className="workfolio-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="workfolio-modal-title" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <div className="workfolio-modal-device">
         <div className="workfolio-modal-bar">
-          <span>{String(index + 1).padStart(2, '0')} / {String(projects.length).padStart(2, '0')}</span>
+          <span>Project {String(index + 1).padStart(2, '0')} · Photo {photoIndex + 1}/{gallery.length}</span>
           <div className="workfolio-modal-notch" aria-hidden="true" />
           <button type="button" onClick={onClose} aria-label="Close project"><FiX /></button>
         </div>
-        <div className="workfolio-modal-content" key={project.slug}>
-          <div className="workfolio-modal-media">
-            <Image src={project.image} alt={project.imageAlt} fill priority sizes="(max-width: 760px) 94vw, 62vw" />
+        <div className="workfolio-modal-content" key={`${project.slug}-${photoIndex}`}>
+          <div className={`workfolio-modal-media ${preserveFrame ? 'has-contain-media' : ''}`}>
+            <Image src={gallery[photoIndex]} alt={`${project.imageAlt} — image ${photoIndex + 1}`} fill priority sizes="(max-width: 760px) 94vw, 62vw" />
             <div className="workfolio-modal-shade" />
-            <button className="workfolio-modal-arrow is-previous" type="button" onClick={previous} aria-label="Previous project"><FiChevronLeft /></button>
-            <button className="workfolio-modal-arrow is-next" type="button" onClick={next} aria-label="Next project"><FiChevronRight /></button>
+            {gallery.length > 1 && <button className="workfolio-modal-arrow is-previous" type="button" onClick={previousPhoto} aria-label="Previous image"><FiChevronLeft /></button>}
+            {gallery.length > 1 && <button className="workfolio-modal-arrow is-next" type="button" onClick={nextPhoto} aria-label="Next image"><FiChevronRight /></button>}
           </div>
           <div className="workfolio-modal-details">
-            <div className="workfolio-modal-logo">{project.logo ? <Image src={project.logo} alt={`${project.client} logo`} width={92} height={40} /> : <span>{project.logoText}</span>}</div>
+            <div className={`workfolio-modal-logo is-${project.logoSurface ?? 'light'}`}>{project.logo ? <Image src={project.logo} alt={`${project.client} logo`} width={92} height={40} /> : <span>{project.logoText}</span>}</div>
             <p className="workfolio-modal-meta">{project.year} · {project.client}</p>
             <h2 id="workfolio-modal-title">{project.title}</h2>
             <div className="workfolio-modal-tags">{project.services.map((service) => <span key={service}>{service}</span>)}</div>
             <p>{project.description}</p>
             <div className="workfolio-modal-project-nav">
-              <button type="button" onClick={previous}><FiChevronLeft /> Previous</button>
-              <button type="button" onClick={next}>Next <FiChevronRight /></button>
+              <button type="button" onClick={previousProject}><FiChevronLeft /> Previous project</button>
+              <button type="button" onClick={nextProject}>Next project <FiChevronRight /></button>
             </div>
           </div>
         </div>
-        <div className="workfolio-modal-thumbnails" aria-label="Choose project">
-          {projects.map((item, itemIndex) => <button className={itemIndex === index ? 'is-active' : ''} type="button" key={item.slug} onClick={() => onChange(itemIndex)} aria-label={`Open ${item.title}`}><Image src={item.image} alt="" fill sizes="72px" /></button>)}
+        <div className="workfolio-modal-thumbnails" aria-label="Choose project image">
+          {gallery.map((image, imageIndex) => <button className={imageIndex === photoIndex ? 'is-active' : ''} type="button" key={image} onClick={() => setPhotoIndex(imageIndex)} aria-label={`Open image ${imageIndex + 1}`}><Image src={image} alt="" fill sizes="96px" /></button>)}
         </div>
       </div>
     </div>
@@ -394,17 +411,6 @@ export default function Homepage() {
       window.removeEventListener('campus:navigate', syncFromNavigation);
     };
   }, [goTo]);
-
-  useEffect(() => {
-    if (selectedWorkIndex === null) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSelectedWorkIndex(null);
-      if (event.key === 'ArrowLeft') setSelectedWorkIndex((current) => current === null ? null : (current - 1 + workfolioProjects.length) % workfolioProjects.length);
-      if (event.key === 'ArrowRight') setSelectedWorkIndex((current) => current === null ? null : (current + 1) % workfolioProjects.length);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedWorkIndex]);
 
   const scrollToServiceDetail = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
