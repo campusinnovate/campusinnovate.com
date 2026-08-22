@@ -238,6 +238,7 @@ function CommunityDetail({ community }: { community: Community }) {
             {!isStripmate && community.showJoinCTA && (community.joinUrl
               ? <a className="community-join-button" href={community.joinUrl} target="_blank" rel="noopener noreferrer">Gabung {community.name} <FiExternalLink /></a>
               : <div className="community-access-status" aria-disabled="true"><FiLock /> Akses Komunitas — Segera Hadir</div>)}
+            {!isStripmate && community.websiteUrl && <a className="community-join-button" href={community.websiteUrl} target="_blank" rel="noopener noreferrer">Visit {community.name} <FiExternalLink /></a>}
           </div>
           <div className="community-detail-photos">
             <div className="community-detail-photo-main"><Image src={community.cover} alt={`Dokumentasi ${community.category} Campus Innovate`} fill sizes="(max-width: 760px) 92vw, 46vw" /></div>
