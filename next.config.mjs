@@ -1,12 +1,9 @@
 /** @type {import('next').NextConfig} */
 const isGitHubPages = process.env.GITHUB_ACTIONS === 'true';
-const repositoryBasePath = isGitHubPages ? '/campusinnovate.com' : '';
 
 const nextConfig = {
   ...(isGitHubPages ? {
     output: 'export',
-    basePath: repositoryBasePath,
-    assetPrefix: repositoryBasePath,
     trailingSlash: true,
   } : {}),
   images: {
