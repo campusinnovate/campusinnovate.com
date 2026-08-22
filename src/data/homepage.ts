@@ -516,7 +516,7 @@ export const communities: readonly Community[] = [
     description: 'A community built around shared journeys, outdoor experiences, and meaningful connections.',
     headline: 'Explore, experience, and connect.',
     detailDescription: 'Stripmate mempertemukan orang melalui perjalanan, pengalaman outdoor, eksplorasi, dan momen kebersamaan yang bermakna.',
-    logo: '/assets/site-2026/logos/stripmate.png',
+    logo: '/assets/site-2026/logos/community-clean/stripmate.svg',
     cover: '/images/community/stripmate-cover.jpg',
     supportImage: '/images/community/stripmate-support.jpg',
     themes: [
@@ -537,7 +537,7 @@ export const communities: readonly Community[] = [
     description: 'A learning and exchange space for people who build organizations.',
     headline: 'Bertukar gagasan. Membangun organisasi yang lebih baik.',
     detailDescription: 'Organization Hub adalah ruang belajar dan bertukar pengalaman bagi orang-orang yang membangun organisasi, memimpin kolaborasi, dan mencari cara kerja yang lebih baik.',
-    logo: '/assets/site-2026/logos/organization-hub.png',
+    logo: '/assets/site-2026/logos/community-clean/organization-hub.svg',
     cover: '/images/community/organization-hub-cover.jpg',
     supportImage: '/images/community/organization-hub-support.jpg',
     themes: [
@@ -558,7 +558,7 @@ export const communities: readonly Community[] = [
     description: 'A youth leadership ecosystem for learning, connection, and meaningful action.',
     headline: 'Tempat pemimpin muda belajar, terhubung, dan bergerak.',
     detailDescription: 'YLOS menghadirkan ekosistem kepemimpinan muda yang mempertemukan pembelajaran, hubungan antarpemimpin, pengalaman, dan ruang untuk mengubah insight menjadi aksi bermakna.',
-    logo: '/assets/site-2026/logos/ylos.png',
+    logo: '/assets/site-2026/logos/community-clean/ylos.svg',
     cover: '/images/community/ylos-cover.jpg',
     supportImage: '/images/community/ylos-support.jpg',
     themes: [
