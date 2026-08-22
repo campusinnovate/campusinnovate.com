@@ -223,9 +223,9 @@ function KawanEmptyStory({ type }: { type: 'employee' | 'client' }) {
       <span className="kawan-quote-mark">“</span>
       <p>{isEmployee ? 'Employee testimonial placeholder' : 'Client testimonial placeholder'}</p>
       <small>{isEmployee
-        ? 'Cerita asli Kawan Inovasi akan ditampilkan setelah materi resmi tersedia.'
-        : 'Cerita dari mitra akan ditampilkan setelah kutipan dan identitas disetujui.'}</small>
-      <span className="kawan-content-status"><FiCheckCircle /> Menunggu konten terverifikasi</span>
+        ? 'Coming Soon'
+        : 'Coming Soon'}</small>
+      <span className="kawan-content-status"><FiCheckCircle /> On Process</span>
     </article>
   );
 }
@@ -249,7 +249,7 @@ function CommunityDetail({ community }: { community: Community }) {
               })}
             </div>
             {!isStripmate && community.showJoinCTA && (community.joinUrl
-              ? <a className="community-join-button" href={community.joinUrl} target="_blank" rel="noopener noreferrer">Gabung {community.name} <FiExternalLink /></a>
+              ? <a className="community-join-button" href={community.joinUrl} target="_blank" rel="noopener noreferrer">Join {community.name} <FiExternalLink /></a>
               : <div className="community-access-status" aria-disabled="true"><FiLock /> Akses Komunitas — Segera Hadir</div>)}
             {!isStripmate && community.websiteUrl && <a className="community-join-button" href={community.websiteUrl} target="_blank" rel="noopener noreferrer">Visit {community.name} <FiExternalLink /></a>}
           </div>
@@ -259,7 +259,7 @@ function CommunityDetail({ community }: { community: Community }) {
             <div className="community-detail-personality">{community.themes.map((theme) => <span key={theme.title}>{theme.title}</span>)}</div>
           </div>
         </div>
-        {isStripmate && community.websiteUrl && community.joinUrl && <div className="stripmate-detail-actions"><div><span>Lanjutkan perjalanan bersama Stripmate</span><h3>Explore the experience. Join the community.</h3></div><div><a className="stripmate-website-button" href={community.websiteUrl} target="_blank" rel="noopener noreferrer">Explore Stripmate.id <FiExternalLink /></a><a className="stripmate-join-button" href={community.joinUrl} target="_blank" rel="noopener noreferrer">Gabung Stripmate <FiExternalLink /></a></div></div>}
+        {isStripmate && community.websiteUrl && community.joinUrl && <div className="stripmate-detail-actions"><div><h3>Explore the experience. Join the community.</h3></div><div><a className="stripmate-website-button" href={community.websiteUrl} target="_blank" rel="noopener noreferrer">Explore Stripmate.id <FiExternalLink /></a><a className="stripmate-join-button" href={community.joinUrl} target="_blank" rel="noopener noreferrer">Join Stripmate <FiExternalLink /></a></div></div>}
       </div>
     </section>
   );
@@ -273,7 +273,7 @@ function CorevaLaunchSection() {
           <div className="coreva-status-badge"><span /> Now live</div>
           <h2 id="coreva-launch-title">Introducing <em>COREVA.</em></h2>
           <h3>A new digital product<br />by Campus Innovate.</h3>
-          <p>COREVA adalah produk digital yang dikembangkan oleh Campus Innovate sebagai bagian dari kapabilitas Digital System Development.</p>
+          <p>Coreva is a modern workspace for organizations and communities. Manage your digital office, team collaboration, budget planning, organization dashboard, and official website, all in one integrated platform developed by Campus Innovate.</p>
           <a className="coreva-launch-cta" href={corevaLaunch.url} target="_blank" rel="noopener noreferrer">Explore COREVA <FiExternalLink /></a>
           <div className="coreva-product-meta"><span>{corevaLaunch.category}</span>{corevaLaunch.tags.map((tag) => <small key={tag}>{tag}</small>)}</div>
         </div>
@@ -290,7 +290,7 @@ function CorevaLaunchSection() {
 function ExtendedBottomPanel() {
   return (
     <footer className="extended-bottom-panel">
-      <div className="extended-bottom-brand"><BrandLogo className="extended-bottom-logo" /><p>Building systems. Developing leaders.<br />Your educational transformation partner.</p></div>
+      <div className="extended-bottom-brand"><BrandLogo className="extended-bottom-logo" /></div>
       <nav className="extended-bottom-column" aria-label="Extended footer navigation"><strong>Explore</strong><a href="#services">Our Service</a><a href="#workfolio">Workfolio</a><a href="#contact">Contact</a></nav>
       <div className="extended-bottom-column"><strong>Connect</strong><a href="mailto:innovatecampus@gmail.com">innovatecampus@gmail.com</a><a href="https://wa.me/6285882514394" target="_blank" rel="noopener noreferrer">+62 858-8251-4394</a><a href="https://www.instagram.com/campusinnovate" target="_blank" rel="noopener noreferrer">@campusinnovate</a></div>
       <div className="extended-bottom-column extended-bottom-office"><strong>Campus Innovate</strong><p>Jl. Duta Pelita B2 No.5,<br />Tanah Sareal, Kota Bogor,<br />Jawa Barat 16164</p></div>
@@ -506,7 +506,7 @@ export default function Homepage() {
               <div className="elfsight-home-frame glossy-card">
                 <div className="elfsight-app-87190d09-35a6-4334-84ee-f753502e1e94" data-elfsight-app-lazy />
               </div>
-              <p className="feed-status">Posting asli dari @campusinnovate · diperbarui melalui Elfsight.</p>
+              
             </div>
           </div>
 
@@ -653,7 +653,7 @@ export default function Homepage() {
             <header className="workfolio-intro">
               <div>
                 <h2 id="work-title">Our <em>Workfolio.</em></h2>
-                <p>A collection of programs, experiences, systems, and creative work built together with organizations, institutions, and communities.</p>
+      
               </div>
             </header>
             <div className="workfolio-grid" aria-label="Campus Innovate selected projects">
@@ -693,7 +693,7 @@ export default function Homepage() {
                 <p className="kawan-kicker">About Kawan Inovasi</p>
                 <h2 id="kawan-about-title">More Than Just a Team.</h2>
                 <p>Kawan Inovasi is what we call the people growing together with Campus Innovate. We come from diverse roles and expertise, but we share the same passion: learning, refining our ways of working, collaborating, and creating something meaningful.</p>
-                <div className="kawan-about-note"><span>01</span><p>We believe the best work comes from a safe space to ask, experiment, and grow together.</p></div>
+                <div className="kawan-about-note"><p>We believe the best work comes from a safe space to ask, experiment, and grow together.</p></div>
               </div>
             </div>
           </section>
@@ -738,8 +738,8 @@ export default function Homepage() {
             <div className="community-overview-light community-overview-light-gold" aria-hidden="true" />
             <div className="community-page-shell community-overview-shell">
               <div className="community-topline">
-                <div className="community-page-heading"><p className="community-kicker">Multi-community platform</p><h2 id="community-title">Communities that<br /><em>move together.</em></h2><p></p></div>
-                <div className="community-stat-inline"><strong>10,000+</strong><span>community members in Bogor</span></div>
+                <div className="community-page-heading"><p className="community-kicker">Community platform</p><h2 id="community-title">Communities that<br /><em>move together.</em></h2><p></p></div>
+                <div className="community-stat-inline"><strong>10,000+</strong><span>community members</span></div>
               </div>
               <div className="community-card-grid">
                 {communities.map((community) => {
