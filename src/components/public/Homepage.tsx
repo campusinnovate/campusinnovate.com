@@ -51,14 +51,10 @@ const pages = [
   { id: 'contact', label: 'Contact' },
 ] as const;
 
-const trustedMarks = Array.from(
-  new Map(
-    [
-      ...clientMarks,
-      ...workfolioProjects.flatMap((project) => project.logo ? [{ name: project.client, logo: project.logo }] : []),
-    ].map((client) => [client.logo, client]),
-  ).values(),
-);
+// Keep this strip deliberately curated. Workfolio logos often come from older
+// client decks and can include baked-in white rectangles or low-resolution
+// thumbnails; the normalized marks below are prepared specifically for this UI.
+const trustedMarks = clientMarks;
 
 const solutionIcons = [FiCompass, FiUsers, FiCode, FiLayers, FiZap];
 const serviceDetailIds = solutions.map((solution) => solution.id);
