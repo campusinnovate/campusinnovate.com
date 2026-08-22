@@ -239,7 +239,7 @@ function CommunityDetail({ community }: { community: Community }) {
         <div className="community-detail-grid">
           <div className="community-detail-copy">
             <p className="community-kicker">{community.number} / {community.category}</p>
-            <div className="community-detail-logo"><Image src={community.logo} alt={`${community.name} logo`} width={190} height={82} /></div>
+            <div className={`community-detail-logo community-detail-logo-${community.id}`}><Image src={community.logo} alt={`${community.name} logo`} width={240} height={100} /></div>
             <h2 id={`${community.id}-title`}>{community.headline}</h2>
             <p className="community-detail-lead">{community.detailDescription}</p>
             <div className="community-theme-grid">
@@ -749,7 +749,7 @@ export default function Homepage() {
                     <a className="community-profile-main" href={primaryHref} target={isStripmate ? '_blank' : undefined} rel={isStripmate ? 'noopener noreferrer' : undefined} onClick={isStripmate ? undefined : (event) => scrollToCommunitySection(event, community.id)}>
                       <Image className="community-cover" src={community.cover} alt={`${community.name} community activity`} fill sizes="(max-width: 760px) 84vw, 31vw" />
                       <div className="community-cover-wash" />
-                      <div className="community-logo"><Image src={community.logo} alt={`${community.name} logo`} width={150} height={68} /></div>
+                      <div className={`community-logo community-logo-${community.id}`}><Image src={community.logo} alt={`${community.name} logo`} width={220} height={92} /></div>
                       <div className="community-profile-copy"><span>{community.category}</span><h3>{community.name}</h3><p>{community.description}</p><strong>{isStripmate ? 'Explore Stripmate' : 'Explore'} {isStripmate ? <FiExternalLink /> : <FiArrowRight />}</strong></div>
                     </a>
                     {isStripmate && community.joinUrl && <a className="community-card-secondary" href={community.joinUrl} target="_blank" rel="noopener noreferrer">Gabung Stripmate <FiExternalLink /></a>}
@@ -764,7 +764,7 @@ export default function Homepage() {
           <section className="community-closing" aria-labelledby="community-closing-title">
             <div className="community-page-shell community-closing-grid">
               <div><p className="community-kicker">One connected ecosystem</p><h2 id="community-closing-title">Different communities.<br /><em>One connected ecosystem.</em></h2><p>Community Campus Innovate hadir dalam bentuk dan pengalaman yang berbeda, tetapi bertemu dalam semangat yang sama untuk belajar, terhubung, berkembang, dan menciptakan pengalaman bermakna.</p></div>
-              <div className="community-identity-row">{communities.map((community) => <article key={community.id}><Image src={community.logo} alt={`${community.name} identity`} width={150} height={70} /><span>{community.themes.map((theme) => theme.title).join(' · ')}</span></article>)}</div>
+              <div className="community-identity-row">{communities.map((community) => <article className={`community-identity-${community.id}`} key={community.id}><Image src={community.logo} alt={`${community.name} identity`} width={220} height={92} /><span>{community.themes.map((theme) => theme.title).join(' · ')}</span></article>)}</div>
             </div>
           </section>
           <ExtendedBottomPanel />
