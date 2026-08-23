@@ -234,8 +234,8 @@ export default function MyActivityPage() {
       const body = await response.json();
       if (!response.ok || !body.url) throw new Error(body.error || 'Koneksi belum tersedia.');
       window.location.assign(body.url);
-    } catch {
-      setError('Layanan koneksi Calendar sedang disiapkan. Data My Activity tetap dapat digunakan.');
+    } catch (calendarError) {
+      setError(calendarError instanceof Error ? calendarError.message : 'Layanan koneksi Calendar sedang disiapkan. Data My Activity tetap dapat digunakan.');
     }
   }
 
