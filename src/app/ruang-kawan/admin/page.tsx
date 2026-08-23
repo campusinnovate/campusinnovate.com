@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { FiArrowLeft, FiEdit3, FiPlus, FiRefreshCw, FiShield, FiUsers } from 'react-icons/fi';
+import { FiArrowLeft, FiEdit3, FiLayers, FiPlus, FiRefreshCw, FiShield, FiUsers } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
 type ReferenceItem = { id?: string; key: string; name: string; description?: string | null; default_department_id?: string | null };
@@ -177,7 +177,7 @@ export default function RuangKawanAdminPage() {
       <section className="rk-admin-shell">
         <nav className="rk-admin-nav">
           <Link href="/ruang-kawan/dashboard/"><FiArrowLeft /> Dashboard</Link>
-          <button type="button" onClick={() => void loadData()}><FiRefreshCw /> Muat ulang</button>
+          <span><Link href="/ruang-kawan/admin/sources/"><FiLayers /> Sumber kerja</Link><button type="button" onClick={() => void loadData()}><FiRefreshCw /> Muat ulang</button></span>
         </nav>
 
         <header className="rk-admin-heading">

@@ -6227,6 +6227,8 @@ img {
 .rk-admin-entry span { display: grid; gap: 4px; }
 .rk-admin-entry strong { font-size: 14px; }
 .rk-admin-entry small { color: rgba(9,39,93,.68); font-size: 11px; }
+.rk-admin-entry.rk-activity-entry { color: #fff; border: 1px solid rgba(255,255,255,.2); background: linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.08)); box-shadow: 0 18px 42px rgba(5,23,58,.16); }
+.rk-admin-entry.rk-activity-entry small { color: rgba(235,243,255,.68); }
 .rk-password-setup { display: grid; grid-template-columns: .85fr 1.15fr; gap: 32px; margin-top: 18px; padding: 30px; color: #fff; border: 1px solid rgba(255,255,255,.15); border-radius: 22px; background: rgba(255,255,255,.09); }
 .rk-password-setup small { color: #ffd348; font-size: 10px; font-weight: 900; letter-spacing: .17em; text-transform: uppercase; }
 .rk-password-setup h2 { margin: 10px 0 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: -.035em; }
@@ -6246,6 +6248,7 @@ img {
 .rk-access-denied a { color: #ffd348; font-weight: 800; }
 .rk-admin-shell { width: min(1380px, 100%); margin: 0 auto; }
 .rk-admin-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.rk-admin-nav > span { display: flex; align-items: center; gap: 7px; }
 .rk-admin-nav a, .rk-admin-nav button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; color: rgba(255,255,255,.82); border: 1px solid rgba(255,255,255,.17); border-radius: 999px; background: rgba(255,255,255,.07); font-size: 11px; font-weight: 800; text-decoration: none; cursor: pointer; }
 .rk-admin-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; padding: 30px; border: 1px solid rgba(255,255,255,.16); border-radius: 24px; background: rgba(255,255,255,.09); }
 .rk-admin-heading small, .rk-admin-section-title small { color: #ffd348; font-size: 9px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
@@ -6292,6 +6295,13 @@ img {
 .rk-access-log article span, .rk-access-log article time { color: #718199; font-size: 9px; }
 .rk-access-log article p { margin: 4px 0; padding: 8px 10px; color: #3e526d; border-radius: 8px; background: #f1f4f8; font-size: 9px; }
 .rk-empty-state { color: #718199; font-size: 11px; }
+.rk-source-fields { display: grid; gap: 7px; }
+.rk-source-fields > div { display: grid; grid-template-columns: 1fr 1fr 120px 36px; gap: 7px; }
+.rk-source-fields > div button { display: grid; place-items: center; color: #963743; border: 1px solid #efd0d4; border-radius: 9px; background: #fcecef; cursor: pointer; }
+.rk-secondary-admin-button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin-top: 9px; padding: 0 11px; color: #1d5fc3; border: 1px solid #d7e2f0; border-radius: 999px; background: #f5f8fc; font-size: 9px; font-weight: 900; cursor: pointer; }
+.rk-source-active { display: flex !important; grid-template-columns: auto 1fr; align-items: center; gap: 8px !important; margin-top: 20px; }
+.rk-source-active input { width: 16px; min-height: 16px; }
+.rk-source-dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; }
 
 @media (max-width: 760px) {
   .ruang-kawan-auth-card { grid-template-columns: 1fr; }
@@ -6304,6 +6314,8 @@ img {
   .rk-admin-layout { grid-template-columns: 1fr; }
   .rk-form-grid, .rk-role-options { grid-template-columns: 1fr; }
   .rk-permission-options label { grid-template-columns: 1fr; }
+  .rk-source-fields > div { grid-template-columns: 1fr; }
+  .rk-source-fields > div button { min-height: 36px; }
 }
 
 /* Community — connected ecosystem experience */
@@ -6708,4 +6720,130 @@ img {
   .coreva-launch-cta svg,
   .coreva-browser,
   .coreva-browser-screen img { transition: none; }
+}
+
+/* Ruang Kawan — unified My Activity and calendar */
+.rk-activity-foundation { min-height: 100vh; padding: clamp(20px, 4vw, 54px); color: #102849; background: radial-gradient(circle at 83% 4%, rgba(255,205,50,.22), transparent 25%), linear-gradient(135deg, #061b45, #0d3883 58%, #155dd1); }
+.rk-activity-shell { width: min(1440px, 100%); margin: 0 auto; }
+.rk-activity-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.rk-activity-nav a, .rk-activity-nav button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; color: rgba(255,255,255,.82); border: 1px solid rgba(255,255,255,.17); border-radius: 999px; background: rgba(255,255,255,.07); font-size: 11px; font-weight: 800; text-decoration: none; cursor: pointer; }
+.rk-activity-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; padding: clamp(25px, 4vw, 38px); color: #fff; border: 1px solid rgba(255,255,255,.17); border-radius: 28px; background: rgba(255,255,255,.09); box-shadow: inset 0 1px rgba(255,255,255,.14); backdrop-filter: blur(20px); }
+.rk-activity-heading small, .rk-calendar-toolbar small, .rk-day-heading small, .rk-feed-heading small { color: #ffd348; font-size: 9px; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
+.rk-activity-heading h1 { margin: 8px 0 0; font-size: clamp(42px, 6vw, 68px); letter-spacing: -.06em; line-height: .95; }
+.rk-activity-heading p { max-width: 760px; margin: 14px 0 0; color: rgba(235,243,255,.7); font-size: 12px; line-height: 1.7; }
+.rk-activity-heading > button { min-height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 19px; color: #09275d; border: 0; border-radius: 999px; background: linear-gradient(145deg, #ffe273, #ffb714); font-size: 11px; font-weight: 900; cursor: pointer; }
+.rk-calendar-connections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.rk-calendar-connections article { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 5px 20px; padding: 17px 19px; color: #fff; border: 1px solid rgba(255,255,255,.15); border-radius: 18px; background: rgba(255,255,255,.08); }
+.rk-calendar-connections article > span { display: flex; align-items: center; gap: 8px; color: #ffd348; font-size: 16px; }
+.rk-calendar-connections article > span i { color: rgba(255,255,255,.62); font-size: 8px; font-style: normal; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.rk-calendar-connections article strong, .rk-calendar-connections article small { grid-column: 1; }
+.rk-calendar-connections article strong { font-size: 13px; }
+.rk-calendar-connections article small { color: rgba(235,243,255,.58); font-size: 9px; }
+.rk-calendar-connections article > button, .rk-calendar-connections article > b { grid-column: 2; grid-row: 1 / span 3; padding: 8px 11px; border-radius: 999px; font-size: 8px; font-weight: 900; }
+.rk-calendar-connections article > button { color: #09275d; border: 0; background: #ffd348; cursor: pointer; }
+.rk-calendar-connections article > b { color: #c8f6df; border: 1px solid rgba(117,225,170,.24); background: rgba(46,154,99,.18); }
+.rk-source-filter { display: flex; gap: 7px; margin: 14px 0; padding-bottom: 2px; overflow-x: auto; }
+.rk-source-filter button { flex: 0 0 auto; min-height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 11px; color: rgba(237,244,255,.72); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; background: rgba(255,255,255,.07); font-size: 9px; font-weight: 800; cursor: pointer; }
+.rk-source-filter button[data-active="true"] { color: #0b285d; border-color: rgba(255,225,112,.9); background: #ffd348; }
+.rk-source-filter button i { width: 7px; height: 7px; border-radius: 50%; }
+.rk-source-filter button span { min-width: 19px; padding: 3px 5px; border-radius: 999px; background: rgba(7,32,75,.12); font-size: 7px; text-align: center; }
+.rk-activity-alert { margin: 10px 0; padding: 11px 14px; color: #d8f8e8; border-radius: 11px; background: rgba(15,108,73,.45); font-size: 10px; }
+.rk-activity-alert[data-error] { color: #ffdce1; background: rgba(157,36,51,.48); }
+.rk-activity-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(330px, .55fr); gap: 14px; }
+.rk-calendar-panel, .rk-day-panel, .rk-feed-panel { overflow: hidden; border-radius: 24px; background: rgba(255,255,255,.97); box-shadow: 0 22px 58px rgba(3,18,49,.18); }
+.rk-calendar-panel { padding: 25px; }
+.rk-calendar-toolbar, .rk-day-heading, .rk-feed-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.rk-calendar-toolbar small, .rk-day-heading small, .rk-feed-heading small { color: #9b6a00; }
+.rk-calendar-toolbar h2, .rk-day-heading h2, .rk-feed-heading h2 { margin: 5px 0 0; color: #102849; font-size: 22px; letter-spacing: -.035em; }
+.rk-calendar-toolbar > span { display: flex; gap: 5px; }
+.rk-calendar-toolbar button, .rk-day-heading > button { min-height: 34px; padding: 0 10px; color: #315270; border: 1px solid #dfe6ef; border-radius: 10px; background: #f7f9fc; font-size: 9px; font-weight: 800; cursor: pointer; }
+.rk-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.rk-calendar-weekdays { margin-top: 22px; }
+.rk-calendar-weekdays strong { padding: 9px; color: #8190a5; font-size: 8px; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
+.rk-calendar-days { border-top: 1px solid #e5eaf1; border-left: 1px solid #e5eaf1; }
+.rk-calendar-days > button, .rk-calendar-days > i { min-height: 92px; }
+.rk-calendar-days > button { position: relative; padding: 9px; text-align: left; border: 0; border-right: 1px solid #e5eaf1; border-bottom: 1px solid #e5eaf1; background: #fff; cursor: pointer; }
+.rk-calendar-days > button:hover { background: #f5f8fc; }
+.rk-calendar-days > button[data-selected="true"] { z-index: 1; background: #edf4ff; box-shadow: inset 0 0 0 2px #2d68cc; }
+.rk-calendar-days > button > span { display: grid; width: 25px; height: 25px; place-items: center; color: #334d6c; border-radius: 50%; font-size: 10px; font-weight: 850; }
+.rk-calendar-days > button[data-today="true"] > span { color: #082a64; background: #ffd348; }
+.rk-calendar-days > button > i { position: absolute; top: 11px; right: 10px; display: grid; min-width: 20px; height: 20px; place-items: center; color: #fff; border-radius: 999px; background: #1d5fc3; font-size: 7px; font-style: normal; font-weight: 900; }
+.rk-calendar-days > button > div { display: flex; gap: 3px; margin-top: 20px; }
+.rk-calendar-days > button > div b { width: 6px; height: 6px; border-radius: 50%; }
+.rk-calendar-days > button > div b[data-google="company"] { background: #1d5fc3; box-shadow: 0 0 0 2px #dce9fb; }
+.rk-calendar-days > button > div b[data-google="personal"] { background: #d29a16; box-shadow: 0 0 0 2px #fff0c8; }
+.rk-day-panel { padding: 24px; }
+.rk-day-heading > button { width: 34px; display: grid; place-items: center; padding: 0; color: #09275d; border: 0; background: #ffd348; }
+.rk-day-list { display: grid; gap: 8px; margin-top: 20px; }
+.rk-day-list > button { width: 100%; display: grid; grid-template-columns: 4px 1fr; gap: 11px; padding: 12px; text-align: left; border: 1px solid #e1e7ef; border-radius: 13px; background: #f8fafc; cursor: pointer; }
+.rk-day-list > a { width: 100%; display: grid; grid-template-columns: 4px 1fr 18px; align-items: center; gap: 11px; padding: 12px; color: inherit; text-align: left; border: 1px solid #dbe5f2; border-radius: 13px; background: #f4f8fd; text-decoration: none; }
+.rk-day-list > a > i { width: 4px; height: 100%; min-height: 48px; border-radius: 999px; background: #1d5fc3; }
+.rk-day-list > a[data-calendar="personal"] > i { background: #d29a16; }
+.rk-day-list > a > span { display: grid; gap: 4px; }
+.rk-day-list > a > svg { color: #6680a0; }
+.rk-day-list > a em { width: fit-content; padding: 4px 7px; color: #205c9c; border-radius: 999px; background: #e0eefc; font-size: 7px; font-style: normal; font-weight: 900; }
+.rk-day-list > button > i { width: 4px; height: 100%; min-height: 48px; border-radius: 999px; }
+.rk-day-list > button > span { display: grid; gap: 4px; }
+.rk-day-list small { color: #718199; font-size: 8px; }
+.rk-day-list strong { color: #173255; font-size: 11px; line-height: 1.4; }
+.rk-day-list em, .rk-feed-content footer em { width: fit-content; padding: 4px 7px; border-radius: 999px; color: #6c7787; background: #e8edf3; font-size: 7px; font-style: normal; font-weight: 900; }
+[data-status="in_progress"] { color: #205c9c !important; background: #e0eefc !important; }
+[data-status="done"] { color: #176044 !important; background: #e0f4e9 !important; }
+[data-status="blocked"] { color: #943642 !important; background: #fbe4e7 !important; }
+.rk-feed-panel { margin-top: 14px; padding: 25px; }
+.rk-feed-heading > span { color: #718199; font-size: 9px; font-weight: 800; }
+.rk-feed-list { display: grid; margin-top: 17px; }
+.rk-feed-list article { display: grid; grid-template-columns: 5px 1fr 36px; gap: 15px; padding: 17px 0; border-top: 1px solid #e5eaf1; }
+.rk-feed-list article > i { width: 5px; border-radius: 999px; }
+.rk-feed-content { display: grid; gap: 6px; }
+.rk-feed-content > div { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.rk-feed-content small { color: #748399; font-size: 8px; }
+.rk-feed-content > div span { padding: 4px 7px; color: #6e5a21; border-radius: 999px; background: #f5efd9; font-size: 7px; font-weight: 900; }
+.rk-feed-content > div span[data-priority="urgent"] { color: #913340; background: #fbe4e7; }
+.rk-feed-content h3 { margin: 0; color: #142e51; font-size: 15px; }
+.rk-feed-content > p { max-width: 900px; margin: 0; color: #65758a; font-size: 10px; line-height: 1.55; }
+.rk-feed-content footer { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 4px; }
+.rk-feed-content footer b, .rk-feed-content footer span, .rk-feed-content footer a { color: #4d627d; font-size: 8px; font-weight: 800; text-decoration: none; }
+.rk-feed-content footer a { display: inline-flex; align-items: center; gap: 4px; color: #1d5fc3; }
+.rk-feed-list article > button { width: 34px; height: 34px; display: grid; place-items: center; color: #1d5fc3; border: 1px solid #dce4ef; border-radius: 10px; background: #f7f9fc; cursor: pointer; }
+.rk-activity-empty { min-height: 180px; display: grid; place-items: center; align-content: center; gap: 7px; color: #8190a5; text-align: center; }
+.rk-activity-empty svg { font-size: 23px; }
+.rk-activity-empty strong { color: #425773; font-size: 11px; }
+.rk-activity-empty p { margin: 0; font-size: 9px; }
+.rk-activity-modal { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(2,13,39,.72); backdrop-filter: blur(12px); }
+.rk-activity-modal > form { width: min(760px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; padding: 26px; border-radius: 24px; background: #fff; box-shadow: 0 30px 90px rgba(0,8,31,.35); }
+.rk-activity-modal > form > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+.rk-activity-modal header small { color: #9b6a00; font-size: 8px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.rk-activity-modal header h2 { margin: 6px 0 0; color: #102849; font-size: 25px; letter-spacing: -.035em; }
+.rk-activity-modal header button { width: 36px; height: 36px; display: grid; place-items: center; color: #60728a; border: 1px solid #dfe5ed; border-radius: 11px; background: #f7f9fc; cursor: pointer; }
+.rk-activity-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; margin-top: 22px; }
+.rk-activity-form-grid label { display: grid; gap: 6px; color: #435671; font-size: 9px; font-weight: 850; }
+.rk-activity-form-grid .rk-form-wide { grid-column: 1 / -1; }
+.rk-activity-form-grid input, .rk-activity-form-grid select, .rk-activity-form-grid textarea { width: 100%; min-height: 43px; padding: 0 12px; color: #102849; border: 1px solid #d8e1ee; border-radius: 10px; outline: none; background: #f8fafc; font: inherit; }
+.rk-activity-form-grid textarea { min-height: 72px; padding-block: 10px; resize: vertical; }
+.rk-activity-form-grid input:focus, .rk-activity-form-grid select:focus, .rk-activity-form-grid textarea:focus { border-color: #2868ce; box-shadow: 0 0 0 3px rgba(40,104,206,.1); }
+.rk-activity-form-grid input[type="range"] { padding: 0; }
+.rk-activity-modal > form > footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 20px; }
+.rk-activity-modal footer > div { display: flex; gap: 7px; }
+.rk-activity-modal footer button { min-height: 40px; padding: 0 14px; color: #425773; border: 1px solid #dbe3ed; border-radius: 999px; background: #f7f9fc; font-size: 9px; font-weight: 900; cursor: pointer; }
+.rk-activity-modal footer button[data-primary] { color: #09275d; border: 0; background: #ffd348; }
+.rk-activity-modal footer button[data-danger] { color: #963743; border-color: #f1cbd0; background: #fcecef; }
+.rk-modal-error { margin: 13px 0 0; padding: 10px 12px; color: #9b3543; border-radius: 10px; background: #fcecef; font-size: 9px; }
+
+@media (max-width: 900px) {
+  .rk-activity-layout { grid-template-columns: 1fr; }
+  .rk-calendar-connections { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 660px) {
+  .rk-activity-foundation { padding: 15px; }
+  .rk-activity-heading { align-items: flex-start; flex-direction: column; }
+  .rk-activity-heading > button { width: 100%; }
+  .rk-calendar-panel { padding: 15px; }
+  .rk-calendar-days > button, .rk-calendar-days > i { min-height: 56px; }
+  .rk-calendar-days > button { padding: 5px; }
+  .rk-calendar-days > button > div { margin-top: 8px; }
+  .rk-calendar-days > button > i { display: none; }
+  .rk-activity-form-grid { grid-template-columns: 1fr; }
+  .rk-activity-form-grid .rk-form-wide { grid-column: auto; }
 }

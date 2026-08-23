@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FiLock, FiSettings, FiShield, FiUser } from 'react-icons/fi';
+import { FiActivity, FiLock, FiSettings, FiShield, FiUser } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
 type AccessSummary = {
@@ -120,6 +120,13 @@ export default function RuangKawanDashboardPage() {
           <article><FiShield /><span>Status kerja</span><strong>{access.engagement_type || 'Belum ditetapkan'}</strong></article>
           <article><FiLock /><span>Akses</span><strong>{access.roles.length ? access.roles.join(', ') : 'Akses dasar'}</strong></article>
         </div>
+
+        {access.permissions.includes('activity.view_self') ? (
+          <Link className="rk-admin-entry rk-activity-entry" href="/ruang-kawan/activity/">
+            <FiActivity />
+            <span><strong>Buka My Activity</strong><small>Kelola feed kerja, agenda harian, dan kalender terpadu.</small></span>
+          </Link>
+        ) : null}
 
         {access.permissions.includes('access.manage') ? (
           <Link className="rk-admin-entry" href="/ruang-kawan/admin/">
