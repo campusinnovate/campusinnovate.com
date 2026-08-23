@@ -506,7 +506,7 @@ export default function Homepage() {
               <div className="elfsight-home-frame glossy-card">
                 <div className="elfsight-app-87190d09-35a6-4334-84ee-f753502e1e94" data-elfsight-app-lazy />
               </div>
-              
+
             </div>
           </div>
 
@@ -653,7 +653,7 @@ export default function Homepage() {
             <header className="workfolio-intro">
               <div>
                 <h2 id="work-title">Our <em>Workfolio.</em></h2>
-      
+
               </div>
             </header>
             <div className="workfolio-grid" aria-label="Campus Innovate selected projects">

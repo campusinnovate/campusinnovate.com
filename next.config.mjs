@@ -8,10 +8,11 @@ const nextConfig = {
   } : {}),
   images: {
     unoptimized: isGitHubPages,
-    domains: [
-      'api.microlink.io', // Microlink Image Preview
-    ],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.microlink.io',
+      },
       {
         hostname: 'images.unsplash.com',
       },
@@ -25,9 +26,6 @@ const nextConfig = {
         hostname: 'www.clipartmax.com',
       },
     ],
-  },
-   experimental: {
-    missingSuspenseWithCSRBailout: false,
   },
 };
 

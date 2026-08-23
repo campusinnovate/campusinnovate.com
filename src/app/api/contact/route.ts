@@ -18,7 +18,7 @@ const clean = (value: unknown, max: number) => typeof value === 'string' ? value
 
 export async function POST(request: NextRequest) {
   const forwarded = request.headers.get('x-forwarded-for');
-  const clientId = forwarded?.split(',')[0]?.trim() || request.ip || 'local';
+  const clientId = forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'local';
   const now = Date.now();
   const recent = (attempts.get(clientId) || []).filter((time) => now - time < WINDOW_MS);
   if (recent.length >= MAX_ATTEMPTS) return NextResponse.json({ message: 'Too many inquiries. Please wait a moment and try again.' }, { status: 429 });
