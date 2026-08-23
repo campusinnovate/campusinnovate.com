@@ -37,8 +37,10 @@ async function authenticatedClient(req: Request) {
   if (!authorization?.startsWith('Bearer ')) return null;
   const accessToken = authorization.slice('Bearer '.length);
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: { user }, error } = await service.auth.getUser(accessToken);
-  return error || !user ? null : { client, user };
+  const userResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { Authorization: `Bearer ${accessToken}`, apikey: SUPABASE_ANON_KEY } });
+  const user = await userResponse.json();
+  if (!userResponse.ok) throw new Error(`Sesi Supabase ditolak: ${user.message ?? 'token tidak valid'}`);
+  return !user?.id ? null : { client, user };
 }
 async function canManageCompany(client: ReturnType<typeof createClient>) {
   const { data } = await client.rpc('get_my_access');
@@ -92,9 +94,14 @@ async function callback(req: Request) {
   const userInfo = await infoResponse.json();
   const base = { owner_user_id: stored.user_id, connection_type: stored.connection_type, google_account_email: userInfo.email ?? null, access_token: token.access_token, token_expires_at: new Date(Date.now() + Number(token.expires_in ?? 3600) * 1000).toISOString(), granted_scopes: String(token.scope ?? '').split(' ').filter(Boolean), selected_calendar_ids: stored.connection_type === 'company' ? [COMPANY_CALENDAR_ID] : ['primary'], is_active: true, updated_at: new Date().toISOString() };
   if (stored.connection_type === 'company') {
-    const { data: existing } = await service.from('google_calendar_connections').select('id,refresh_token').eq('connection_type', 'company').eq('is_active', true).maybeSingle();
-    if (existing) await service.from('google_calendar_connections').update({ ...base, refresh_token: token.refresh_token ?? existing.refresh_token }).eq('id', existing.id);
-    else await service.from('google_calendar_connections').insert({ ...base, refresh_token: token.refresh_token ?? null });
+    await service.from('google_calendar_connections').update({ is_active: false, updated_at: new Date().toISOString() }).eq('connection_type', 'company');
+    const { data: ownerConnection } = await service.from('google_calendar_connections').select('id,refresh_token').eq('owner_user_id', stored.user_id).eq('connection_type', 'company').maybeSingle();
+    const { data: fallbackConnection } = ownerConnection ? { data: null } : await service.from('google_calendar_connections').select('id,refresh_token').eq('connection_type', 'company').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+    const existing = ownerConnection ?? fallbackConnection;
+    const saveResult = existing
+      ? await service.from('google_calendar_connections').update({ ...base, refresh_token: token.refresh_token ?? existing.refresh_token }).eq('id', existing.id)
+      : await service.from('google_calendar_connections').insert({ ...base, refresh_token: token.refresh_token ?? null });
+    if (saveResult.error) throw new Error(`Koneksi company belum tersimpan: ${saveResult.error.message}`);
   } else {
     const { data: existing } = await service.from('google_calendar_connections').select('refresh_token').eq('owner_user_id', stored.user_id).eq('connection_type', 'personal').maybeSingle();
     await service.from('google_calendar_connections').upsert({ ...base, refresh_token: token.refresh_token ?? existing?.refresh_token ?? null }, { onConflict: 'owner_user_id,connection_type' });
@@ -130,7 +137,13 @@ async function listEvents(req: Request, origin: string | null) {
       } catch (error) { events.push({ calendarId, calendarType: connection.connection_type, error: error instanceof Error ? error.message : 'Gagal memuat event.' }); }
     }
   }
-  return json({ events }, 200, origin);
+  const uniqueEvents = new Map<string, Record<string, unknown>>();
+  for (const event of events) {
+    const key = `${String(event.calendarId)}:${String(event.id ?? event.error)}`;
+    const existing = uniqueEvents.get(key);
+    if (!existing || event.calendarType === 'company') uniqueEvents.set(key, event);
+  }
+  return json({ events: [...uniqueEvents.values()] }, 200, origin);
 }
 
 Deno.serve(async (req) => {
