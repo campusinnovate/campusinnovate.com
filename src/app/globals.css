@@ -5918,6 +5918,57 @@ img {
 .ruang-kawan-card p { margin: 24px 0 0; color: rgba(235,243,255,.72); font-size: 14px; line-height: 1.75; }
 .ruang-kawan-card a { display: inline-flex; align-items: center; gap: 9px; margin-top: 30px; padding: 13px 18px; color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; font-size: 11px; font-weight: 800; }
 
+.ruang-kawan-auth-card { width: min(100%, 1080px); display: grid; grid-template-columns: 1.05fr .95fr; overflow: hidden; border: 1px solid rgba(255,255,255,.2); border-radius: 34px; background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.06)); box-shadow: inset 0 1px rgba(255,255,255,.22), 0 34px 90px rgba(0,12,39,.34); backdrop-filter: blur(24px); }
+.rk-intro { padding: clamp(34px, 6vw, 70px); }
+.rk-intro small, .rk-access-denied small, .rk-dashboard-shell header small { display: block; margin-top: 28px; color: #ffd348; font-size: 10px; font-weight: 900; letter-spacing: .17em; text-transform: uppercase; }
+.rk-intro h1 { margin: 13px 0 0; color: #fff; font-size: clamp(45px, 7vw, 72px); letter-spacing: -.055em; line-height: .95; }
+.rk-intro > p { max-width: 510px; margin: 24px 0 0; color: rgba(235,243,255,.76); font-size: 15px; line-height: 1.75; }
+.rk-security-note { display: flex; gap: 11px; align-items: flex-start; margin-top: 26px; padding: 15px 17px; color: rgba(255,255,255,.78); border: 1px solid rgba(255,211,72,.2); border-radius: 16px; background: rgba(255,211,72,.08); font-size: 12px; line-height: 1.55; }
+.rk-security-note svg { flex: 0 0 auto; margin-top: 2px; color: #ffd348; }
+.rk-back-link { display: inline-flex; align-items: center; gap: 9px; margin-top: 28px; color: rgba(255,255,255,.78); font-size: 11px; font-weight: 800; }
+.rk-login-panel { padding: clamp(30px, 5vw, 56px); color: #09275d; background: rgba(255,255,255,.96); }
+.rk-google-button, .rk-submit-button { width: 100%; min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; font-weight: 850; cursor: pointer; }
+.rk-google-button { color: #17305b; border: 1px solid #dce4f1; background: #fff; box-shadow: 0 8px 24px rgba(20,52,103,.08); }
+.rk-google-mark { width: 24px; height: 24px; display: grid; place-items: center; color: #4285f4; border-radius: 50%; font-size: 16px; font-weight: 900; }
+.rk-divider { display: flex; align-items: center; gap: 12px; margin: 26px 0; color: #8190a8; font-size: 10px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+.rk-divider::before, .rk-divider::after { content: ''; height: 1px; flex: 1; background: #dfe6f0; }
+.rk-login-panel form { display: grid; gap: 10px; }
+.rk-login-panel label { margin-top: 4px; color: #294364; font-size: 11px; font-weight: 850; }
+.rk-login-panel input { width: 100%; min-height: 48px; padding: 0 15px; color: #102849; border: 1px solid #d8e1ee; border-radius: 13px; outline: none; background: #f8fafc; font-size: 13px; }
+.rk-login-panel input:focus { border-color: #2868ce; box-shadow: 0 0 0 3px rgba(40,104,206,.12); }
+.rk-password-field { position: relative; }
+.rk-password-field input { padding-right: 48px; }
+.rk-password-field button { position: absolute; top: 50%; right: 8px; width: 35px; height: 35px; display: grid; place-items: center; transform: translateY(-50%); color: #61738e; border: 0; background: transparent; cursor: pointer; }
+.rk-submit-button { margin-top: 10px; color: #fff; background: linear-gradient(135deg, #0d3883, #155dd1); box-shadow: 0 13px 28px rgba(15,73,164,.22); }
+.rk-google-button:disabled, .rk-submit-button:disabled { cursor: wait; opacity: .68; }
+.rk-login-error, .rk-login-message { margin: 4px 0 0; padding: 11px 13px; border-radius: 11px; font-size: 11px; line-height: 1.5; }
+.rk-login-error { color: #9d2433; background: #fff0f2; }
+.rk-login-message { color: #15503b; background: #ebfaf3; }
+.rk-access-note { margin: 20px 0 0; color: #718199; font-size: 11px; line-height: 1.55; text-align: center; }
+.rk-dashboard-foundation { min-height: 100vh; padding: clamp(24px, 5vw, 64px); color: #fff; background: radial-gradient(circle at 78% 18%, rgba(255,194,32,.2), transparent 28%), linear-gradient(135deg, #061b45, #0d3883 60%, #155dd1); }
+.rk-dashboard-shell { width: min(1180px, 100%); margin: 0 auto; }
+.rk-dashboard-shell header { display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; padding: 34px; border: 1px solid rgba(255,255,255,.18); border-radius: 28px; background: rgba(255,255,255,.09); backdrop-filter: blur(20px); }
+.rk-dashboard-shell header small { margin-top: 0; }
+.rk-dashboard-shell header h1 { margin: 10px 0 0; font-size: clamp(30px, 5vw, 52px); letter-spacing: -.04em; }
+.rk-dashboard-shell header p { max-width: 700px; margin: 14px 0 0; color: rgba(235,243,255,.72); font-size: 13px; line-height: 1.65; }
+.rk-dashboard-shell header button, .rk-access-denied button { padding: 11px 18px; color: #fff; border: 1px solid rgba(255,255,255,.24); border-radius: 999px; background: rgba(255,255,255,.08); cursor: pointer; }
+.rk-foundation-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 18px; }
+.rk-foundation-grid article { display: grid; gap: 10px; min-height: 155px; padding: 25px; border: 1px solid rgba(255,255,255,.15); border-radius: 22px; background: rgba(255,255,255,.09); }
+.rk-foundation-grid article svg { color: #ffd348; font-size: 22px; }
+.rk-foundation-grid article span { align-self: end; color: rgba(235,243,255,.64); font-size: 10px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.rk-foundation-grid article strong { font-size: 15px; }
+.rk-access-denied { width: min(620px, 100%); margin: 10vh auto 0; padding: 44px; border: 1px solid rgba(255,255,255,.18); border-radius: 28px; background: rgba(255,255,255,.09); }
+.rk-access-denied h1 { margin: 14px 0 0; font-size: clamp(34px, 6vw, 52px); letter-spacing: -.04em; }
+.rk-access-denied p { margin: 18px 0 24px; color: rgba(235,243,255,.72); line-height: 1.7; }
+
+@media (max-width: 760px) {
+  .ruang-kawan-auth-card { grid-template-columns: 1fr; }
+  .rk-intro { padding-bottom: 30px; }
+  .rk-login-panel { border-radius: 28px 28px 0 0; }
+  .rk-dashboard-shell header { flex-direction: column; }
+  .rk-foundation-grid { grid-template-columns: 1fr; }
+}
+
 /* Community — connected ecosystem experience */
 .page-slide.community-slide {
   overflow-x: hidden;

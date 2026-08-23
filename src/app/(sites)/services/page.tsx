@@ -11,7 +11,7 @@ import DescriptionProgramEventOrganizer from '@/components/pages/Services/Event-
 import DetailMeeting from '@/components/pages/Services/Meeting-Streaming/detailMeeting';
 import { Suspense, useState } from 'react';
 
-export default function ServicesPage() {
+function ServicesContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('tab');
 
@@ -55,9 +55,7 @@ export default function ServicesPage() {
     };
 
   return (
-    <Suspense>
-      {/* <section className="h-[30rem] md:h-[20rem] [perspective:1000px] flex flex-col max-w-[90rem] mx-auto w-full items-start justify-start mt-10 mb-40"> */}
-       <section className={`${sectionHeightForMobile} ${sectionHeight} [perspective:1000px] flex flex-col max-w-[90rem] mx-auto w-full items-start justify-start mt-10 mb-40`}>
+    <section className={`${sectionHeightForMobile} ${sectionHeight} [perspective:1000px] flex flex-col max-w-[90rem] mx-auto w-full items-start justify-start mt-10 mb-40`}>
         <Tabs 
           tabs={tabs} 
           contentClassName="mt-[3rem]" 
@@ -66,7 +64,14 @@ export default function ServicesPage() {
           tabClassName="bg-white text-primary gap-2" 
           onTabChange={handleTabChange} 
           />
-      </section>
+    </section>
+  );
+}
+
+export default function ServicesPage() {
+  return (
+    <Suspense fallback={null}>
+      <ServicesContent />
     </Suspense>
   );
 }
