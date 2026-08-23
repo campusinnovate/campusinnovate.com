@@ -15,13 +15,17 @@ export default function RuangKawanCallbackPage() {
     }
 
     const supabase = createClient();
-    void supabase.auth.exchangeCodeForSession(code).then(({ error: exchangeError }) => {
+    void (async () => {
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
       if (exchangeError) {
-        setError('Sesi Google tidak dapat diselesaikan. Silakan coba kembali.');
-        return;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setError('Sesi Google tidak dapat diselesaikan. Silakan coba kembali.');
+          return;
+        }
       }
       window.location.replace('/ruang-kawan/dashboard/');
-    });
+    })();
   }, []);
 
   return (
