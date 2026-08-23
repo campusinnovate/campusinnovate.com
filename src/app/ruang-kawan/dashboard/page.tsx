@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { FiLock, FiShield, FiUser } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
@@ -21,6 +21,11 @@ type DashboardState =
 
 export default function RuangKawanDashboardPage() {
   const [state, setState] = useState<DashboardState>({ status: 'loading' });
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     const supabase = createClient();
@@ -48,6 +53,34 @@ export default function RuangKawanDashboardPage() {
   async function signOut() {
     await createClient().auth.signOut();
     window.location.replace('/ruang-kawan/');
+  }
+
+  async function savePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPasswordError('');
+    setPasswordMessage('');
+
+    if (newPassword.length < 8) {
+      setPasswordError('Password minimal 8 karakter.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Konfirmasi password belum sama.');
+      return;
+    }
+
+    setPasswordBusy(true);
+    const { error } = await createClient().auth.updateUser({ password: newPassword });
+    setPasswordBusy(false);
+
+    if (error) {
+      setPasswordError('Password belum berhasil disimpan. Silakan coba kembali.');
+      return;
+    }
+
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordMessage('Password berhasil disimpan. Sekarang kamu juga bisa masuk menggunakan email dan password.');
   }
 
   if (state.status === 'loading') {
@@ -86,6 +119,39 @@ export default function RuangKawanDashboardPage() {
           <article><FiShield /><span>Status kerja</span><strong>{access.engagement_type || 'Belum ditetapkan'}</strong></article>
           <article><FiLock /><span>Akses</span><strong>{access.roles.length ? access.roles.join(', ') : 'Akses dasar'}</strong></article>
         </div>
+
+        <section className="rk-password-setup">
+          <div>
+            <small>Keamanan akun</small>
+            <h2>Buat atau ubah password</h2>
+            <p>Setelah disimpan, akun ini tetap bisa masuk dengan Google maupun dengan email dan password.</p>
+          </div>
+          <form onSubmit={savePassword}>
+            <label htmlFor="rk-new-password">Password baru</label>
+            <input
+              id="rk-new-password"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              required
+            />
+            <label htmlFor="rk-confirm-password">Ulangi password</label>
+            <input
+              id="rk-confirm-password"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              required
+            />
+            {passwordError ? <p className="rk-password-error" role="alert">{passwordError}</p> : null}
+            {passwordMessage ? <p className="rk-password-success">{passwordMessage}</p> : null}
+            <button type="submit" disabled={passwordBusy}>{passwordBusy ? 'Menyimpan...' : 'Simpan password'}</button>
+          </form>
+        </section>
       </section>
     </main>
   );
