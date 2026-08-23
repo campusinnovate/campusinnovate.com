@@ -35,8 +35,9 @@ function safeReturnUrl(candidate: unknown) {
 async function authenticatedClient(req: Request) {
   const authorization = req.headers.get('Authorization');
   if (!authorization?.startsWith('Bearer ')) return null;
+  const accessToken = authorization.slice('Bearer '.length);
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: { user }, error } = await client.auth.getUser();
+  const { data: { user }, error } = await service.auth.getUser(accessToken);
   return error || !user ? null : { client, user };
 }
 async function canManageCompany(client: ReturnType<typeof createClient>) {
@@ -73,6 +74,7 @@ async function authorize(req: Request, origin: string | null) {
   const { error } = await service.from('google_calendar_oauth_states').insert({ state_hash: await sha256(state), user_id: auth.user.id, connection_type: connectionType, code_verifier: verifier, return_url: returnUrl, expires_at: new Date(Date.now() + 10 * 60_000).toISOString() });
   if (error) return json({ error: 'Koneksi belum dapat dimulai.' }, 500, origin);
   const params = new URLSearchParams({ client_id: GOOGLE_CLIENT_ID, redirect_uri: GOOGLE_REDIRECT_URI, response_type: 'code', scope: SCOPES.join(' '), access_type: 'offline', prompt: 'consent select_account', include_granted_scopes: 'true', state, code_challenge: challenge, code_challenge_method: 'S256' });
+  if (connectionType === 'company') params.set('login_hint', 'kawanberinovasi@gmail.com');
   return json({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` }, 200, origin);
 }
 

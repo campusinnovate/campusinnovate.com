@@ -143,10 +143,11 @@ export default function MyActivityPage() {
     const connectedCalendars = (calendarResult.data ?? { personal: null, company: null }) as CalendarStatus;
     setCalendarStatus(connectedCalendars);
     if (connectedCalendars.personal || connectedCalendars.company) {
+      const refreshedSession = (await supabase.auth.refreshSession()).data.session ?? session;
       const timeMin = new Date(Date.now() - 180 * 86_400_000).toISOString();
       const timeMax = new Date(Date.now() + 365 * 86_400_000).toISOString();
       try {
-        const response = await fetch(`https://lxwqhtuhlddgwfxjtlas.supabase.co/functions/v1/ruang-kawan-calendar/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`, { headers: { Authorization: `Bearer ${session.access_token}` } });
+        const response = await fetch(`https://lxwqhtuhlddgwfxjtlas.supabase.co/functions/v1/ruang-kawan-calendar/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`, { headers: { Authorization: `Bearer ${refreshedSession.access_token}` } });
         const body = await response.json();
         setGoogleEvents((body.events ?? []).filter((item: GoogleEvent) => !item.error));
       } catch { setGoogleEvents([]); }
@@ -224,7 +225,9 @@ export default function MyActivityPage() {
 
   async function connectCalendar(connectionType: 'personal' | 'company') {
     setError('');
-    const { data: { session } } = await createClient().auth.getSession();
+    const supabase = createClient();
+    const refreshed = await supabase.auth.refreshSession();
+    const session = refreshed.data.session ?? (await supabase.auth.getSession()).data.session;
     if (!session) return;
     try {
       const response = await fetch('https://lxwqhtuhlddgwfxjtlas.supabase.co/functions/v1/ruang-kawan-calendar/authorize', {
