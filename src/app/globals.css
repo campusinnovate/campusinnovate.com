@@ -6222,6 +6222,11 @@ img {
 .rk-foundation-grid article svg { color: #ffd348; font-size: 22px; }
 .rk-foundation-grid article span { align-self: end; color: rgba(235,243,255,.64); font-size: 10px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .rk-foundation-grid article strong { font-size: 15px; }
+.rk-admin-entry { display: flex; align-items: center; gap: 16px; margin-top: 18px; padding: 20px 24px; color: #09275d; border-radius: 18px; background: #ffd348; text-decoration: none; box-shadow: 0 18px 42px rgba(5,23,58,.2); }
+.rk-admin-entry > svg { flex: 0 0 auto; font-size: 24px; }
+.rk-admin-entry span { display: grid; gap: 4px; }
+.rk-admin-entry strong { font-size: 14px; }
+.rk-admin-entry small { color: rgba(9,39,93,.68); font-size: 11px; }
 .rk-password-setup { display: grid; grid-template-columns: .85fr 1.15fr; gap: 32px; margin-top: 18px; padding: 30px; color: #fff; border: 1px solid rgba(255,255,255,.15); border-radius: 22px; background: rgba(255,255,255,.09); }
 .rk-password-setup small { color: #ffd348; font-size: 10px; font-weight: 900; letter-spacing: .17em; text-transform: uppercase; }
 .rk-password-setup h2 { margin: 10px 0 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: -.035em; }
@@ -6238,6 +6243,55 @@ img {
 .rk-access-denied { width: min(620px, 100%); margin: 10vh auto 0; padding: 44px; border: 1px solid rgba(255,255,255,.18); border-radius: 28px; background: rgba(255,255,255,.09); }
 .rk-access-denied h1 { margin: 14px 0 0; font-size: clamp(34px, 6vw, 52px); letter-spacing: -.04em; }
 .rk-access-denied p { margin: 18px 0 24px; color: rgba(235,243,255,.72); line-height: 1.7; }
+.rk-access-denied a { color: #ffd348; font-weight: 800; }
+.rk-admin-shell { width: min(1380px, 100%); margin: 0 auto; }
+.rk-admin-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.rk-admin-nav a, .rk-admin-nav button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; color: rgba(255,255,255,.82); border: 1px solid rgba(255,255,255,.17); border-radius: 999px; background: rgba(255,255,255,.07); font-size: 11px; font-weight: 800; text-decoration: none; cursor: pointer; }
+.rk-admin-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; padding: 30px; border: 1px solid rgba(255,255,255,.16); border-radius: 24px; background: rgba(255,255,255,.09); }
+.rk-admin-heading small, .rk-admin-section-title small { color: #ffd348; font-size: 9px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.rk-admin-heading h1 { margin: 8px 0 0; font-size: clamp(34px, 5vw, 54px); letter-spacing: -.05em; }
+.rk-admin-heading p { max-width: 720px; margin: 10px 0 0; color: rgba(235,243,255,.72); font-size: 12px; line-height: 1.65; }
+.rk-admin-heading > button, .rk-primary-admin-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; color: #09275d; border: 0; border-radius: 999px; background: #ffd348; font-size: 11px; font-weight: 900; cursor: pointer; }
+.rk-admin-layout { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(360px, .88fr); align-items: start; gap: 18px; margin-top: 18px; }
+.rk-member-form, .rk-member-list, .rk-access-log { padding: 26px; color: #102849; border-radius: 22px; background: rgba(255,255,255,.97); box-shadow: 0 20px 55px rgba(4,20,52,.16); }
+.rk-admin-side { display: grid; gap: 18px; }
+.rk-admin-section-title { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.rk-admin-section-title > svg { color: #1d5fc3; font-size: 22px; }
+.rk-admin-section-title h2 { margin: 4px 0 0; color: #102849; font-size: 22px; letter-spacing: -.025em; }
+.rk-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.rk-member-form label { display: grid; gap: 7px; color: #42536d; font-size: 10px; font-weight: 850; }
+.rk-member-form input, .rk-member-form select, .rk-member-form textarea, .rk-permission-options select { width: 100%; min-height: 44px; padding: 0 12px; color: #102849; border: 1px solid #d8e1ee; border-radius: 11px; outline: none; background: #f8fafc; font: inherit; }
+.rk-member-form input:focus, .rk-member-form select:focus, .rk-member-form textarea:focus { border-color: #2868ce; box-shadow: 0 0 0 3px rgba(40,104,206,.1); }
+.rk-member-form input:disabled, .rk-member-form select:disabled { color: #7b8798; background: #edf1f6; }
+.rk-member-form fieldset { margin: 22px 0 0; padding: 0; border: 0; }
+.rk-member-form legend { margin-bottom: 11px; color: #102849; font-size: 12px; font-weight: 900; }
+.rk-field-hint { margin: 9px 0 0; color: #718199; font-size: 10px; line-height: 1.55; }
+.rk-role-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.rk-role-options label { display: flex; align-items: flex-start; gap: 9px; padding: 11px; border: 1px solid #e0e6ef; border-radius: 11px; background: #f8fafc; cursor: pointer; }
+.rk-role-options input { width: 15px; min-height: 15px; margin-top: 2px; }
+.rk-role-options span { display: grid; gap: 3px; }
+.rk-role-options strong { color: #173255; font-size: 10px; }
+.rk-role-options small { color: #7a899d; font-size: 9px; line-height: 1.4; }
+.rk-permission-options { display: grid; gap: 7px; }
+.rk-permission-options label { grid-template-columns: 1fr 140px; align-items: center; padding: 8px 10px; border: 1px solid #e5eaf1; border-radius: 10px; }
+.rk-permission-options select { min-height: 35px; }
+.rk-reason-field { margin-top: 20px; }
+.rk-member-form textarea { min-height: 78px; padding-block: 11px; resize: vertical; }
+.rk-primary-admin-button { margin-top: 16px; }
+.rk-member-list article { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 15px 0; border-top: 1px solid #e7ebf1; }
+.rk-member-list article > div { display: grid; gap: 4px; }
+.rk-member-list article strong { color: #173255; font-size: 12px; }
+.rk-member-list article span, .rk-member-list article small { color: #718199; font-size: 9px; }
+.rk-member-list article > button { flex: 0 0 auto; display: grid; width: 34px; height: 34px; place-items: center; color: #1d5fc3; border: 1px solid #dce4ef; border-radius: 10px; background: #f7f9fc; cursor: pointer; }
+.rk-member-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.rk-member-tags i { padding: 4px 7px; color: #38516f; border-radius: 999px; background: #edf2f8; font-size: 8px; font-style: normal; font-weight: 800; }
+.rk-member-tags i[data-status="active"] { color: #156044; background: #e2f7ed; }
+.rk-member-tags i[data-status="suspended"], .rk-member-tags i[data-status="inactive"] { color: #8e3140; background: #fdecef; }
+.rk-access-log article { display: grid; gap: 4px; padding: 13px 0; border-top: 1px solid #e7ebf1; }
+.rk-access-log article strong { color: #173255; font-size: 11px; }
+.rk-access-log article span, .rk-access-log article time { color: #718199; font-size: 9px; }
+.rk-access-log article p { margin: 4px 0; padding: 8px 10px; color: #3e526d; border-radius: 8px; background: #f1f4f8; font-size: 9px; }
+.rk-empty-state { color: #718199; font-size: 11px; }
 
 @media (max-width: 760px) {
   .ruang-kawan-auth-card { grid-template-columns: 1fr; }
@@ -6246,6 +6300,10 @@ img {
   .rk-dashboard-shell header { flex-direction: column; }
   .rk-foundation-grid { grid-template-columns: 1fr; }
   .rk-password-setup { grid-template-columns: 1fr; }
+  .rk-admin-heading { align-items: flex-start; flex-direction: column; }
+  .rk-admin-layout { grid-template-columns: 1fr; }
+  .rk-form-grid, .rk-role-options { grid-template-columns: 1fr; }
+  .rk-permission-options label { grid-template-columns: 1fr; }
 }
 
 /* Community — connected ecosystem experience */

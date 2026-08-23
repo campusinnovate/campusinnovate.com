@@ -1,7 +1,8 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import { FiLock, FiShield, FiUser } from 'react-icons/fi';
+import Link from 'next/link';
+import { FiLock, FiSettings, FiShield, FiUser } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
 type AccessSummary = {
@@ -119,6 +120,13 @@ export default function RuangKawanDashboardPage() {
           <article><FiShield /><span>Status kerja</span><strong>{access.engagement_type || 'Belum ditetapkan'}</strong></article>
           <article><FiLock /><span>Akses</span><strong>{access.roles.length ? access.roles.join(', ') : 'Akses dasar'}</strong></article>
         </div>
+
+        {access.permissions.includes('access.manage') ? (
+          <Link className="rk-admin-entry" href="/ruang-kawan/admin/">
+            <FiSettings />
+            <span><strong>Kelola Anggota & Hak Akses</strong><small>Daftarkan email, tetapkan peran, dan atur izin khusus.</small></span>
+          </Link>
+        ) : null}
 
         <section className="rk-password-setup">
           <div>
