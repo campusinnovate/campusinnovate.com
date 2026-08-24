@@ -78,6 +78,29 @@ type Doc = {
   notes: string | null;
   items: DocItem[];
 };
+type DocumentTemplate = {
+  document_type: "quotation" | "invoice" | "receipt";
+  company_name: string;
+  company_tagline: string;
+  company_address: string;
+  company_email: string;
+  company_phone: string;
+  logo_url: string;
+  primary_color: string;
+  accent_color: string;
+  document_title: string;
+  intro_text: string;
+  payment_terms: string;
+  bank_details: string;
+  signature_name: string;
+  signature_title: string;
+  footer_text: string;
+  show_client_address: boolean;
+  show_due_date: boolean;
+  show_bank_details: boolean;
+  show_signature: boolean;
+  show_notes: boolean;
+};
 type Coa = {
   code: string;
   name: string;
@@ -279,13 +302,74 @@ const safe = (v: unknown) =>
         "'": "&#039;",
       })[x] ?? x,
   );
-function documentTemplate(doc: Doc) {
-  const label =
-    doc.document_type === "quotation"
+const defaultDocumentTemplate = (
+  type: DocumentTemplate["document_type"],
+): DocumentTemplate => ({
+  document_type: type,
+  company_name: "Campus Innovate",
+  company_tagline: "Empowering Innovation, Creating Impact",
+  company_address: "",
+  company_email: "",
+  company_phone: "",
+  logo_url: "",
+  primary_color: "#0b376f",
+  accent_color: "#ffd348",
+  document_title:
+    type === "quotation"
       ? "QUOTATION"
-      : doc.document_type === "invoice"
+      : type === "invoice"
         ? "INVOICE"
-        : "PAYMENT RECEIPT";
+        : "PAYMENT RECEIPT",
+  intro_text:
+    type === "receipt"
+      ? "Bukti penerimaan pembayaran dari {{client}}."
+      : `${type === "quotation" ? "Penawaran" : "Tagihan"} untuk {{client}} terkait {{proyek}}.`,
+  payment_terms:
+    type === "invoice"
+      ? "Mohon melakukan pembayaran paling lambat {{jatuh_tempo}}. Cantumkan {{nomor_dokumen}} pada berita transfer."
+      : type === "receipt"
+        ? "Pembayaran sebesar {{total}} telah diterima."
+        : "Penawaran berlaku sesuai periode yang tercantum pada dokumen.",
+  bank_details: "",
+  signature_name: "",
+  signature_title: "",
+  footer_text: "Dokumen dibuat dari Finance Workspace Campus Innovate.",
+  show_client_address: true,
+  show_due_date: type === "invoice",
+  show_bank_details: type === "invoice",
+  show_signature: true,
+  show_notes: true,
+});
+const placeholderValues = (doc: Doc, template: DocumentTemplate) => ({
+  nomor_dokumen: doc.document_number,
+  tanggal: dateLabel(doc.document_date),
+  jatuh_tempo: dateLabel(doc.due_date),
+  client: doc.client || "-",
+  alamat_client: doc.client_address || "-",
+  proyek: doc.project_name || "-",
+  subtotal: money(doc.subtotal),
+  diskon: money(doc.discount),
+  pajak: money(doc.tax),
+  total: money(doc.total),
+  catatan: doc.notes || "-",
+  nama_perusahaan: template.company_name,
+});
+function renderTemplateText(
+  value: string,
+  doc: Doc,
+  template: DocumentTemplate,
+) {
+  const values = placeholderValues(doc, template);
+  const rendered = value.replace(
+    /{{\s*([a-z_]+)\s*}}/gi,
+    (token, key: keyof typeof values) =>
+      Object.prototype.hasOwnProperty.call(values, key)
+        ? String(values[key])
+        : token,
+  );
+  return safe(rendered).replace(/\n/g, "<br>");
+}
+function documentTemplate(doc: Doc, template: DocumentTemplate) {
   const items = doc.items?.length
     ? doc.items
     : [
@@ -301,7 +385,35 @@ function documentTemplate(doc: Doc) {
         `<tr><td>${i + 1}</td><td>${safe(x.description)}</td><td>${safe(x.quantity)}</td><td>${money(x.unit_price)}</td><td>${money(n(x.quantity) * n(x.unit_price))}</td></tr>`,
     )
     .join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${safe(doc.document_number)}</title><style>@page{size:A4;margin:18mm}body{font-family:Arial,sans-serif;color:#17304f;margin:0}header{display:flex;justify-content:space-between;border-bottom:4px solid #ffd348;padding-bottom:18px}h1{margin:0;color:#0b376f;font-size:28px}small{color:#748399}.meta{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:26px 0}.box{padding:14px;background:#f5f7fa}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #dfe5ed;text-align:left;font-size:12px}th{color:#61738a;background:#f5f7fa}.totals{width:45%;margin:18px 0 0 auto}.totals div{display:flex;justify-content:space-between;padding:7px}.totals .grand{font-size:16px;font-weight:bold;border-top:2px solid #17304f}footer{margin-top:40px;padding-top:14px;border-top:1px solid #dfe5ed;color:#738195;font-size:10px}</style></head><body><header><div><small>CAMPUS INNOVATE</small><h1>${label}</h1></div><div><strong>${safe(doc.document_number)}</strong><br><small>${dateLabel(doc.document_date)}</small></div></header><section class="meta"><div class="box"><small>DITUJUKAN KEPADA</small><h3>${safe(doc.client)}</h3><p>${safe(doc.client_address || "-")}</p></div><div class="box"><small>PROYEK</small><h3>${safe(doc.project_name || "-")}</h3><p>Jatuh tempo: ${dateLabel(doc.due_date)}</p></div></section><table><thead><tr><th>No</th><th>Deskripsi</th><th>Qty</th><th>Harga</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table><section class="totals"><div><span>Subtotal</span><strong>${money(doc.subtotal)}</strong></div><div><span>Diskon</span><strong>${money(doc.discount)}</strong></div><div><span>Pajak</span><strong>${money(doc.tax)}</strong></div><div class="grand"><span>Total</span><strong>${money(doc.total)}</strong></div></section><p>${safe(doc.notes || "")}</p><footer>Dokumen dibuat dari Finance Workspace Campus Innovate. Template menggunakan placeholder terstruktur: nomor, tanggal, client, proyek, item, subtotal, pajak, dan total.</footer></body></html>`;
+  const contacts = [template.company_email, template.company_phone]
+    .filter(Boolean)
+    .map(safe)
+    .join(" · ");
+  const logo = template.logo_url
+    ? `<img class="logo" src="${safe(template.logo_url)}" alt="Logo ${safe(template.company_name)}">`
+    : "";
+  const due = template.show_due_date
+    ? `<p>Jatuh tempo: ${dateLabel(doc.due_date)}</p>`
+    : "";
+  const address = template.show_client_address
+    ? `<p>${safe(doc.client_address || "-")}</p>`
+    : "";
+  const intro = template.intro_text
+    ? `<section class="intro">${renderTemplateText(template.intro_text, doc, template)}</section>`
+    : "";
+  const terms = template.payment_terms
+    ? `<section class="detail"><strong>SYARAT / KETERANGAN</strong><p>${renderTemplateText(template.payment_terms, doc, template)}</p></section>`
+    : "";
+  const bank = template.show_bank_details && template.bank_details
+    ? `<section class="detail"><strong>INFORMASI PEMBAYARAN</strong><p>${renderTemplateText(template.bank_details, doc, template)}</p></section>`
+    : "";
+  const signature = template.show_signature && (template.signature_name || template.signature_title)
+    ? `<section class="signature"><span>Hormat kami,</span><b>${safe(template.signature_name || template.company_name)}</b><small>${safe(template.signature_title)}</small></section>`
+    : "";
+  const notes = template.show_notes && doc.notes
+    ? `<section class="detail"><strong>CATATAN</strong><p>${safe(doc.notes)}</p></section>`
+    : "";
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${safe(doc.document_number)}</title><style>@page{size:A4;margin:18mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#17304f;margin:0;font-size:12px}header{display:flex;justify-content:space-between;gap:24px;border-bottom:4px solid ${template.accent_color};padding-bottom:18px}.brand{display:flex;align-items:center;gap:12px}.logo{max-width:80px;max-height:54px;object-fit:contain}.brand-copy{display:grid;gap:3px}h1{margin:0;color:${template.primary_color};font-size:28px}h3{margin:7px 0}.company{color:${template.primary_color};font-weight:bold}.muted,small{color:#748399}.intro{margin:20px 0;padding:12px 14px;border-left:4px solid ${template.accent_color};background:#f7f9fc;line-height:1.55}.meta{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0}.box{padding:14px;background:#f5f7fa}.box p{margin:5px 0;white-space:pre-line}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #dfe5ed;text-align:left;font-size:12px}th{color:#61738a;background:#f5f7fa}.totals{width:45%;margin:18px 0 0 auto}.totals div{display:flex;justify-content:space-between;padding:7px}.totals .grand{font-size:16px;font-weight:bold;border-top:2px solid ${template.primary_color}}.detail{margin-top:18px;padding:13px;border:1px solid #e0e6ed;background:#fafbfc}.detail strong{color:${template.primary_color};font-size:10px}.detail p{margin:7px 0 0;line-height:1.55;white-space:pre-line}.signature{width:230px;display:grid;gap:4px;margin:36px 0 0 auto;padding-top:12px}.signature b{margin-top:45px;color:${template.primary_color}}footer{margin-top:38px;padding-top:14px;border-top:1px solid #dfe5ed;color:#738195;font-size:10px;line-height:1.5}</style></head><body><header><div class="brand">${logo}<div class="brand-copy"><span class="company">${safe(template.company_name)}</span><small>${safe(template.company_tagline)}</small><small>${safe(template.company_address)}</small><small>${contacts}</small></div></div><div><h1>${safe(template.document_title)}</h1><strong>${safe(doc.document_number)}</strong><br><small>${dateLabel(doc.document_date)}</small></div></header>${intro}<section class="meta"><div class="box"><small>DITUJUKAN KEPADA</small><h3>${safe(doc.client)}</h3>${address}</div><div class="box"><small>PROYEK</small><h3>${safe(doc.project_name || "-")}</h3>${due}</div></section><table><thead><tr><th>No</th><th>Deskripsi</th><th>Qty</th><th>Harga</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table><section class="totals"><div><span>Subtotal</span><strong>${money(doc.subtotal)}</strong></div><div><span>Diskon</span><strong>${money(doc.discount)}</strong></div><div><span>Pajak</span><strong>${money(doc.tax)}</strong></div><div class="grand"><span>Total</span><strong>${money(doc.total)}</strong></div></section>${notes}${terms}${bank}${signature}<footer>${renderTemplateText(template.footer_text, doc, template)}</footer></body></html>`;
 }
 const emptyTx = (): TxForm => ({
   correctionId: "",
@@ -432,8 +544,12 @@ export default function FinanceWorkspace() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [openings, setOpenings] = useState<Opening[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [documentTemplates, setDocumentTemplates] = useState<DocumentTemplate[]>([]);
+  const [templateForm, setTemplateForm] = useState<DocumentTemplate>(
+    defaultDocumentTemplate("quotation"),
+  );
   const [modal, setModal] = useState<
-    "tx" | "doc" | "budget" | "allocation" | "asset" | null
+    "tx" | "doc" | "template" | "budget" | "allocation" | "asset" | null
   >(null);
   const [txStep, setTxStep] = useState(1);
   const [txForm, setTxForm] = useState(emptyTx());
@@ -502,6 +618,10 @@ export default function FinanceWorkspace() {
       supabase.from("finance_assets").select("*").order("asset_code"),
       supabase.from("finance_fund_openings").select("*").order("position"),
       supabase.from("finance_bank_accounts").select("*").order("bank_account"),
+      supabase
+        .from("finance_document_templates")
+        .select("*")
+        .order("document_type"),
     ]);
     const failed = r.find((x) => x.error);
     if (failed?.error) {
@@ -519,12 +639,14 @@ export default function FinanceWorkspace() {
     setAssets((r[7].data ?? []) as Asset[]);
     setOpenings((r[8].data ?? []) as Opening[]);
     setBankAccounts((r[9].data ?? []) as BankAccount[]);
+    setDocumentTemplates((r[10].data ?? []) as DocumentTemplate[]);
     setState("ready");
   }
   useEffect(() => {
     void load();
   }, []);
   const canManage = permissions.includes("finance.manage");
+  const canManageTemplates = permissions.includes("finance.template.manage");
   const optionList = (group: string) =>
     options.filter((x) => x.option_group === group).map((x) => x.option_value);
   const liveTx = useMemo(
@@ -974,6 +1096,50 @@ export default function FinanceWorkspace() {
     );
     await load();
   }
+  function openTemplateSettings(type: DocumentTemplate["document_type"]) {
+    setTemplateForm(
+      documentTemplates.find((x) => x.document_type === type) ??
+        defaultDocumentTemplate(type),
+    );
+    setModal("template");
+  }
+  async function saveTemplate(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    const t = templateForm;
+    const r = await createClient().rpc("finance_save_document_template", {
+      template_document_type: t.document_type,
+      template_company_name: t.company_name,
+      template_company_tagline: t.company_tagline,
+      template_company_address: t.company_address,
+      template_company_email: t.company_email,
+      template_company_phone: t.company_phone,
+      template_logo_url: t.logo_url,
+      template_primary_color: t.primary_color,
+      template_accent_color: t.accent_color,
+      template_document_title: t.document_title,
+      template_intro_text: t.intro_text,
+      template_payment_terms: t.payment_terms,
+      template_bank_details: t.bank_details,
+      template_signature_name: t.signature_name,
+      template_signature_title: t.signature_title,
+      template_footer_text: t.footer_text,
+      template_show_client_address: t.show_client_address,
+      template_show_due_date: t.show_due_date,
+      template_show_bank_details: t.show_bank_details,
+      template_show_signature: t.show_signature,
+      template_show_notes: t.show_notes,
+    });
+    setSaving(false);
+    if (r.error) {
+      setError(r.error.message);
+      return;
+    }
+    setModal(null);
+    setMessage(`Template ${t.document_title} diperbarui dan langsung digunakan untuk DOC/PDF berikutnya.`);
+    await load();
+  }
   function editDocument(doc: Doc) {
     setDocForm({
       id: doc.id,
@@ -1014,7 +1180,10 @@ export default function FinanceWorkspace() {
     }
   }
   function exportDocument(doc: Doc, mode: "doc" | "print") {
-    const html = documentTemplate(doc);
+    const template =
+      documentTemplates.find((x) => x.document_type === doc.document_type) ??
+      defaultDocumentTemplate(doc.document_type);
+    const html = documentTemplate(doc, template);
     if (mode === "doc") {
       const blob = new Blob([html], {
         type: "application/msword;charset=utf-8",
@@ -1518,6 +1687,10 @@ export default function FinanceWorkspace() {
               type={tab as DocForm["type"]}
               rows={documents}
               canManage={canManage}
+              canManageTemplates={canManageTemplates}
+              settings={() =>
+                openTemplateSettings(tab as DocumentTemplate["document_type"])
+              }
               add={() => {
                 setDocForm({ ...emptyDoc(), type: tab as DocForm["type"] });
                 setModal("doc");
@@ -1613,6 +1786,15 @@ export default function FinanceWorkspace() {
           saving={saving}
           close={() => setModal(null)}
           save={saveDoc}
+        />
+      ) : null}
+      {modal === "template" ? (
+        <TemplateModal
+          form={templateForm}
+          setForm={setTemplateForm}
+          saving={saving}
+          close={() => setModal(null)}
+          save={saveTemplate}
         />
       ) : null}
       {modal === "budget" ? (
@@ -2447,6 +2629,8 @@ function Documents({
   type,
   rows,
   canManage,
+  canManageTemplates,
+  settings,
   add,
   edit,
   remove,
@@ -2456,6 +2640,8 @@ function Documents({
   type: DocForm["type"];
   rows: Doc[];
   canManage: boolean;
+  canManageTemplates: boolean;
+  settings: () => void;
   add: () => void;
   edit: (x: Doc) => void;
   remove: (x: Doc) => void;
@@ -2479,11 +2665,18 @@ function Documents({
             cetak PDF.
           </p>
         </div>
-        {canManage ? (
-          <button onClick={add}>
-            <FiPlus /> Buat
-          </button>
-        ) : null}
+        <div className="rk-document-heading-actions">
+          {canManageTemplates ? (
+            <button onClick={settings}>
+              <FiSettings /> Pengaturan Template
+            </button>
+          ) : null}
+          {canManage ? (
+            <button data-primary onClick={add}>
+              <FiPlus /> Buat
+            </button>
+          ) : null}
+        </div>
       </header>
       <div className="rk-table-scroll">
         <table>
@@ -3383,6 +3576,132 @@ function DocumentModal(p: {
               onChange={(e) => set("notes", e.target.value)}
             />
           </Field>
+        </div>
+      </ModalShell>
+    </form>
+  );
+}
+
+function TemplateModal(p: {
+  form: DocumentTemplate;
+  setForm: (x: DocumentTemplate) => void;
+  saving: boolean;
+  close: () => void;
+  save: (e: FormEvent) => void;
+}) {
+  const f = p.form;
+  const set = <K extends keyof DocumentTemplate>(
+    key: K,
+    value: DocumentTemplate[K],
+  ) => p.setForm({ ...f, [key]: value });
+  const previewDoc: Doc = {
+    id: "preview",
+    document_type: f.document_type,
+    document_number:
+      f.document_type === "quotation"
+        ? "QUO-PREVIEW-0001"
+        : f.document_type === "invoice"
+          ? "INV-PREVIEW-0001"
+          : "RCP-PREVIEW-0001",
+    document_date: today(),
+    due_date: f.document_type === "invoice" ? today() : null,
+    client: "Nama Client",
+    client_address: "Alamat client akan tampil di sini",
+    project_name: "Nama Proyek",
+    status: "Preview",
+    subtotal: 2500000,
+    discount: 100000,
+    tax: 275000,
+    total: 2675000,
+    paid: 0,
+    balance: 2675000,
+    linked_invoice_id: null,
+    notes: "Catatan dokumen contoh.",
+    items: [
+      { description: "Layanan Campus Innovate", quantity: 2, unit_price: 1250000 },
+    ],
+  };
+  const tokens = [
+    "{{nomor_dokumen}}",
+    "{{tanggal}}",
+    "{{jatuh_tempo}}",
+    "{{client}}",
+    "{{alamat_client}}",
+    "{{proyek}}",
+    "{{subtotal}}",
+    "{{diskon}}",
+    "{{pajak}}",
+    "{{total}}",
+    "{{catatan}}",
+    "{{nama_perusahaan}}",
+  ];
+  return (
+    <form onSubmit={p.save}>
+      <ModalShell
+        eyebrow="ADMIN · DOCUMENT TEMPLATE"
+        title={`Pengaturan ${f.document_title}`}
+        close={p.close}
+        footer={
+          <>
+            <button type="button" onClick={p.close}>Batal</button>
+            <button data-primary disabled={p.saving}>
+              {p.saving ? "Menyimpan..." : "Simpan & gunakan"}
+            </button>
+          </>
+        }
+      >
+        <div className="rk-template-layout">
+          <div className="rk-template-form">
+            <section className="rk-template-section">
+              <header><strong>Identitas perusahaan</strong><small>Ditampilkan pada kepala dokumen.</small></header>
+              <div className="rk-finance-form">
+                <Field label="Nama perusahaan"><input value={f.company_name} onChange={(e) => set("company_name", e.target.value)} required /></Field>
+                <Field label="Tagline"><input value={f.company_tagline} onChange={(e) => set("company_tagline", e.target.value)} /></Field>
+                <Field label="Alamat" wide><textarea value={f.company_address} onChange={(e) => set("company_address", e.target.value)} /></Field>
+                <Field label="Email"><input type="email" value={f.company_email} onChange={(e) => set("company_email", e.target.value)} /></Field>
+                <Field label="Telepon"><input value={f.company_phone} onChange={(e) => set("company_phone", e.target.value)} /></Field>
+                <Field label="URL logo HTTPS" wide><input type="url" placeholder="https://.../logo.png" value={f.logo_url} onChange={(e) => set("logo_url", e.target.value)} /></Field>
+              </div>
+            </section>
+            <section className="rk-template-section">
+              <header><strong>Tampilan & judul</strong><small>Berlaku khusus untuk jenis dokumen ini.</small></header>
+              <div className="rk-finance-form">
+                <Field label="Judul dokumen"><input value={f.document_title} onChange={(e) => set("document_title", e.target.value)} required /></Field>
+                <Field label="Warna utama"><div className="rk-color-field"><input type="color" value={f.primary_color} onChange={(e) => set("primary_color", e.target.value)} /><input value={f.primary_color} pattern="#[0-9A-Fa-f]{6}" onChange={(e) => set("primary_color", e.target.value)} /></div></Field>
+                <Field label="Warna aksen"><div className="rk-color-field"><input type="color" value={f.accent_color} onChange={(e) => set("accent_color", e.target.value)} /><input value={f.accent_color} pattern="#[0-9A-Fa-f]{6}" onChange={(e) => set("accent_color", e.target.value)} /></div></Field>
+                <Field label="Kalimat pembuka" wide><textarea value={f.intro_text} onChange={(e) => set("intro_text", e.target.value)} /></Field>
+              </div>
+            </section>
+            <section className="rk-template-section">
+              <header><strong>Isi tambahan</strong><small>Placeholder akan terisi otomatis dari dokumen.</small></header>
+              <div className="rk-template-tokens">{tokens.map((x) => <code key={x}>{x}</code>)}</div>
+              <div className="rk-finance-form">
+                <Field label="Syarat pembayaran / keterangan" wide><textarea value={f.payment_terms} onChange={(e) => set("payment_terms", e.target.value)} /></Field>
+                <Field label="Informasi rekening" wide><textarea placeholder="Bank, nomor rekening, dan nama pemilik rekening." value={f.bank_details} onChange={(e) => set("bank_details", e.target.value)} /></Field>
+                <Field label="Nama penandatangan"><input value={f.signature_name} onChange={(e) => set("signature_name", e.target.value)} /></Field>
+                <Field label="Jabatan penandatangan"><input value={f.signature_title} onChange={(e) => set("signature_title", e.target.value)} /></Field>
+                <Field label="Footer" wide><textarea value={f.footer_text} onChange={(e) => set("footer_text", e.target.value)} /></Field>
+              </div>
+            </section>
+            <section className="rk-template-section">
+              <header><strong>Bagian yang ditampilkan</strong><small>Matikan bagian yang tidak diperlukan.</small></header>
+              <div className="rk-template-switches">
+                {([
+                  ["show_client_address", "Alamat client"],
+                  ["show_due_date", "Jatuh tempo"],
+                  ["show_bank_details", "Informasi rekening"],
+                  ["show_signature", "Tanda tangan"],
+                  ["show_notes", "Catatan dokumen"],
+                ] as [keyof DocumentTemplate, string][]).map(([key, label]) => (
+                  <label key={key}><input type="checkbox" checked={Boolean(f[key])} onChange={(e) => set(key, e.target.checked as never)} /><span>{label}</span></label>
+                ))}
+              </div>
+            </section>
+          </div>
+          <aside className="rk-template-preview">
+            <header><strong>Preview langsung</strong><small>Data di bawah hanya contoh dan tidak disimpan.</small></header>
+            <iframe title="Preview template dokumen" srcDoc={documentTemplate(previewDoc, f)} />
+          </aside>
         </div>
       </ModalShell>
     </form>
