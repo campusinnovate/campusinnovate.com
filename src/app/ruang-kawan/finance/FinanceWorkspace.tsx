@@ -1,160 +1,3748 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
-import { FiAlertTriangle, FiArrowLeft, FiBarChart2, FiBox, FiCheckCircle, FiChevronRight, FiDollarSign, FiFileText, FiPlus, FiRotateCcw, FiSettings, FiTrendingUp, FiX } from 'react-icons/fi';
-import { createClient } from '@/lib/supabase/client';
+import Link from "next/link";
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  FiAlertTriangle,
+  FiArrowLeft,
+  FiBarChart2,
+  FiBox,
+  FiCheckCircle,
+  FiChevronRight,
+  FiDollarSign,
+  FiDownload,
+  FiEdit3,
+  FiFileText,
+  FiPlus,
+  FiPrinter,
+  FiSettings,
+  FiTrash2,
+  FiTrendingUp,
+  FiX,
+} from "react-icons/fi";
+import { createClient } from "@/lib/supabase/client";
 
-type Section='dashboard'|'transactions'|'documents'|'planning'|'assets';
-type Tx={id:string;transaction_number:string;transaction_date:string;event_type:string;flow:'in'|'out'|'non_cash';category:string;description:string;counterparty:string|null;amount:number;status:string;reference_number:string|null;reversal_of_id:string|null;project_name:string|null;coa_code:string|null;account_name:string|null;account_class:string|null;cash_flow_category:string|null;transaction_event:string|null;bank_account:string|null;due_date:string|null;auto_status:string|null;cost_nature:string|null;control_position:string|null;notes:string|null;fund_source:string|null;fund_use:string|null;profit_allocation_code:string|null};
-type Doc={id:string;document_type:'quotation'|'invoice'|'receipt';document_number:string;document_date:string;due_date:string|null;client:string;client_address:string|null;project_name:string|null;status:string;total:number;paid:number;balance:number;linked_invoice_id:string|null};
-type Coa={code:string;name:string;account_class:string;cash_flow_category:string;default_flow:string;cost_nature:string;control_position:string;default_event:string|null};
-type Catalog={event_name:string;group_key:'cash-in'|'cash-out'|'non-cash'|'control';group_label:string;label:string;flow:string;default_coa:string|null;description:string;requires_reference:boolean;requires_due_date:boolean;creates_asset:boolean;sort_order:number};
-type Option={option_group:string;option_value:string;sort_order:number};
-type Budget={id:string;period_month:string;category:string;planned_amount:number;allocated_amount:number;pic:string|null;notes:string|null;status:string;coa_code:string|null};
-type Allocation={id:string;allocation_code:string;status:string;closing_date:string;project_name:string;approved_profit:number;company_share:number;executive_share:number;operational_fixed_cost:number;company_remainder:number;retained_earnings:number;emergency_fund:number;ceo_pool:number;coo_pool:number;cto_pool:number;reference_number:string|null;notes:string|null};
-type Asset={id:string;asset_code:string;asset_name:string;category:string|null;acquisition_date:string|null;acquisition_value:number;asset_type:string;asset_status:string;useful_life_months:number;fund_source:string|null;location:string|null;pic:string|null;expiry_date:string|null;serial_or_account:string|null;evidence_url:string|null;journal_reference:string|null;notes:string|null};
-type Opening={position:string;opening_balance:number;target_minimum:number};
-type TxForm={date:string;project:string;coa:string;description:string;amount:string;bank:string;event:string;party:string;reference:string;dueDate:string;fundSource:string;fundUse:string;allocationCode:string;notes:string;evidence:string;assetName:string;assetType:string;assetCategory:string;assetLife:string;assetLocation:string;assetPic:string;assetExpiry:string;assetSerial:string;assetProof:string};
-type DocForm={type:'quotation'|'invoice'|'receipt';date:string;dueDate:string;client:string;address:string;project:string;itemName:string;quantity:string;unitPrice:string;discount:string;tax:string;notes:string;invoiceId:string;receiptAmount:string};
-type BudgetForm={id:string;period:string;coa:string;component:string;budget:string;allocated:string;pic:string;notes:string};
-type AllocationForm={status:string;date:string;project:string;profit:string;operational:string;reference:string;notes:string};
-type AssetForm={status:string;type:string;name:string;category:string;date:string;journalReference:string;value:string;life:string;fundSource:string;location:string;pic:string;expiry:string;serial:string;evidence:string;notes:string};
-
-const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
-const currentMonth=()=>today().slice(0,7);
-const n=(v:unknown)=>Number(v)||0;
-const money=(v:unknown)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n(v));
-const percent=(v:number)=>`${n(v).toLocaleString('id-ID',{maximumFractionDigits:1})}%`;
-const dateLabel=(v:string|null|undefined)=>v?new Date(`${v}T12:00:00`).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):'-';
-const emptyTx=():TxForm=>({date:today(),project:'',coa:'',description:'',amount:'',bank:'',event:'',party:'',reference:'',dueDate:'',fundSource:'',fundUse:'',allocationCode:'',notes:'',evidence:'',assetName:'',assetType:'Fisik',assetCategory:'',assetLife:'36',assetLocation:'',assetPic:'',assetExpiry:'',assetSerial:'',assetProof:''});
-const emptyDoc=():DocForm=>({type:'quotation',date:today(),dueDate:'',client:'',address:'',project:'',itemName:'',quantity:'1',unitPrice:'',discount:'0',tax:'0',notes:'',invoiceId:'',receiptAmount:''});
-const emptyBudget=():BudgetForm=>({id:'',period:currentMonth(),coa:'',component:'',budget:'',allocated:'',pic:'',notes:''});
-const emptyAllocation=():AllocationForm=>({status:'Draft',date:today(),project:'',profit:'',operational:'0',reference:'',notes:''});
-const emptyAsset=():AssetForm=>({status:'Aktif',type:'Fisik',name:'',category:'',date:today(),journalReference:'',value:'',life:'36',fundSource:'',location:'',pic:'',expiry:'',serial:'',evidence:'',notes:''});
-const tabs:Record<Section,[string,string][]>= {
- dashboard:[['overview','Overview'],['profit-loss','Profit & Loss'],['cash-flow','Cash Flow'],['financial-position','Financial Position'],['fund-control','Fund Control']],
- transactions:[['new','Tambah Transaksi'],['journal','Jurnal'],['receivables','Piutang'],['liabilities','Kewajiban'],['reconciliation','Rekonsiliasi Bank']],
- documents:[['quotation','Quotation'],['invoice','Invoice'],['receipt','Payment Receipt']],
- planning:[['budget','Fixed Cost Budget'],['allocation','Project Profit Allocation'],['fund-control','Company Fund Control']],
- assets:[['list','Asset Register']]
+type Section =
+  "dashboard" | "transactions" | "documents" | "planning" | "assets";
+type Tx = {
+  id: string;
+  transaction_number: string;
+  transaction_date: string;
+  event_type: string;
+  flow: "in" | "out" | "non_cash";
+  category: string;
+  description: string;
+  counterparty: string | null;
+  amount: number;
+  status: string;
+  reference_number: string | null;
+  reversal_of_id: string | null;
+  project_name: string | null;
+  coa_code: string | null;
+  account_name: string | null;
+  account_class: string | null;
+  cash_flow_category: string | null;
+  transaction_event: string | null;
+  bank_account: string | null;
+  due_date: string | null;
+  auto_status: string | null;
+  cost_nature: string | null;
+  control_position: string | null;
+  notes: string | null;
+  fund_source: string | null;
+  fund_use: string | null;
+  profit_allocation_code: string | null;
+};
+type DocItem = {
+  description: string;
+  quantity: number | string;
+  unit_price: number | string;
+};
+type Doc = {
+  id: string;
+  document_type: "quotation" | "invoice" | "receipt";
+  document_number: string;
+  document_date: string;
+  due_date: string | null;
+  client: string;
+  client_address: string | null;
+  project_name: string | null;
+  status: string;
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  paid: number;
+  balance: number;
+  linked_invoice_id: string | null;
+  notes: string | null;
+  items: DocItem[];
+};
+type Coa = {
+  code: string;
+  name: string;
+  account_class: string;
+  cash_flow_category: string;
+  default_flow: string;
+  cost_nature: string;
+  control_position: string;
+  default_event: string | null;
+};
+type Catalog = {
+  event_name: string;
+  group_key: "cash-in" | "cash-out" | "non-cash" | "control";
+  group_label: string;
+  label: string;
+  flow: string;
+  default_coa: string | null;
+  description: string;
+  requires_reference: boolean;
+  requires_due_date: boolean;
+  creates_asset: boolean;
+  sort_order: number;
+};
+type Option = {
+  option_group: string;
+  option_value: string;
+  sort_order: number;
+};
+type Budget = {
+  id: string;
+  period_month: string;
+  category: string;
+  planned_amount: number;
+  allocated_amount: number;
+  pic: string | null;
+  notes: string | null;
+  status: string;
+  coa_code: string | null;
+};
+type Allocation = {
+  id: string;
+  allocation_code: string;
+  status: string;
+  closing_date: string;
+  project_name: string;
+  approved_profit: number;
+  company_share: number;
+  executive_share: number;
+  operational_fixed_cost: number;
+  company_remainder: number;
+  retained_earnings: number;
+  emergency_fund: number;
+  ceo_pool: number;
+  coo_pool: number;
+  cto_pool: number;
+  reference_number: string | null;
+  notes: string | null;
+};
+type Asset = {
+  id: string;
+  asset_code: string;
+  asset_name: string;
+  category: string | null;
+  acquisition_date: string | null;
+  acquisition_value: number;
+  asset_type: string;
+  asset_status: string;
+  useful_life_months: number;
+  fund_source: string | null;
+  location: string | null;
+  pic: string | null;
+  expiry_date: string | null;
+  serial_or_account: string | null;
+  evidence_url: string | null;
+  journal_reference: string | null;
+  notes: string | null;
+};
+type Opening = {
+  position: string;
+  opening_balance: number;
+  target_minimum: number;
+};
+type BankAccount = {
+  bank_account: string;
+  opening_balance: number;
+  current_balance: number;
+  last_snapshot_at: string | null;
+};
+type TxForm = {
+  correctionId: string;
+  correctionReason: string;
+  date: string;
+  project: string;
+  coa: string;
+  description: string;
+  amount: string;
+  bank: string;
+  event: string;
+  party: string;
+  reference: string;
+  dueDate: string;
+  fundSource: string;
+  fundUse: string;
+  allocationCode: string;
+  notes: string;
+  evidence: string;
+  assetName: string;
+  assetType: string;
+  assetCategory: string;
+  assetLife: string;
+  assetLocation: string;
+  assetPic: string;
+  assetExpiry: string;
+  assetSerial: string;
+  assetProof: string;
+};
+type DocForm = {
+  id: string;
+  type: "quotation" | "invoice" | "receipt";
+  date: string;
+  dueDate: string;
+  client: string;
+  address: string;
+  project: string;
+  items: DocItem[];
+  discount: string;
+  tax: string;
+  notes: string;
+  invoiceId: string;
+  receiptAmount: string;
+  bank: string;
+};
+type BudgetForm = {
+  id: string;
+  period: string;
+  coa: string;
+  component: string;
+  budget: string;
+  allocated: string;
+  pic: string;
+  notes: string;
+};
+type AllocationForm = {
+  status: string;
+  date: string;
+  project: string;
+  profit: string;
+  operational: string;
+  reference: string;
+  notes: string;
+};
+type AssetForm = {
+  status: string;
+  type: string;
+  name: string;
+  category: string;
+  date: string;
+  journalReference: string;
+  value: string;
+  life: string;
+  fundSource: string;
+  location: string;
+  pic: string;
+  expiry: string;
+  serial: string;
+  evidence: string;
+  notes: string;
 };
 
-export default function FinanceWorkspace(){
- const [state,setState]=useState<'loading'|'ready'|'denied'>('loading');
- const [permissions,setPermissions]=useState<string[]>([]); const [section,setSection]=useState<Section>('dashboard'); const [tab,setTab]=useState('overview'); const [period,setPeriod]=useState('YTD');
- const [transactions,setTransactions]=useState<Tx[]>([]); const [documents,setDocuments]=useState<Doc[]>([]); const [coa,setCoa]=useState<Coa[]>([]); const [catalog,setCatalog]=useState<Catalog[]>([]); const [options,setOptions]=useState<Option[]>([]); const [budgets,setBudgets]=useState<Budget[]>([]); const [allocations,setAllocations]=useState<Allocation[]>([]); const [assets,setAssets]=useState<Asset[]>([]); const [openings,setOpenings]=useState<Opening[]>([]);
- const [modal,setModal]=useState<'tx'|'doc'|'budget'|'allocation'|'asset'|null>(null); const [txStep,setTxStep]=useState(1); const [txForm,setTxForm]=useState(emptyTx()); const [docForm,setDocForm]=useState(emptyDoc()); const [budgetForm,setBudgetForm]=useState(emptyBudget()); const [allocationForm,setAllocationForm]=useState(emptyAllocation()); const [assetForm,setAssetForm]=useState(emptyAsset());
- const [saving,setSaving]=useState(false); const [error,setError]=useState(''); const [message,setMessage]=useState(''); const [query,setQuery]=useState(''); const [projectFilter,setProjectFilter]=useState(''); const [eventFilter,setEventFilter]=useState('');
+const today = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+const currentMonth = () => today().slice(0, 7);
+const n = (v: unknown) => Number(v) || 0;
+const money = (v: unknown) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(n(v));
+const percent = (v: number) =>
+  `${n(v).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`;
+const dateLabel = (v: string | null | undefined) =>
+  v
+    ? new Date(`${v}T12:00:00`).toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "-";
+const safe = (v: unknown) =>
+  String(v ?? "").replace(
+    /[&<>"']/g,
+    (x) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      })[x] ?? x,
+  );
+function documentTemplate(doc: Doc) {
+  const label =
+    doc.document_type === "quotation"
+      ? "QUOTATION"
+      : doc.document_type === "invoice"
+        ? "INVOICE"
+        : "PAYMENT RECEIPT";
+  const items = doc.items?.length
+    ? doc.items
+    : [
+        {
+          description: `Pembayaran ${doc.linked_invoice_id ?? ""}`,
+          quantity: 1,
+          unit_price: doc.total,
+        },
+      ];
+  const rows = items
+    .map(
+      (x, i) =>
+        `<tr><td>${i + 1}</td><td>${safe(x.description)}</td><td>${safe(x.quantity)}</td><td>${money(x.unit_price)}</td><td>${money(n(x.quantity) * n(x.unit_price))}</td></tr>`,
+    )
+    .join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${safe(doc.document_number)}</title><style>@page{size:A4;margin:18mm}body{font-family:Arial,sans-serif;color:#17304f;margin:0}header{display:flex;justify-content:space-between;border-bottom:4px solid #ffd348;padding-bottom:18px}h1{margin:0;color:#0b376f;font-size:28px}small{color:#748399}.meta{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:26px 0}.box{padding:14px;background:#f5f7fa}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #dfe5ed;text-align:left;font-size:12px}th{color:#61738a;background:#f5f7fa}.totals{width:45%;margin:18px 0 0 auto}.totals div{display:flex;justify-content:space-between;padding:7px}.totals .grand{font-size:16px;font-weight:bold;border-top:2px solid #17304f}footer{margin-top:40px;padding-top:14px;border-top:1px solid #dfe5ed;color:#738195;font-size:10px}</style></head><body><header><div><small>CAMPUS INNOVATE</small><h1>${label}</h1></div><div><strong>${safe(doc.document_number)}</strong><br><small>${dateLabel(doc.document_date)}</small></div></header><section class="meta"><div class="box"><small>DITUJUKAN KEPADA</small><h3>${safe(doc.client)}</h3><p>${safe(doc.client_address || "-")}</p></div><div class="box"><small>PROYEK</small><h3>${safe(doc.project_name || "-")}</h3><p>Jatuh tempo: ${dateLabel(doc.due_date)}</p></div></section><table><thead><tr><th>No</th><th>Deskripsi</th><th>Qty</th><th>Harga</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table><section class="totals"><div><span>Subtotal</span><strong>${money(doc.subtotal)}</strong></div><div><span>Diskon</span><strong>${money(doc.discount)}</strong></div><div><span>Pajak</span><strong>${money(doc.tax)}</strong></div><div class="grand"><span>Total</span><strong>${money(doc.total)}</strong></div></section><p>${safe(doc.notes || "")}</p><footer>Dokumen dibuat dari Finance Workspace Campus Innovate. Template menggunakan placeholder terstruktur: nomor, tanggal, client, proyek, item, subtotal, pajak, dan total.</footer></body></html>`;
+}
+const emptyTx = (): TxForm => ({
+  correctionId: "",
+  correctionReason: "",
+  date: today(),
+  project: "",
+  coa: "",
+  description: "",
+  amount: "",
+  bank: "",
+  event: "",
+  party: "",
+  reference: "",
+  dueDate: "",
+  fundSource: "",
+  fundUse: "",
+  allocationCode: "",
+  notes: "",
+  evidence: "",
+  assetName: "",
+  assetType: "Fisik",
+  assetCategory: "",
+  assetLife: "36",
+  assetLocation: "",
+  assetPic: "",
+  assetExpiry: "",
+  assetSerial: "",
+  assetProof: "",
+});
+const emptyDocItem = (): DocItem => ({
+  description: "",
+  quantity: "1",
+  unit_price: "",
+});
+const emptyDoc = (): DocForm => ({
+  id: "",
+  type: "quotation",
+  date: today(),
+  dueDate: "",
+  client: "",
+  address: "",
+  project: "",
+  items: [emptyDocItem()],
+  discount: "0",
+  tax: "0",
+  notes: "",
+  invoiceId: "",
+  receiptAmount: "",
+  bank: "",
+});
+const emptyBudget = (): BudgetForm => ({
+  id: "",
+  period: currentMonth(),
+  coa: "",
+  component: "",
+  budget: "",
+  allocated: "",
+  pic: "",
+  notes: "",
+});
+const emptyAllocation = (): AllocationForm => ({
+  status: "Draft",
+  date: today(),
+  project: "",
+  profit: "",
+  operational: "0",
+  reference: "",
+  notes: "",
+});
+const emptyAsset = (): AssetForm => ({
+  status: "Aktif",
+  type: "Fisik",
+  name: "",
+  category: "",
+  date: today(),
+  journalReference: "",
+  value: "",
+  life: "36",
+  fundSource: "",
+  location: "",
+  pic: "",
+  expiry: "",
+  serial: "",
+  evidence: "",
+  notes: "",
+});
+const tabs: Record<Section, [string, string][]> = {
+  dashboard: [
+    ["overview", "Overview"],
+    ["profit-loss", "Profit & Loss"],
+    ["cash-flow", "Cash Flow"],
+    ["financial-position", "Financial Position"],
+    ["fund-control", "Fund Control"],
+  ],
+  transactions: [
+    ["new", "Tambah Transaksi"],
+    ["journal", "Jurnal"],
+    ["receivables", "Piutang"],
+    ["liabilities", "Kewajiban"],
+    ["reconciliation", "Rekonsiliasi Bank"],
+  ],
+  documents: [
+    ["quotation", "Quotation"],
+    ["invoice", "Invoice"],
+    ["receipt", "Payment Receipt"],
+  ],
+  planning: [
+    ["budget", "Fixed Cost Budget"],
+    ["allocation", "Project Profit Allocation"],
+    ["fund-control", "Company Fund Control"],
+  ],
+  assets: [["list", "Asset Register"]],
+};
 
- async function load(){
-  setError(''); const supabase=createClient(); const {data:{session}}=await supabase.auth.getSession(); if(!session){window.location.replace('/ruang-kawan/');return;}
-  const accessR=await supabase.rpc('get_my_access'); const access=Array.isArray(accessR.data)?accessR.data[0]:accessR.data; if(!access?.permissions?.includes('finance.view')){setState('denied');return;} setPermissions(access.permissions??[]);
-  const r=await Promise.all([supabase.from('finance_transactions').select('*').order('transaction_date',{ascending:false}).limit(1000),supabase.from('finance_documents').select('*').is('deleted_at',null).order('document_date',{ascending:false}).limit(500),supabase.from('finance_coa').select('*').eq('is_active',true).order('code'),supabase.from('finance_transaction_catalog').select('*').order('sort_order'),supabase.from('finance_option_values').select('*').eq('is_active',true).order('sort_order'),supabase.from('finance_budgets').select('*').order('period_month',{ascending:false}),supabase.from('finance_profit_allocations').select('*').order('closing_date',{ascending:false}),supabase.from('finance_assets').select('*').order('asset_code'),supabase.from('finance_fund_openings').select('*').order('position')]);
-  const failed=r.find(x=>x.error); if(failed?.error){setState('ready');setError(failed.error.message);return;} setTransactions((r[0].data??[]) as Tx[]);setDocuments((r[1].data??[]) as Doc[]);setCoa((r[2].data??[]) as Coa[]);setCatalog((r[3].data??[]) as Catalog[]);setOptions((r[4].data??[]) as Option[]);setBudgets((r[5].data??[]) as Budget[]);setAllocations((r[6].data??[]) as Allocation[]);setAssets((r[7].data??[]) as Asset[]);setOpenings((r[8].data??[]) as Opening[]);setState('ready');
- }
- useEffect(()=>{void load();},[]);
- const canManage=permissions.includes('finance.manage'); const optionList=(group:string)=>options.filter(x=>x.option_group===group).map(x=>x.option_value);
- const liveTx=useMemo(()=>transactions.filter(x=>x.status==='posted'&&!x.reversal_of_id),[transactions]); const periodTx=liveTx.filter(x=>period==='YTD'||x.transaction_date.startsWith(period));
- const months=Array.from(new Set([...liveTx.map(x=>x.transaction_date.slice(0,7)),currentMonth()])).sort().reverse(); const projects=Array.from(new Set(liveTx.map(x=>x.project_name).filter(Boolean) as string[])).sort();
- const classAmount=(rows:Tx[],classes:string[])=>rows.filter(x=>classes.includes(x.account_class??'')).reduce((s,x)=>s+n(x.amount),0); const eventAmount=(rows:Tx[],events:string[])=>rows.filter(x=>events.includes(x.transaction_event??'')).reduce((s,x)=>s+n(x.amount),0);
- const revenue=classAmount(periodTx,['Pendapatan','Kontra Beban']); const directExpense=classAmount(periodTx,['Beban Langsung Proyek']); const operatingExpense=classAmount(periodTx,['Beban Operasional']); const nonOperatingExpense=classAmount(periodTx,['Beban Non-Operasional']); const tax=classAmount(periodTx,['Pajak']); const totalExpense=directExpense+operatingExpense+nonOperatingExpense+tax; const grossProfit=revenue-directExpense; const operatingProfit=grossProfit-operatingExpense; const netProfit=operatingProfit-nonOperatingExpense-tax; const netMargin=revenue?netProfit/revenue*100:0;
- const cashIn=periodTx.filter(x=>x.flow==='in').reduce((s,x)=>s+n(x.amount),0); const cashOut=periodTx.filter(x=>x.flow==='out').reduce((s,x)=>s+n(x.amount),0); const bookBalance=liveTx.filter(x=>x.flow==='in').reduce((s,x)=>s+n(x.amount),0)-liveTx.filter(x=>x.flow==='out').reduce((s,x)=>s+n(x.amount),0); const snapshot=liveTx.filter(x=>x.transaction_event==='Saldo Aktual Bank').sort((a,b)=>b.transaction_date.localeCompare(a.transaction_date))[0]; const actualCash=snapshot?n(snapshot.amount):bookBalance; const reconDifference=actualCash-bookBalance;
- const receivables=Math.max(eventAmount(liveTx,['Pengakuan Piutang','Penyaluran Piutang'])-eventAmount(liveTx,['Penerimaan Piutang']),0); const liabilities=Math.max(eventAmount(liveTx,['Pengakuan Kewajiban','Alokasi Hak Bagi Hasil Eksekutif'])-eventAmount(liveTx,['Pembayaran Kewajiban','Pembayaran Bagi Hasil Eksekutif']),0); const potentialLead=Math.max(eventAmount(liveTx,['Potential Lead'])-eventAmount(liveTx,['Penutupan Potential Lead']),0);
- const activeBudget=budgets.filter(x=>(period==='YTD'?currentMonth():period)===x.period_month.slice(0,7)); const budgetRows=activeBudget.map(x=>{const actual=liveTx.filter(t=>t.coa_code===x.coa_code&&t.transaction_date.startsWith(x.period_month.slice(0,7))).reduce((s,t)=>s+n(t.amount),0);const gap=Math.max(n(x.planned_amount)-n(x.allocated_amount),0);return {...x,actual,gap,status:!n(x.planned_amount)?'BELUM DIANGGARKAN':gap>0?'GAP':'TERDANAI'};}); const budgetTotal=budgetRows.reduce((s,x)=>s+n(x.planned_amount),0);const allocatedTotal=budgetRows.reduce((s,x)=>s+n(x.allocated_amount),0);const budgetGap=budgetRows.reduce((s,x)=>s+x.gap,0);
- const approved=allocations.filter(x=>x.status==='Approved'); const opening=(p:string)=>n(openings.find(x=>x.position===p)?.opening_balance); const usage=(p:string)=>liveTx.filter(x=>x.fund_use===p&&x.flow==='out').reduce((s,x)=>s+n(x.amount),0); const funds=[{position:'Operasional / Fixed Cost',opening:opening('Operasional / Fixed Cost'),allocation:approved.reduce((s,x)=>s+n(x.operational_fixed_cost),0),target:budgetTotal},{position:'Laba Ditahan',opening:opening('Laba Ditahan'),allocation:approved.reduce((s,x)=>s+n(x.retained_earnings),0),target:0},{position:'Dana Darurat',opening:opening('Dana Darurat'),allocation:approved.reduce((s,x)=>s+n(x.emergency_fund),0),target:budgetTotal*3},{position:'Hak Eksekutif',opening:opening('Hak Eksekutif'),allocation:approved.reduce((s,x)=>s+n(x.executive_share),0),target:0}].map(x=>{const used=x.position==='Hak Eksekutif'?eventAmount(liveTx,['Pembayaran Bagi Hasil Eksekutif']):usage(x.position);const balance=Math.max(x.opening+x.allocation-used,0);const variance=balance-x.target;const status=x.position==='Hak Eksekutif'?(balance>0?'BELUM DIBAYAR':'LUNAS'):(balance<=0?'KOSONG':variance<0?'PERLU TAMBAH':'AMAN');return {...x,usage:used,balance,variance,status};});
- const tied=Math.max(eventAmount(liveTx,['Alokasi Dana Terikat'])-eventAmount(liveTx,['Pelepasan Dana Terikat']),0); const operationalCash=Math.max(actualCash-liabilities-tied,0); const cashRunway=budgetTotal?operationalCash/budgetTotal:0;
- const assetRows=assets.map(x=>{const d=x.acquisition_date?new Date(`${x.acquisition_date}T12:00:00`):new Date();const elapsed=Math.max(0,(new Date().getFullYear()-d.getFullYear())*12+new Date().getMonth()-d.getMonth());const accumulated=Math.min(n(x.acquisition_value),n(x.acquisition_value)/Math.max(n(x.useful_life_months),1)*elapsed);return {...x,accumulated,bookValue:Math.max(n(x.acquisition_value)-accumulated,0)};}); const assetBookValue=assetRows.reduce((s,x)=>s+x.bookValue,0);
- const overdue=liveTx.filter(x=>x.due_date&&x.due_date<today()&&['Pengakuan Piutang','Penyaluran Piutang'].includes(x.transaction_event??'')).reduce((s,x)=>s+n(x.amount),0); const ratio=bookBalance?Math.abs(reconDifference)/Math.abs(bookBalance)*100:(reconDifference?100:0); const scoreRunway=cashRunway>=3?100:cashRunway>=2?80:cashRunway>=1?60:cashRunway>=.5?35:cashRunway>0?15:0; const scoreProfit=netProfit<0?(netMargin<=-20?0:netMargin<=-10?15:30):netMargin>=25?100:netMargin>=15?85:netMargin>=10?70:netMargin>=5?55:netMargin>0?40:20; const scoreBudget=budgetTotal?Math.min(allocatedTotal/budgetTotal*100,100):0; const scoreRecon=Math.abs(reconDifference)<1?100:Math.abs(reconDifference)<=50000||ratio<=.5?80:ratio<=1?60:ratio<=5?30:0; const scoreWorking=Math.max(0,100-(receivables?overdue/receivables*60:0)-(operationalCash?Math.min(40,liabilities/Math.max(operationalCash,1)*40):(liabilities?40:0))); const emergency=funds.find(x=>x.position==='Dana Darurat')?.balance??0; const scoreReserve=budgetTotal?Math.min(emergency/(budgetTotal*3)*100,100):0; const components=[['Likuiditas & Cash Runway',25,scoreRunway],['Profitabilitas',25,scoreProfit],['Budget Coverage',15,scoreBudget],['Rekonsiliasi Bank',15,scoreRecon],['Piutang & Kewajiban',10,scoreWorking],['Kesiapan Dana Perusahaan',10,scoreReserve]] as [string,number,number][]; const score=components.reduce((s,x)=>s+x[1]*x[2]/100,0); const scoreLabel=score>=80?'Healthy':score>=60?'Stable':score>=40?'Needs Attention':'Critical';
- const trends=Array.from({length:6},(_,i)=>{const d=new Date();d.setMonth(d.getMonth()-(5-i));const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;const rows=liveTx.filter(x=>x.transaction_date.startsWith(key));const rev=classAmount(rows,['Pendapatan','Kontra Beban']);const exp=classAmount(rows,['Beban Langsung Proyek','Beban Operasional','Beban Non-Operasional','Pajak']);return {key,label:d.toLocaleDateString('id-ID',{month:'short'}),revenue:rev,expense:exp,profit:rev-exp};});
+export default function FinanceWorkspace() {
+  const [state, setState] = useState<"loading" | "ready" | "denied">("loading");
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [section, setSection] = useState<Section>("dashboard");
+  const [tab, setTab] = useState("overview");
+  const [period, setPeriod] = useState("YTD");
+  const [transactions, setTransactions] = useState<Tx[]>([]);
+  const [documents, setDocuments] = useState<Doc[]>([]);
+  const [coa, setCoa] = useState<Coa[]>([]);
+  const [catalog, setCatalog] = useState<Catalog[]>([]);
+  const [options, setOptions] = useState<Option[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [allocations, setAllocations] = useState<Allocation[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [openings, setOpenings] = useState<Opening[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [modal, setModal] = useState<
+    "tx" | "doc" | "budget" | "allocation" | "asset" | null
+  >(null);
+  const [txStep, setTxStep] = useState(1);
+  const [txForm, setTxForm] = useState(emptyTx());
+  const [docForm, setDocForm] = useState(emptyDoc());
+  const [budgetForm, setBudgetForm] = useState(emptyBudget());
+  const [allocationForm, setAllocationForm] = useState(emptyAllocation());
+  const [assetForm, setAssetForm] = useState(emptyAsset());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [query, setQuery] = useState("");
+  const [projectFilter, setProjectFilter] = useState("");
+  const [eventFilter, setEventFilter] = useState("");
 
- function go(s:Section,t?:string){setSection(s);setTab(t??tabs[s][0][0]);} function openTransaction(){setTxForm(emptyTx());setTxStep(1);setModal('tx');} function chooseEvent(x:Catalog){setTxForm({...emptyTx(),event:x.event_name,coa:x.default_coa??''});setTxStep(2);}
- async function saveTx(){setSaving(true);setError('');const selected=catalog.find(x=>x.event_name===txForm.event);const supabase=createClient();const r=await supabase.rpc('finance_create_journal_entry',{entry_date:txForm.date,entry_project:txForm.project,entry_coa_code:txForm.coa,entry_description:txForm.description,entry_amount:n(txForm.amount),entry_bank:txForm.bank,entry_event:txForm.event,entry_reference:txForm.reference,entry_counterparty:txForm.party,entry_due_date:txForm.dueDate||null,entry_notes:txForm.notes,entry_fund_source:txForm.fundSource,entry_fund_use:txForm.fundUse,entry_allocation_code:txForm.allocationCode,entry_evidence_url:txForm.evidence});if(!r.error&&selected?.creates_asset&&txForm.assetName){const ar=await supabase.rpc('finance_save_asset',{asset_status_value:'Aktif',asset_type_value:txForm.assetType,asset_name_value:txForm.assetName,asset_category:txForm.assetCategory,asset_date:txForm.date,asset_journal_reference:txForm.reference||String(r.data),asset_value:n(txForm.amount),asset_life:n(txForm.assetLife),asset_fund_source:txForm.fundSource,asset_location:txForm.assetLocation,asset_pic:txForm.assetPic,asset_expiry:txForm.assetExpiry||null,asset_serial:txForm.assetSerial,asset_evidence:txForm.assetProof,asset_notes:txForm.notes});if(ar.error){setSaving(false);setError(`Transaksi tersimpan, register aset gagal: ${ar.error.message}`);await load();return;}}setSaving(false);if(r.error){setError(r.error.message);return;}setModal(null);setMessage('Transaksi dicatat; klasifikasi otomatis berasal dari COA.');go('transactions','journal');await load();}
- async function reverse(tx:Tx){const reason=window.prompt(`Alasan reversal ${tx.transaction_number}:`);if(!reason)return;const r=await createClient().rpc('finance_reverse_transaction',{target_transaction_id:tx.id,reason});if(r.error)setError(r.error.message);else{setMessage('Reversal tercatat tanpa menghapus transaksi asal.');await load();}}
- async function saveDoc(e:FormEvent){e.preventDefault();setSaving(true);const linked=documents.find(x=>x.id===docForm.invoiceId);const r=await createClient().rpc('finance_create_document',{doc_type:docForm.type,doc_date:docForm.date,doc_due_date:docForm.dueDate||null,doc_client:docForm.type==='receipt'?(linked?.client??''):docForm.client,doc_client_address:docForm.address,doc_project:docForm.project,doc_discount:n(docForm.discount),doc_tax:n(docForm.tax),doc_notes:docForm.notes,doc_items:docForm.type==='receipt'?[]:[{description:docForm.itemName,quantity:n(docForm.quantity),unit_price:n(docForm.unitPrice)}],doc_linked_invoice_id:docForm.invoiceId||null,receipt_amount:n(docForm.receiptAmount)});setSaving(false);if(r.error){setError(r.error.message);return;}setModal(null);setMessage('Dokumen tersimpan dan jurnal terkait diperbarui.');await load();}
- async function saveBudget(e:FormEvent){e.preventDefault();setSaving(true);const r=await createClient().rpc('finance_save_budget',{budget_id:budgetForm.id||null,budget_period:`${budgetForm.period}-01`,budget_coa:budgetForm.coa,budget_component:budgetForm.component,budget_amount:n(budgetForm.budget),budget_allocated:n(budgetForm.allocated),budget_pic:budgetForm.pic,budget_notes:budgetForm.notes});setSaving(false);if(r.error){setError(r.error.message);return;}setModal(null);setMessage('Budget tersimpan; aktual dan status dihitung dari jurnal.');await load();}
- async function saveAllocation(e:FormEvent){e.preventDefault();setSaving(true);const r=await createClient().rpc('finance_save_profit_allocation',{allocation_status:allocationForm.status,allocation_date:allocationForm.date,allocation_project:allocationForm.project,allocation_profit:n(allocationForm.profit),allocation_operational:n(allocationForm.operational),allocation_reference:allocationForm.reference,allocation_notes:allocationForm.notes});setSaving(false);if(r.error){setError(r.error.message);return;}setModal(null);setMessage('Alokasi laba dihitung 60% perusahaan dan 40% eksekutif.');await load();}
- async function saveAsset(e:FormEvent){e.preventDefault();setSaving(true);const r=await createClient().rpc('finance_save_asset',{asset_status_value:assetForm.status,asset_type_value:assetForm.type,asset_name_value:assetForm.name,asset_category:assetForm.category,asset_date:assetForm.date,asset_journal_reference:assetForm.journalReference,asset_value:n(assetForm.value),asset_life:n(assetForm.life),asset_fund_source:assetForm.fundSource,asset_location:assetForm.location,asset_pic:assetForm.pic,asset_expiry:assetForm.expiry||null,asset_serial:assetForm.serial,asset_evidence:assetForm.evidence,asset_notes:assetForm.notes});setSaving(false);if(r.error){setError(r.error.message);return;}setModal(null);setMessage('Aset masuk register; nilai buku dihitung garis lurus.');await load();}
+  async function load() {
+    setError("");
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.replace("/ruang-kawan/");
+      return;
+    }
+    const accessR = await supabase.rpc("get_my_access");
+    const access = Array.isArray(accessR.data) ? accessR.data[0] : accessR.data;
+    if (!access?.permissions?.includes("finance.view")) {
+      setState("denied");
+      return;
+    }
+    setPermissions(access.permissions ?? []);
+    const r = await Promise.all([
+      supabase
+        .from("finance_transactions")
+        .select("*")
+        .order("transaction_date", { ascending: false })
+        .limit(1000),
+      supabase
+        .from("finance_documents")
+        .select("*")
+        .is("deleted_at", null)
+        .order("document_date", { ascending: false })
+        .limit(500),
+      supabase
+        .from("finance_coa")
+        .select("*")
+        .eq("is_active", true)
+        .order("code"),
+      supabase
+        .from("finance_transaction_catalog")
+        .select("*")
+        .order("sort_order"),
+      supabase
+        .from("finance_option_values")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order"),
+      supabase
+        .from("finance_budgets")
+        .select("*")
+        .order("period_month", { ascending: false }),
+      supabase
+        .from("finance_profit_allocations")
+        .select("*")
+        .order("closing_date", { ascending: false }),
+      supabase.from("finance_assets").select("*").order("asset_code"),
+      supabase.from("finance_fund_openings").select("*").order("position"),
+      supabase.from("finance_bank_accounts").select("*").order("bank_account"),
+    ]);
+    const failed = r.find((x) => x.error);
+    if (failed?.error) {
+      setState("ready");
+      setError(failed.error.message);
+      return;
+    }
+    setTransactions((r[0].data ?? []) as Tx[]);
+    setDocuments((r[1].data ?? []) as Doc[]);
+    setCoa((r[2].data ?? []) as Coa[]);
+    setCatalog((r[3].data ?? []) as Catalog[]);
+    setOptions((r[4].data ?? []) as Option[]);
+    setBudgets((r[5].data ?? []) as Budget[]);
+    setAllocations((r[6].data ?? []) as Allocation[]);
+    setAssets((r[7].data ?? []) as Asset[]);
+    setOpenings((r[8].data ?? []) as Opening[]);
+    setBankAccounts((r[9].data ?? []) as BankAccount[]);
+    setState("ready");
+  }
+  useEffect(() => {
+    void load();
+  }, []);
+  const canManage = permissions.includes("finance.manage");
+  const optionList = (group: string) =>
+    options.filter((x) => x.option_group === group).map((x) => x.option_value);
+  const liveTx = useMemo(
+    () =>
+      transactions.filter((x) => x.status === "posted" && !x.reversal_of_id),
+    [transactions],
+  );
+  const periodTx = liveTx.filter(
+    (x) => period === "YTD" || x.transaction_date.startsWith(period),
+  );
+  const months = Array.from(
+    new Set([
+      ...liveTx.map((x) => x.transaction_date.slice(0, 7)),
+      currentMonth(),
+    ]),
+  )
+    .sort()
+    .reverse();
+  const projects = Array.from(
+    new Set(liveTx.map((x) => x.project_name).filter(Boolean) as string[]),
+  ).sort();
+  const classAmount = (rows: Tx[], classes: string[]) =>
+    rows
+      .filter((x) => classes.includes(x.account_class ?? ""))
+      .reduce((s, x) => s + n(x.amount), 0);
+  const eventAmount = (rows: Tx[], events: string[]) =>
+    rows
+      .filter((x) => events.includes(x.transaction_event ?? ""))
+      .reduce((s, x) => s + n(x.amount), 0);
+  const revenue = classAmount(periodTx, ["Pendapatan", "Kontra Beban"]);
+  const directExpense = classAmount(periodTx, ["Beban Langsung Proyek"]);
+  const operatingExpense = classAmount(periodTx, ["Beban Operasional"]);
+  const nonOperatingExpense = classAmount(periodTx, ["Beban Non-Operasional"]);
+  const tax = classAmount(periodTx, ["Pajak"]);
+  const totalExpense =
+    directExpense + operatingExpense + nonOperatingExpense + tax;
+  const grossProfit = revenue - directExpense;
+  const operatingProfit = grossProfit - operatingExpense;
+  const netProfit = operatingProfit - nonOperatingExpense - tax;
+  const netMargin = revenue ? (netProfit / revenue) * 100 : 0;
+  const cashIn = periodTx
+    .filter((x) => x.flow === "in")
+    .reduce((s, x) => s + n(x.amount), 0);
+  const cashOut = periodTx
+    .filter((x) => x.flow === "out")
+    .reduce((s, x) => s + n(x.amount), 0);
+  const openingCash = bankAccounts.reduce(
+    (s, x) => s + n(x.opening_balance),
+    0,
+  );
+  const bookBalance =
+    openingCash +
+    liveTx.filter((x) => x.flow === "in").reduce((s, x) => s + n(x.amount), 0) -
+    liveTx.filter((x) => x.flow === "out").reduce((s, x) => s + n(x.amount), 0);
+  const actualCash = bankAccounts.reduce((s, x) => s + n(x.current_balance), 0);
+  const reconDifference = actualCash - bookBalance;
+  const receivables = Math.max(
+    eventAmount(liveTx, ["Pengakuan Piutang", "Penyaluran Piutang"]) -
+      eventAmount(liveTx, ["Penerimaan Piutang"]),
+    0,
+  );
+  const liabilities = Math.max(
+    eventAmount(liveTx, [
+      "Pengakuan Kewajiban",
+      "Alokasi Hak Bagi Hasil Eksekutif",
+    ]) -
+      eventAmount(liveTx, [
+        "Pembayaran Kewajiban",
+        "Pembayaran Bagi Hasil Eksekutif",
+      ]),
+    0,
+  );
+  const potentialLead = Math.max(
+    eventAmount(liveTx, ["Potential Lead"]) -
+      eventAmount(liveTx, ["Penutupan Potential Lead"]),
+    0,
+  );
+  const activeBudget = budgets.filter(
+    (x) =>
+      (period === "YTD" ? currentMonth() : period) ===
+      x.period_month.slice(0, 7),
+  );
+  const budgetRows = activeBudget.map((x) => {
+    const actual = liveTx
+      .filter(
+        (t) =>
+          t.coa_code === x.coa_code &&
+          t.transaction_date.startsWith(x.period_month.slice(0, 7)),
+      )
+      .reduce((s, t) => s + n(t.amount), 0);
+    const gap = Math.max(n(x.planned_amount) - n(x.allocated_amount), 0);
+    return {
+      ...x,
+      actual,
+      gap,
+      status: !n(x.planned_amount)
+        ? "BELUM DIANGGARKAN"
+        : gap > 0
+          ? "GAP"
+          : "TERDANAI",
+    };
+  });
+  const budgetTotal = budgetRows.reduce((s, x) => s + n(x.planned_amount), 0);
+  const allocatedTotal = budgetRows.reduce(
+    (s, x) => s + n(x.allocated_amount),
+    0,
+  );
+  const budgetGap = budgetRows.reduce((s, x) => s + x.gap, 0);
+  const approved = allocations.filter((x) => x.status === "Approved");
+  const opening = (p: string) =>
+    n(openings.find((x) => x.position === p)?.opening_balance);
+  const usage = (p: string) =>
+    liveTx
+      .filter((x) => x.fund_use === p && x.flow === "out")
+      .reduce((s, x) => s + n(x.amount), 0);
+  const funds = [
+    {
+      position: "Operasional / Fixed Cost",
+      opening: opening("Operasional / Fixed Cost"),
+      allocation: approved.reduce((s, x) => s + n(x.operational_fixed_cost), 0),
+      target: budgetTotal,
+    },
+    {
+      position: "Laba Ditahan",
+      opening: opening("Laba Ditahan"),
+      allocation: approved.reduce((s, x) => s + n(x.retained_earnings), 0),
+      target: 0,
+    },
+    {
+      position: "Dana Darurat",
+      opening: opening("Dana Darurat"),
+      allocation: approved.reduce((s, x) => s + n(x.emergency_fund), 0),
+      target: budgetTotal * 3,
+    },
+    {
+      position: "Hak Eksekutif",
+      opening: opening("Hak Eksekutif"),
+      allocation: approved.reduce((s, x) => s + n(x.executive_share), 0),
+      target: 0,
+    },
+  ].map((x) => {
+    const used =
+      x.position === "Hak Eksekutif"
+        ? eventAmount(liveTx, ["Pembayaran Bagi Hasil Eksekutif"])
+        : usage(x.position);
+    const balance = Math.max(x.opening + x.allocation - used, 0);
+    const variance = balance - x.target;
+    const status =
+      x.position === "Hak Eksekutif"
+        ? balance > 0
+          ? "BELUM DIBAYAR"
+          : "LUNAS"
+        : balance <= 0
+          ? "KOSONG"
+          : variance < 0
+            ? "PERLU TAMBAH"
+            : "AMAN";
+    return { ...x, usage: used, balance, variance, status };
+  });
+  const tied = Math.max(
+    eventAmount(liveTx, ["Alokasi Dana Terikat"]) -
+      eventAmount(liveTx, ["Pelepasan Dana Terikat"]),
+    0,
+  );
+  const operationalCash = Math.max(actualCash - liabilities - tied, 0);
+  const cashRunway = budgetTotal ? operationalCash / budgetTotal : 0;
+  const assetRows = assets.map((x) => {
+    const d = x.acquisition_date
+      ? new Date(`${x.acquisition_date}T12:00:00`)
+      : new Date();
+    const elapsed = Math.max(
+      0,
+      (new Date().getFullYear() - d.getFullYear()) * 12 +
+        new Date().getMonth() -
+        d.getMonth(),
+    );
+    const accumulated = Math.min(
+      n(x.acquisition_value),
+      (n(x.acquisition_value) / Math.max(n(x.useful_life_months), 1)) * elapsed,
+    );
+    return {
+      ...x,
+      accumulated,
+      bookValue: Math.max(n(x.acquisition_value) - accumulated, 0),
+    };
+  });
+  const assetBookValue = assetRows.reduce((s, x) => s + x.bookValue, 0);
+  const overdue = liveTx
+    .filter(
+      (x) =>
+        x.due_date &&
+        x.due_date < today() &&
+        ["Pengakuan Piutang", "Penyaluran Piutang"].includes(
+          x.transaction_event ?? "",
+        ),
+    )
+    .reduce((s, x) => s + n(x.amount), 0);
+  const ratio = bookBalance
+    ? (Math.abs(reconDifference) / Math.abs(bookBalance)) * 100
+    : reconDifference
+      ? 100
+      : 0;
+  const scoreRunway =
+    cashRunway >= 3
+      ? 100
+      : cashRunway >= 2
+        ? 80
+        : cashRunway >= 1
+          ? 60
+          : cashRunway >= 0.5
+            ? 35
+            : cashRunway > 0
+              ? 15
+              : 0;
+  const scoreProfit =
+    netProfit < 0
+      ? netMargin <= -20
+        ? 0
+        : netMargin <= -10
+          ? 15
+          : 30
+      : netMargin >= 25
+        ? 100
+        : netMargin >= 15
+          ? 85
+          : netMargin >= 10
+            ? 70
+            : netMargin >= 5
+              ? 55
+              : netMargin > 0
+                ? 40
+                : 20;
+  const scoreBudget = budgetTotal
+    ? Math.min((allocatedTotal / budgetTotal) * 100, 100)
+    : 0;
+  const scoreRecon =
+    Math.abs(reconDifference) < 1
+      ? 100
+      : Math.abs(reconDifference) <= 50000 || ratio <= 0.5
+        ? 80
+        : ratio <= 1
+          ? 60
+          : ratio <= 5
+            ? 30
+            : 0;
+  const scoreWorking = Math.max(
+    0,
+    100 -
+      (receivables ? (overdue / receivables) * 60 : 0) -
+      (operationalCash
+        ? Math.min(40, (liabilities / Math.max(operationalCash, 1)) * 40)
+        : liabilities
+          ? 40
+          : 0),
+  );
+  const emergency =
+    funds.find((x) => x.position === "Dana Darurat")?.balance ?? 0;
+  const scoreReserve = budgetTotal
+    ? Math.min((emergency / (budgetTotal * 3)) * 100, 100)
+    : 0;
+  const components = [
+    ["Likuiditas & Cash Runway", 25, scoreRunway],
+    ["Profitabilitas", 25, scoreProfit],
+    ["Budget Coverage", 15, scoreBudget],
+    ["Rekonsiliasi Bank", 15, scoreRecon],
+    ["Piutang & Kewajiban", 10, scoreWorking],
+    ["Kesiapan Dana Perusahaan", 10, scoreReserve],
+  ] as [string, number, number][];
+  const score = components.reduce((s, x) => s + (x[1] * x[2]) / 100, 0);
+  const scoreLabel =
+    score >= 80
+      ? "Healthy"
+      : score >= 60
+        ? "Stable"
+        : score >= 40
+          ? "Needs Attention"
+          : "Critical";
+  const trends = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const rows = liveTx.filter((x) => x.transaction_date.startsWith(key));
+    const rev = classAmount(rows, ["Pendapatan", "Kontra Beban"]);
+    const exp = classAmount(rows, [
+      "Beban Langsung Proyek",
+      "Beban Operasional",
+      "Beban Non-Operasional",
+      "Pajak",
+    ]);
+    return {
+      key,
+      label: d.toLocaleDateString("id-ID", { month: "short" }),
+      revenue: rev,
+      expense: exp,
+      profit: rev - exp,
+    };
+  });
 
- if(state==='loading')return <main className="rk-dashboard-foundation"><section className="rk-access-denied"><p>Menyiapkan Finance Workspace...</p></section></main>;
- if(state==='denied')return <main className="rk-dashboard-foundation"><section className="rk-access-denied"><h1>Akses Finance belum tersedia</h1><Link href="/ruang-kawan/dashboard/">Kembali</Link></section></main>;
+  function go(s: Section, t?: string) {
+    setSection(s);
+    setTab(t ?? tabs[s][0][0]);
+  }
+  function openTransaction() {
+    setTxForm(emptyTx());
+    setTxStep(1);
+    setModal("tx");
+  }
+  function chooseEvent(x: Catalog) {
+    setTxForm({ ...emptyTx(), event: x.event_name, coa: x.default_coa ?? "" });
+    setTxStep(2);
+  }
+  function correctTransaction(tx: Tx) {
+    setTxForm({
+      ...emptyTx(),
+      correctionId: tx.id,
+      date: tx.transaction_date,
+      project: tx.project_name ?? "",
+      coa: tx.coa_code ?? "",
+      description: tx.description,
+      amount: String(tx.amount),
+      bank: tx.bank_account ?? "",
+      event: tx.transaction_event ?? "",
+      party: tx.counterparty ?? "",
+      reference: tx.reference_number ?? "",
+      dueDate: tx.due_date ?? "",
+      fundSource: tx.fund_source ?? "",
+      fundUse: tx.fund_use ?? "",
+      allocationCode: tx.profit_allocation_code ?? "",
+      notes: tx.notes ?? "",
+    });
+    setTxStep(2);
+    setModal("tx");
+  }
+  async function saveTx() {
+    setSaving(true);
+    setError("");
+    const selected = catalog.find((x) => x.event_name === txForm.event);
+    const supabase = createClient();
+    const params = {
+      entry_date: txForm.date,
+      entry_project: txForm.project,
+      entry_coa_code: txForm.coa,
+      entry_description: txForm.description,
+      entry_amount: n(txForm.amount),
+      entry_bank: txForm.bank,
+      entry_event: txForm.event,
+      entry_reference: txForm.reference,
+      entry_counterparty: txForm.party,
+      entry_due_date: txForm.dueDate || null,
+      entry_notes: txForm.notes,
+      entry_fund_source: txForm.fundSource,
+      entry_fund_use: txForm.fundUse,
+      entry_allocation_code: txForm.allocationCode,
+      entry_evidence_url: txForm.evidence,
+    };
+    const r = txForm.correctionId
+      ? await supabase.rpc("finance_correct_journal_entry", {
+          target_transaction_id: txForm.correctionId,
+          correction_reason: txForm.correctionReason,
+          ...params,
+        })
+      : await supabase.rpc("finance_create_journal_entry", params);
+    if (
+      !r.error &&
+      !txForm.correctionId &&
+      selected?.creates_asset &&
+      txForm.assetName
+    ) {
+      const ar = await supabase.rpc("finance_save_asset", {
+        asset_status_value: "Aktif",
+        asset_type_value: txForm.assetType,
+        asset_name_value: txForm.assetName,
+        asset_category: txForm.assetCategory,
+        asset_date: txForm.date,
+        asset_journal_reference: txForm.reference || String(r.data),
+        asset_value: n(txForm.amount),
+        asset_life: n(txForm.assetLife),
+        asset_fund_source: txForm.fundSource,
+        asset_location: txForm.assetLocation,
+        asset_pic: txForm.assetPic,
+        asset_expiry: txForm.assetExpiry || null,
+        asset_serial: txForm.assetSerial,
+        asset_evidence: txForm.assetProof,
+        asset_notes: txForm.notes,
+      });
+      if (ar.error) {
+        setSaving(false);
+        setError(
+          `Transaksi tersimpan, register aset gagal: ${ar.error.message}`,
+        );
+        await load();
+        return;
+      }
+    }
+    setSaving(false);
+    if (r.error) {
+      setError(r.error.message);
+      return;
+    }
+    setModal(null);
+    setMessage(
+      txForm.correctionId
+        ? "Koreksi tersimpan; transaksi lama diamankan dan saldo rekening diperbarui."
+        : "Transaksi dicatat dan langsung memperbarui saldo rekening aktual.",
+    );
+    go("transactions", "journal");
+    await load();
+  }
+  async function saveDoc(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const linked = documents.find((x) => x.id === docForm.invoiceId);
+    const r = await createClient().rpc("finance_save_document", {
+      target_document_id: docForm.id || null,
+      doc_type: docForm.type,
+      doc_date: docForm.date,
+      doc_due_date: docForm.dueDate || null,
+      doc_client:
+        docForm.type === "receipt" ? (linked?.client ?? "") : docForm.client,
+      doc_client_address: docForm.address,
+      doc_project: docForm.project,
+      doc_discount: n(docForm.discount),
+      doc_tax: n(docForm.tax),
+      doc_notes: docForm.notes,
+      doc_items:
+        docForm.type === "receipt"
+          ? []
+          : docForm.items.map((x) => ({
+              ...x,
+              quantity: n(x.quantity),
+              unit_price: n(x.unit_price),
+            })),
+      doc_linked_invoice_id: docForm.invoiceId || null,
+      receipt_amount: n(docForm.receiptAmount),
+      doc_bank: docForm.bank,
+    });
+    setSaving(false);
+    if (r.error) {
+      setError(r.error.message);
+      return;
+    }
+    setModal(null);
+    setMessage(
+      docForm.id
+        ? "Dokumen diperbarui; nomor dokumen tetap sama."
+        : "Dokumen tersimpan dan jurnal terkait diperbarui.",
+    );
+    await load();
+  }
+  function editDocument(doc: Doc) {
+    setDocForm({
+      id: doc.id,
+      type: doc.document_type,
+      date: doc.document_date,
+      dueDate: doc.due_date ?? "",
+      client: doc.client,
+      address: doc.client_address ?? "",
+      project: doc.project_name ?? "",
+      items: doc.items?.length ? doc.items : [emptyDocItem()],
+      discount: String(doc.discount),
+      tax: String(doc.tax),
+      notes: doc.notes ?? "",
+      invoiceId: doc.linked_invoice_id ?? "",
+      receiptAmount: String(doc.total),
+      bank: "",
+    });
+    setModal("doc");
+  }
+  async function deleteDocument(doc: Doc) {
+    const confirmation = window.prompt(
+      `Ketik ${doc.document_number} untuk menghapus/koreksi dokumen:`,
+    );
+    if (confirmation !== doc.document_number) return;
+    const reason = window.prompt("Alasan hapus/koreksi (minimal 5 karakter):");
+    if (!reason) return;
+    const r = await createClient().rpc("finance_delete_document", {
+      target_document_id: doc.id,
+      confirmation_number: confirmation,
+      reason,
+    });
+    if (r.error) setError(r.error.message);
+    else {
+      setMessage(
+        "Dokumen dibatalkan secara aman; jurnal dan saldo terkait dikoreksi.",
+      );
+      await load();
+    }
+  }
+  function exportDocument(doc: Doc, mode: "doc" | "print") {
+    const html = documentTemplate(doc);
+    if (mode === "doc") {
+      const blob = new Blob([html], {
+        type: "application/msword;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${doc.document_number}.doc`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+    const w = window.open("", "_blank");
+    if (!w) {
+      setError("Popup diblokir. Izinkan popup untuk mencetak PDF.");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 300);
+  }
+  async function saveBudget(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const r = await createClient().rpc("finance_save_budget", {
+      budget_id: budgetForm.id || null,
+      budget_period: `${budgetForm.period}-01`,
+      budget_coa: budgetForm.coa,
+      budget_component: budgetForm.component,
+      budget_amount: n(budgetForm.budget),
+      budget_allocated: n(budgetForm.allocated),
+      budget_pic: budgetForm.pic,
+      budget_notes: budgetForm.notes,
+    });
+    setSaving(false);
+    if (r.error) {
+      setError(r.error.message);
+      return;
+    }
+    setModal(null);
+    setMessage("Budget tersimpan; aktual dan status dihitung dari jurnal.");
+    await load();
+  }
+  async function saveAllocation(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const r = await createClient().rpc("finance_save_profit_allocation", {
+      allocation_status: allocationForm.status,
+      allocation_date: allocationForm.date,
+      allocation_project: allocationForm.project,
+      allocation_profit: n(allocationForm.profit),
+      allocation_operational: n(allocationForm.operational),
+      allocation_reference: allocationForm.reference,
+      allocation_notes: allocationForm.notes,
+    });
+    setSaving(false);
+    if (r.error) {
+      setError(r.error.message);
+      return;
+    }
+    setModal(null);
+    setMessage("Alokasi laba dihitung 60% perusahaan dan 40% eksekutif.");
+    await load();
+  }
+  async function saveAsset(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const r = await createClient().rpc("finance_save_asset", {
+      asset_status_value: assetForm.status,
+      asset_type_value: assetForm.type,
+      asset_name_value: assetForm.name,
+      asset_category: assetForm.category,
+      asset_date: assetForm.date,
+      asset_journal_reference: assetForm.journalReference,
+      asset_value: n(assetForm.value),
+      asset_life: n(assetForm.life),
+      asset_fund_source: assetForm.fundSource,
+      asset_location: assetForm.location,
+      asset_pic: assetForm.pic,
+      asset_expiry: assetForm.expiry || null,
+      asset_serial: assetForm.serial,
+      asset_evidence: assetForm.evidence,
+      asset_notes: assetForm.notes,
+    });
+    setSaving(false);
+    if (r.error) {
+      setError(r.error.message);
+      return;
+    }
+    setModal(null);
+    setMessage("Aset masuk register; nilai buku dihitung garis lurus.");
+    await load();
+  }
 
- const maxTrend=Math.max(1,...trends.flatMap(x=>[x.revenue,x.expense,Math.abs(x.profit)])); const alerts=[...(Math.abs(reconDifference)>=1?[['Rekonsiliasi bank belum seimbang',`Selisih ${money(Math.abs(reconDifference))}.`,'critical']]:[]),...(budgetGap>0?[['Fixed cost belum sepenuhnya didanai',`Gap ${money(budgetGap)}.`,'warning']]:[]),...(overdue>0?[['Piutang melewati jatuh tempo',`Saldo overdue ${money(overdue)}.`,'critical']]:[]),...(cashRunway<1?[['Cash runway kurang dari satu bulan','Kas operasional belum menutup satu bulan fixed cost.','critical']]:[])] as string[][];
- const filteredJournal=liveTx.filter(x=>(period==='YTD'||x.transaction_date.startsWith(period))&&(!projectFilter||x.project_name===projectFilter)&&(!eventFilter||x.transaction_event===eventFilter)&&(!query||`${x.description} ${x.reference_number} ${x.counterparty}`.toLowerCase().includes(query.toLowerCase())));
- const balances=(kind:'receivable'|'liability')=>{const rec=kind==='receivable'?['Pengakuan Piutang','Penyaluran Piutang']:['Pengakuan Kewajiban','Alokasi Hak Bagi Hasil Eksekutif'];const paid=kind==='receivable'?['Penerimaan Piutang']:['Pembayaran Kewajiban','Pembayaran Bagi Hasil Eksekutif'];const refs=Array.from(new Set(liveTx.filter(x=>[...rec,...paid].includes(x.transaction_event??'')).map(x=>x.reference_number).filter(Boolean) as string[]));return refs.map(ref=>{const rows=liveTx.filter(x=>x.reference_number===ref);const recognized=rows.filter(x=>rec.includes(x.transaction_event??'')).reduce((s,x)=>s+n(x.amount),0);const settled=rows.filter(x=>paid.includes(x.transaction_event??'')).reduce((s,x)=>s+n(x.amount),0);const base=rows.find(x=>rec.includes(x.transaction_event??''));const balance=Math.max(recognized-settled,0);return {ref,recognized,settled,balance,party:base?.counterparty,project:base?.project_name,due:base?.due_date,status:balance<=0?'LUNAS':base?.due_date&&base.due_date<today()?'OVERDUE':'AKTIF'};}).filter(x=>x.balance>0);};
- const plRows=[['PENDAPATAN + REFUND VENDOR',revenue],['Beban Langsung Proyek (bruto)',directExpense],['LABA KOTOR',grossProfit],['BEBAN OPERASIONAL',operatingExpense],['Beban Gaji & Insentif',classAmount(periodTx.filter(x=>x.coa_code==='3000'),['Beban Operasional'])],['Beban Sewa Kantor',classAmount(periodTx.filter(x=>x.coa_code==='3001'),['Beban Operasional'])],['Beban Administrasi & Operasional',classAmount(periodTx.filter(x=>['3002','3004','3008'].includes(x.coa_code??'')),['Beban Operasional'])],['Beban Software, Internet & Digital',classAmount(periodTx.filter(x=>['3005','3006','3009'].includes(x.coa_code??'')),['Beban Operasional'])],['Beban Pemasaran & Keamanan',classAmount(periodTx.filter(x=>['3003','3007'].includes(x.coa_code??'')),['Beban Operasional'])],['Total Beban Operasional',operatingExpense],['LABA USAHA (Operating Profit)',operatingProfit],['Beban Non-Operasional',nonOperatingExpense],['LABA SEBELUM PAJAK',netProfit+tax],['Pajak',tax],['LABA BERSIH',netProfit],['TOTAL BEBAN (bruto)',totalExpense]] as [string,number][];
- const cashRows=[['Kas dari Aktivitas Operasional',periodTx.filter(x=>x.cash_flow_category==='Operasional').reduce((s,x)=>s+(x.flow==='in'?n(x.amount):x.flow==='out'?-n(x.amount):0),0)],['Kas dari Aktivitas Investasi',periodTx.filter(x=>x.cash_flow_category==='Investasi').reduce((s,x)=>s+(x.flow==='in'?n(x.amount):x.flow==='out'?-n(x.amount):0),0)],['Kas dari Aktivitas Pendanaan',periodTx.filter(x=>x.cash_flow_category==='Pendanaan').reduce((s,x)=>s+(x.flow==='in'?n(x.amount):x.flow==='out'?-n(x.amount):0),0)],['KENAIKAN (PENURUNAN) KAS BERSIH',cashIn-cashOut]] as [string,number][];
+  if (state === "loading")
+    return (
+      <main className="rk-dashboard-foundation">
+        <section className="rk-access-denied">
+          <p>Menyiapkan Finance Workspace...</p>
+        </section>
+      </main>
+    );
+  if (state === "denied")
+    return (
+      <main className="rk-dashboard-foundation">
+        <section className="rk-access-denied">
+          <h1>Akses Finance belum tersedia</h1>
+          <Link href="/ruang-kawan/dashboard/">Kembali</Link>
+        </section>
+      </main>
+    );
 
- return <main className="rk-finance-workspace">
-  <FinanceSidebar section={section} go={go}/>
-  <section className="rk-finance-main"><header className="rk-finance-topbar"><div><h1>{section==='dashboard'?'Dashboard':section==='transactions'?'Transactions':section==='documents'?'Documents':section==='planning'?'Planning & Funds':'Assets'}</h1><p>Campus Innovate / Finance Workspace</p></div><div><select aria-label="Pilih periode" value={period} onChange={e=>setPeriod(e.target.value)}><option value="YTD">Year to Date</option>{months.map(x=><option key={x} value={x}>{new Date(`${x}-01T12:00:00`).toLocaleDateString('id-ID',{month:'long',year:'numeric'})}</option>)}</select>{canManage?<button onClick={openTransaction}><FiPlus/> Tambah Transaksi</button>:null}</div></header>
-  <nav className="rk-finance-subnav">{tabs[section].map(([key,label])=><button key={key} data-active={tab===key} onClick={()=>{if(section==='transactions'&&key==='new')openTransaction();else setTab(key);}}>{label}</button>)}</nav>
-  {message?<p className="rk-work-alert">{message}</p>:null}{error?<p className="rk-work-alert" data-error>{error}</p>:null}
-  <div className="rk-finance-content">
-   {section==='dashboard'&&tab==='overview'?<Overview score={score} scoreLabel={scoreLabel} components={components} revenue={revenue} totalExpense={totalExpense} netProfit={netProfit} netMargin={netMargin} actualCash={actualCash} operationalCash={operationalCash} budgetTotal={budgetTotal} budgetGap={budgetGap} cashRunway={cashRunway} alerts={alerts} trends={trends} maxTrend={maxTrend} receivables={receivables} overdue={overdue} liabilities={liabilities} potentialLead={potentialLead} bookBalance={bookBalance} reconDifference={reconDifference} budgetRows={budgetRows} funds={funds} liveTx={liveTx}/>:null}
-   {section==='dashboard'&&tab==='profit-loss'?<ReportPage title="Profit & Loss" description="Laporan laba rugi otomatis dari Jurnal Transaksi Utama dan COA." cards={[['Pendapatan',revenue],['Laba Kotor',grossProfit],['Laba Usaha',operatingProfit],['Laba Bersih',netProfit]]} rows={plRows}/>:null}
-   {section==='dashboard'&&tab==='cash-flow'?<CashFlow cashIn={cashIn} cashOut={cashOut} bookBalance={bookBalance} actualCash={actualCash} rows={cashRows} banks={optionList('bank')} tx={liveTx}/>:null}
-   {section==='dashboard'&&tab==='financial-position'?<FinancialPosition values={[['Kas & Bank',actualCash],['Piutang Usaha',receivables],['Kewajiban Aktif',liabilities],['Nilai Buku Aset',assetBookValue],['Dana Perusahaan',funds.filter(x=>x.position!=='Hak Eksekutif').reduce((s,x)=>s+x.balance,0)],['Hak Eksekutif',funds.find(x=>x.position==='Hak Eksekutif')?.balance??0],['Dana Darurat',emergency],['Laba Ditahan',funds.find(x=>x.position==='Laba Ditahan')?.balance??0]]}/>:null}
-   {section==='dashboard'&&tab==='fund-control'?<FundControl funds={funds}/>:null}
-   {section==='transactions'&&tab==='journal'?<Journal rows={filteredJournal} projects={projects} catalog={catalog} projectFilter={projectFilter} setProjectFilter={setProjectFilter} eventFilter={eventFilter} setEventFilter={setEventFilter} query={query} setQuery={setQuery} canManage={canManage} add={openTransaction} reverse={reverse}/>:null}
-   {section==='transactions'&&tab==='receivables'?<BalanceTable title="Piutang" rows={balances('receivable')}/>:null}
-   {section==='transactions'&&tab==='liabilities'?<BalanceTable title="Kewajiban" rows={balances('liability')}/>:null}
-   {section==='transactions'&&tab==='reconciliation'?<Reconciliation book={bookBalance} actual={actualCash} difference={reconDifference} ratio={ratio} canManage={canManage} add={()=>{const x=catalog.find(c=>c.event_name==='Saldo Aktual Bank');if(x){chooseEvent(x);setModal('tx');}}}/>:null}
-   {section==='documents'?<Documents type={tab as DocForm['type']} rows={documents} canManage={canManage} add={()=>{setDocForm({...emptyDoc(),type:tab as DocForm['type']});setModal('doc');}}/>:null}
-   {section==='planning'&&tab==='budget'?<Budgets rows={budgetRows} totals={[budgetTotal,budgetRows.reduce((s,x)=>s+x.actual,0),allocatedTotal,budgetGap]} canManage={canManage} coa={coa} add={()=>{setBudgetForm(emptyBudget());setModal('budget');}} edit={x=>{setBudgetForm({id:x.id,period:x.period_month.slice(0,7),coa:x.coa_code??'',component:x.category,budget:String(x.planned_amount),allocated:String(x.allocated_amount),pic:x.pic??'',notes:x.notes??''});setModal('budget');}}/>:null}
-   {section==='planning'&&tab==='allocation'?<Allocations rows={allocations} canManage={canManage} add={()=>{setAllocationForm(emptyAllocation());setModal('allocation');}}/>:null}
-   {section==='planning'&&tab==='fund-control'?<FundControl funds={funds}/>:null}
-   {section==='assets'?<Assets rows={assetRows} bookValue={assetBookValue} canManage={canManage} add={()=>{setAssetForm(emptyAsset());setModal('asset');}}/>:null}
-  </div></section>
-  {modal==='tx'?<TransactionModal step={txStep} setStep={setTxStep} form={txForm} setForm={setTxForm} catalog={catalog} coa={coa} projects={projects} options={optionList} allocations={allocations} saving={saving} close={()=>setModal(null)} choose={chooseEvent} save={saveTx}/>:null}
-  {modal==='doc'?<DocumentModal form={docForm} setForm={setDocForm} documents={documents} saving={saving} close={()=>setModal(null)} save={saveDoc}/>:null}
-  {modal==='budget'?<BudgetModal form={budgetForm} setForm={setBudgetForm} coa={coa} saving={saving} close={()=>setModal(null)} save={saveBudget}/>:null}
-  {modal==='allocation'?<AllocationModal form={allocationForm} setForm={setAllocationForm} statuses={optionList('allocation_status')} saving={saving} close={()=>setModal(null)} save={saveAllocation}/>:null}
-  {modal==='asset'?<AssetModal form={assetForm} setForm={setAssetForm} statuses={optionList('asset_status')} types={optionList('asset_type')} fundSources={optionList('fund_source')} saving={saving} close={()=>setModal(null)} save={saveAsset}/>:null}
- </main>;
+  const maxTrend = Math.max(
+    1,
+    ...trends.flatMap((x) => [x.revenue, x.expense, Math.abs(x.profit)]),
+  );
+  const alerts = [
+    ...(Math.abs(reconDifference) >= 1
+      ? [
+          [
+            "Rekonsiliasi bank belum seimbang",
+            `Selisih ${money(Math.abs(reconDifference))}.`,
+            "critical",
+          ],
+        ]
+      : []),
+    ...(budgetGap > 0
+      ? [
+          [
+            "Fixed cost belum sepenuhnya didanai",
+            `Gap ${money(budgetGap)}.`,
+            "warning",
+          ],
+        ]
+      : []),
+    ...(overdue > 0
+      ? [
+          [
+            "Piutang melewati jatuh tempo",
+            `Saldo overdue ${money(overdue)}.`,
+            "critical",
+          ],
+        ]
+      : []),
+    ...(cashRunway < 1
+      ? [
+          [
+            "Cash runway kurang dari satu bulan",
+            "Kas operasional belum menutup satu bulan fixed cost.",
+            "critical",
+          ],
+        ]
+      : []),
+  ] as string[][];
+  const filteredJournal = liveTx.filter(
+    (x) =>
+      (period === "YTD" || x.transaction_date.startsWith(period)) &&
+      (!projectFilter || x.project_name === projectFilter) &&
+      (!eventFilter || x.transaction_event === eventFilter) &&
+      (!query ||
+        `${x.description} ${x.reference_number} ${x.counterparty}`
+          .toLowerCase()
+          .includes(query.toLowerCase())),
+  );
+  const balances = (kind: "receivable" | "liability") => {
+    const rec =
+      kind === "receivable"
+        ? ["Pengakuan Piutang", "Penyaluran Piutang"]
+        : ["Pengakuan Kewajiban", "Alokasi Hak Bagi Hasil Eksekutif"];
+    const paid =
+      kind === "receivable"
+        ? ["Penerimaan Piutang"]
+        : ["Pembayaran Kewajiban", "Pembayaran Bagi Hasil Eksekutif"];
+    const refs = Array.from(
+      new Set(
+        liveTx
+          .filter((x) => [...rec, ...paid].includes(x.transaction_event ?? ""))
+          .map((x) => x.reference_number)
+          .filter(Boolean) as string[],
+      ),
+    );
+    return refs
+      .map((ref) => {
+        const rows = liveTx.filter((x) => x.reference_number === ref);
+        const recognized = rows
+          .filter((x) => rec.includes(x.transaction_event ?? ""))
+          .reduce((s, x) => s + n(x.amount), 0);
+        const settled = rows
+          .filter((x) => paid.includes(x.transaction_event ?? ""))
+          .reduce((s, x) => s + n(x.amount), 0);
+        const base = rows.find((x) => rec.includes(x.transaction_event ?? ""));
+        const balance = Math.max(recognized - settled, 0);
+        return {
+          ref,
+          recognized,
+          settled,
+          balance,
+          party: base?.counterparty,
+          project: base?.project_name,
+          due: base?.due_date,
+          status:
+            balance <= 0
+              ? "LUNAS"
+              : base?.due_date && base.due_date < today()
+                ? "OVERDUE"
+                : "AKTIF",
+        };
+      })
+      .filter((x) => x.balance > 0);
+  };
+  const plRows = [
+    ["PENDAPATAN + REFUND VENDOR", revenue],
+    ["Beban Langsung Proyek (bruto)", directExpense],
+    ["LABA KOTOR", grossProfit],
+    ["BEBAN OPERASIONAL", operatingExpense],
+    [
+      "Beban Gaji & Insentif",
+      classAmount(
+        periodTx.filter((x) => x.coa_code === "3000"),
+        ["Beban Operasional"],
+      ),
+    ],
+    [
+      "Beban Sewa Kantor",
+      classAmount(
+        periodTx.filter((x) => x.coa_code === "3001"),
+        ["Beban Operasional"],
+      ),
+    ],
+    [
+      "Beban Administrasi & Operasional",
+      classAmount(
+        periodTx.filter((x) =>
+          ["3002", "3004", "3008"].includes(x.coa_code ?? ""),
+        ),
+        ["Beban Operasional"],
+      ),
+    ],
+    [
+      "Beban Software, Internet & Digital",
+      classAmount(
+        periodTx.filter((x) =>
+          ["3005", "3006", "3009"].includes(x.coa_code ?? ""),
+        ),
+        ["Beban Operasional"],
+      ),
+    ],
+    [
+      "Beban Pemasaran & Keamanan",
+      classAmount(
+        periodTx.filter((x) => ["3003", "3007"].includes(x.coa_code ?? "")),
+        ["Beban Operasional"],
+      ),
+    ],
+    ["Total Beban Operasional", operatingExpense],
+    ["LABA USAHA (Operating Profit)", operatingProfit],
+    ["Beban Non-Operasional", nonOperatingExpense],
+    ["LABA SEBELUM PAJAK", netProfit + tax],
+    ["Pajak", tax],
+    ["LABA BERSIH", netProfit],
+    ["TOTAL BEBAN (bruto)", totalExpense],
+  ] as [string, number][];
+  const cashRows = [
+    [
+      "Kas dari Aktivitas Operasional",
+      periodTx
+        .filter((x) => x.cash_flow_category === "Operasional")
+        .reduce(
+          (s, x) =>
+            s +
+            (x.flow === "in"
+              ? n(x.amount)
+              : x.flow === "out"
+                ? -n(x.amount)
+                : 0),
+          0,
+        ),
+    ],
+    [
+      "Kas dari Aktivitas Investasi",
+      periodTx
+        .filter((x) => x.cash_flow_category === "Investasi")
+        .reduce(
+          (s, x) =>
+            s +
+            (x.flow === "in"
+              ? n(x.amount)
+              : x.flow === "out"
+                ? -n(x.amount)
+                : 0),
+          0,
+        ),
+    ],
+    [
+      "Kas dari Aktivitas Pendanaan",
+      periodTx
+        .filter((x) => x.cash_flow_category === "Pendanaan")
+        .reduce(
+          (s, x) =>
+            s +
+            (x.flow === "in"
+              ? n(x.amount)
+              : x.flow === "out"
+                ? -n(x.amount)
+                : 0),
+          0,
+        ),
+    ],
+    ["KENAIKAN (PENURUNAN) KAS BERSIH", cashIn - cashOut],
+  ] as [string, number][];
+
+  return (
+    <main className="rk-finance-workspace">
+      <FinanceSidebar section={section} go={go} />
+      <section className="rk-finance-main">
+        <header className="rk-finance-topbar">
+          <div>
+            <h1>
+              {section === "dashboard"
+                ? "Dashboard"
+                : section === "transactions"
+                  ? "Transactions"
+                  : section === "documents"
+                    ? "Documents"
+                    : section === "planning"
+                      ? "Planning & Funds"
+                      : "Assets"}
+            </h1>
+            <p>Campus Innovate / Finance Workspace</p>
+          </div>
+          <div>
+            <select
+              aria-label="Pilih periode"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+            >
+              <option value="YTD">Year to Date</option>
+              {months.map((x) => (
+                <option key={x} value={x}>
+                  {new Date(`${x}-01T12:00:00`).toLocaleDateString("id-ID", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </option>
+              ))}
+            </select>
+            {canManage ? (
+              <button onClick={openTransaction}>
+                <FiPlus /> Tambah Transaksi
+              </button>
+            ) : null}
+          </div>
+        </header>
+        <nav className="rk-finance-subnav">
+          {tabs[section].map(([key, label]) => (
+            <button
+              key={key}
+              data-active={tab === key}
+              onClick={() => {
+                if (section === "transactions" && key === "new")
+                  openTransaction();
+                else setTab(key);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+        {message ? <p className="rk-work-alert">{message}</p> : null}
+        {error ? (
+          <p className="rk-work-alert" data-error>
+            {error}
+          </p>
+        ) : null}
+        <div className="rk-finance-content">
+          {section === "dashboard" && tab === "overview" ? (
+            <Overview
+              score={score}
+              scoreLabel={scoreLabel}
+              components={components}
+              revenue={revenue}
+              totalExpense={totalExpense}
+              netProfit={netProfit}
+              netMargin={netMargin}
+              actualCash={actualCash}
+              operationalCash={operationalCash}
+              budgetTotal={budgetTotal}
+              budgetGap={budgetGap}
+              cashRunway={cashRunway}
+              alerts={alerts}
+              trends={trends}
+              maxTrend={maxTrend}
+              receivables={receivables}
+              overdue={overdue}
+              liabilities={liabilities}
+              potentialLead={potentialLead}
+              bookBalance={bookBalance}
+              reconDifference={reconDifference}
+              budgetRows={budgetRows}
+              funds={funds}
+              liveTx={liveTx}
+            />
+          ) : null}
+          {section === "dashboard" && tab === "profit-loss" ? (
+            <ReportPage
+              title="Profit & Loss"
+              description="Laporan laba rugi otomatis dari Jurnal Transaksi Utama dan COA."
+              cards={[
+                ["Pendapatan", revenue],
+                ["Laba Kotor", grossProfit],
+                ["Laba Usaha", operatingProfit],
+                ["Laba Bersih", netProfit],
+              ]}
+              rows={plRows}
+            />
+          ) : null}
+          {section === "dashboard" && tab === "cash-flow" ? (
+            <CashFlow
+              cashIn={cashIn}
+              cashOut={cashOut}
+              bookBalance={bookBalance}
+              actualCash={actualCash}
+              rows={cashRows}
+              banks={bankAccounts}
+              tx={liveTx}
+            />
+          ) : null}
+          {section === "dashboard" && tab === "financial-position" ? (
+            <FinancialPosition
+              values={[
+                ["Kas & Bank", actualCash],
+                ["Piutang Usaha", receivables],
+                ["Kewajiban Aktif", liabilities],
+                ["Nilai Buku Aset", assetBookValue],
+                [
+                  "Dana Perusahaan",
+                  funds
+                    .filter((x) => x.position !== "Hak Eksekutif")
+                    .reduce((s, x) => s + x.balance, 0),
+                ],
+                [
+                  "Hak Eksekutif",
+                  funds.find((x) => x.position === "Hak Eksekutif")?.balance ??
+                    0,
+                ],
+                ["Dana Darurat", emergency],
+                [
+                  "Laba Ditahan",
+                  funds.find((x) => x.position === "Laba Ditahan")?.balance ??
+                    0,
+                ],
+              ]}
+            />
+          ) : null}
+          {section === "dashboard" && tab === "fund-control" ? (
+            <FundControl funds={funds} />
+          ) : null}
+          {section === "transactions" && tab === "journal" ? (
+            <Journal
+              rows={filteredJournal}
+              projects={projects}
+              catalog={catalog}
+              projectFilter={projectFilter}
+              setProjectFilter={setProjectFilter}
+              eventFilter={eventFilter}
+              setEventFilter={setEventFilter}
+              query={query}
+              setQuery={setQuery}
+              canManage={canManage}
+              add={openTransaction}
+              correct={correctTransaction}
+            />
+          ) : null}
+          {section === "transactions" && tab === "receivables" ? (
+            <BalanceTable title="Piutang" rows={balances("receivable")} />
+          ) : null}
+          {section === "transactions" && tab === "liabilities" ? (
+            <BalanceTable title="Kewajiban" rows={balances("liability")} />
+          ) : null}
+          {section === "transactions" && tab === "reconciliation" ? (
+            <Reconciliation
+              book={bookBalance}
+              actual={actualCash}
+              difference={reconDifference}
+              ratio={ratio}
+              canManage={canManage}
+              add={() => {
+                const x = catalog.find(
+                  (c) => c.event_name === "Saldo Aktual Bank",
+                );
+                if (x) {
+                  chooseEvent(x);
+                  setModal("tx");
+                }
+              }}
+            />
+          ) : null}
+          {section === "documents" ? (
+            <Documents
+              type={tab as DocForm["type"]}
+              rows={documents}
+              canManage={canManage}
+              add={() => {
+                setDocForm({ ...emptyDoc(), type: tab as DocForm["type"] });
+                setModal("doc");
+              }}
+              edit={editDocument}
+              remove={deleteDocument}
+              download={(x) => exportDocument(x, "doc")}
+              print={(x) => exportDocument(x, "print")}
+            />
+          ) : null}
+          {section === "planning" && tab === "budget" ? (
+            <Budgets
+              rows={budgetRows}
+              totals={[
+                budgetTotal,
+                budgetRows.reduce((s, x) => s + x.actual, 0),
+                allocatedTotal,
+                budgetGap,
+              ]}
+              canManage={canManage}
+              coa={coa}
+              add={() => {
+                setBudgetForm(emptyBudget());
+                setModal("budget");
+              }}
+              edit={(x) => {
+                setBudgetForm({
+                  id: x.id,
+                  period: x.period_month.slice(0, 7),
+                  coa: x.coa_code ?? "",
+                  component: x.category,
+                  budget: String(x.planned_amount),
+                  allocated: String(x.allocated_amount),
+                  pic: x.pic ?? "",
+                  notes: x.notes ?? "",
+                });
+                setModal("budget");
+              }}
+            />
+          ) : null}
+          {section === "planning" && tab === "allocation" ? (
+            <Allocations
+              rows={allocations}
+              canManage={canManage}
+              add={() => {
+                setAllocationForm(emptyAllocation());
+                setModal("allocation");
+              }}
+            />
+          ) : null}
+          {section === "planning" && tab === "fund-control" ? (
+            <FundControl funds={funds} />
+          ) : null}
+          {section === "assets" ? (
+            <Assets
+              rows={assetRows}
+              bookValue={assetBookValue}
+              canManage={canManage}
+              add={() => {
+                setAssetForm(emptyAsset());
+                setModal("asset");
+              }}
+            />
+          ) : null}
+        </div>
+      </section>
+      {modal === "tx" ? (
+        <TransactionModal
+          step={txStep}
+          setStep={setTxStep}
+          form={txForm}
+          setForm={setTxForm}
+          catalog={catalog}
+          coa={coa}
+          projects={projects}
+          options={optionList}
+          allocations={allocations}
+          documents={documents}
+          transactions={liveTx}
+          banks={bankAccounts}
+          saving={saving}
+          close={() => setModal(null)}
+          choose={chooseEvent}
+          save={saveTx}
+        />
+      ) : null}
+      {modal === "doc" ? (
+        <DocumentModal
+          form={docForm}
+          setForm={setDocForm}
+          documents={documents}
+          banks={bankAccounts}
+          saving={saving}
+          close={() => setModal(null)}
+          save={saveDoc}
+        />
+      ) : null}
+      {modal === "budget" ? (
+        <BudgetModal
+          form={budgetForm}
+          setForm={setBudgetForm}
+          coa={coa}
+          saving={saving}
+          close={() => setModal(null)}
+          save={saveBudget}
+        />
+      ) : null}
+      {modal === "allocation" ? (
+        <AllocationModal
+          form={allocationForm}
+          setForm={setAllocationForm}
+          statuses={optionList("allocation_status")}
+          saving={saving}
+          close={() => setModal(null)}
+          save={saveAllocation}
+        />
+      ) : null}
+      {modal === "asset" ? (
+        <AssetModal
+          form={assetForm}
+          setForm={setAssetForm}
+          statuses={optionList("asset_status")}
+          types={optionList("asset_type")}
+          fundSources={optionList("fund_source")}
+          saving={saving}
+          close={() => setModal(null)}
+          save={saveAsset}
+        />
+      ) : null}
+    </main>
+  );
 }
 
-function FinanceSidebar({section,go}:{section:Section;go:(s:Section,t?:string)=>void}){const items:Array<[Section,string,typeof FiBarChart2]>=[['dashboard','Dashboard',FiBarChart2],['transactions','Transactions',FiDollarSign],['documents','Documents',FiFileText],['planning','Planning & Funds',FiTrendingUp],['assets','Assets',FiBox]];return <aside className="rk-finance-sidebar"><Link href="/ruang-kawan/dashboard/" className="rk-finance-brand"><b>CI</b><span><strong>Campus Innovate</strong><small>Finance Workspace</small></span></Link><small>MENU UTAMA</small>{items.map(([key,label,Icon])=><button key={key} data-active={section===key} onClick={()=>go(key)}><Icon/>{label}</button>)}<div className="rk-finance-sidebar-foot"><span>Supabase Production</span><strong>Finance V2</strong></div></aside>}
+function FinanceSidebar({
+  section,
+  go,
+}: {
+  section: Section;
+  go: (s: Section, t?: string) => void;
+}) {
+  const items: Array<[Section, string, typeof FiBarChart2]> = [
+    ["dashboard", "Dashboard", FiBarChart2],
+    ["transactions", "Transactions", FiDollarSign],
+    ["documents", "Documents", FiFileText],
+    ["planning", "Planning & Funds", FiTrendingUp],
+    ["assets", "Assets", FiBox],
+  ];
+  return (
+    <aside className="rk-finance-sidebar">
+      <Link href="/ruang-kawan/dashboard/" className="rk-finance-brand">
+        <b>CI</b>
+        <span>
+          <strong>Campus Innovate</strong>
+          <small>Finance Workspace</small>
+        </span>
+      </Link>
+      <small>MENU UTAMA</small>
+      {items.map(([key, label, Icon]) => (
+        <button key={key} data-active={section === key} onClick={() => go(key)}>
+          <Icon />
+          {label}
+        </button>
+      ))}
+      <div className="rk-finance-sidebar-foot">
+        <span>Supabase Production</span>
+        <strong>Finance V2</strong>
+      </div>
+    </aside>
+  );
+}
 
-type FundRow={position:string;opening:number;allocation:number;target:number;usage:number;balance:number;variance:number;status:string};
-type BudgetRow=Budget&{actual:number;gap:number;status:string};
-function Heading({title,description,action}:{title:string;description:string;action?:ReactNode}){return <div className="rk-finance-page-heading"><div><small>DASHBOARD / REPORT</small><h2>{title}</h2><p>{description}</p></div>{action}</div>}
-function MetricGrid({rows}:{rows:[string,number,string?,string?][]}){return <section className="rk-finance-metric-grid">{rows.map(([label,value,foot,display])=><article key={label}><small>{label}</small><strong>{display??money(value)}</strong><span>{foot??'Posisi aktual'}</span></article>)}</section>}
-function DataPanel({title,rows,status}:{title:string;rows:[string,number][];status?:string}){return <article><header><h3>{title}</h3></header>{rows.map(([l,v])=><div className="rk-finance-line" key={l}><span>{l}</span><strong>{money(v)}</strong></div>)}{status?<div className="rk-finance-line"><span>Status</span><b data-status={status}>{status}</b></div>:null}</article>}
-function BudgetPanel({rows}:{rows:BudgetRow[]}){return <article><header><h3>Budget Fixed Cost</h3><p>Periode aktif</p></header>{rows.length?rows.slice(0,6).map(x=><div className="rk-finance-progress-row" key={x.id}><span><strong>{x.category}</strong><small>{money(x.actual)} / {money(x.planned_amount)}</small></span><i><b style={{width:`${Math.min(n(x.planned_amount)?x.actual/n(x.planned_amount)*100:0,100)}%`}}/></i></div>):<p>Budget periode ini belum ada.</p>}</article>}
-function FundPanel({rows}:{rows:FundRow[]}){return <article><header><h3>Posisi Dana Perusahaan</h3><p>Saldo setiap pos dana.</p></header>{rows.map(x=><div className="rk-finance-line" key={x.position}><span>{x.position}</span><strong>{money(x.balance)} <b data-status={x.status}>{x.status}</b></strong></div>)}</article>}
+type FundRow = {
+  position: string;
+  opening: number;
+  allocation: number;
+  target: number;
+  usage: number;
+  balance: number;
+  variance: number;
+  status: string;
+};
+type BudgetRow = Budget & { actual: number; gap: number; status: string };
+function Heading({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="rk-finance-page-heading">
+      <div>
+        <small>DASHBOARD / REPORT</small>
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+function MetricGrid({ rows }: { rows: [string, number, string?, string?][] }) {
+  return (
+    <section className="rk-finance-metric-grid">
+      {rows.map(([label, value, foot, display]) => (
+        <article key={label}>
+          <small>{label}</small>
+          <strong>{display ?? money(value)}</strong>
+          <span>{foot ?? "Posisi aktual"}</span>
+        </article>
+      ))}
+    </section>
+  );
+}
+function DataPanel({
+  title,
+  rows,
+  status,
+}: {
+  title: string;
+  rows: [string, number][];
+  status?: string;
+}) {
+  return (
+    <article>
+      <header>
+        <h3>{title}</h3>
+      </header>
+      {rows.map(([l, v]) => (
+        <div className="rk-finance-line" key={l}>
+          <span>{l}</span>
+          <strong>{money(v)}</strong>
+        </div>
+      ))}
+      {status ? (
+        <div className="rk-finance-line">
+          <span>Status</span>
+          <b data-status={status}>{status}</b>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+function BudgetPanel({ rows }: { rows: BudgetRow[] }) {
+  return (
+    <article>
+      <header>
+        <h3>Budget Fixed Cost</h3>
+        <p>Periode aktif</p>
+      </header>
+      {rows.length ? (
+        rows.slice(0, 6).map((x) => (
+          <div className="rk-finance-progress-row" key={x.id}>
+            <span>
+              <strong>{x.category}</strong>
+              <small>
+                {money(x.actual)} / {money(x.planned_amount)}
+              </small>
+            </span>
+            <i>
+              <b
+                style={{
+                  width: `${Math.min(n(x.planned_amount) ? (x.actual / n(x.planned_amount)) * 100 : 0, 100)}%`,
+                }}
+              />
+            </i>
+          </div>
+        ))
+      ) : (
+        <p>Budget periode ini belum ada.</p>
+      )}
+    </article>
+  );
+}
+function FundPanel({ rows }: { rows: FundRow[] }) {
+  return (
+    <article>
+      <header>
+        <h3>Posisi Dana Perusahaan</h3>
+        <p>Saldo setiap pos dana.</p>
+      </header>
+      {rows.map((x) => (
+        <div className="rk-finance-line" key={x.position}>
+          <span>{x.position}</span>
+          <strong>
+            {money(x.balance)} <b data-status={x.status}>{x.status}</b>
+          </strong>
+        </div>
+      ))}
+    </article>
+  );
+}
 
-function Overview(p:{score:number;scoreLabel:string;components:[string,number,number][];revenue:number;totalExpense:number;netProfit:number;netMargin:number;actualCash:number;operationalCash:number;budgetTotal:number;budgetGap:number;cashRunway:number;alerts:string[][];trends:{key:string;label:string;revenue:number;expense:number;profit:number}[];maxTrend:number;receivables:number;overdue:number;liabilities:number;potentialLead:number;bookBalance:number;reconDifference:number;budgetRows:BudgetRow[];funds:FundRow[];liveTx:Tx[]}){return <><Heading title="Company Dashboard" description="Kondisi keuangan aktual berdasarkan Jurnal Transaksi Utama dan COA."/><section className="rk-health-card"><div><small>FINANCIAL HEALTH SCORE</small><p>Skor kesehatan keuangan aktual</p><strong>{p.score.toFixed(1)} <i>/ 100</i></strong><em data-tone={p.scoreLabel}>{p.scoreLabel}</em><p>Likuiditas 25%, profitabilitas 25%, budget 15%, rekonsiliasi 15%, working capital 10%, kesiapan dana 10%.</p></div><div>{[['Pendapatan',p.revenue],['Total Beban',p.totalExpense],['Saldo Kas Aktual',p.actualCash]].map(([l,v])=><span key={l as string}><small>{l}</small><strong>{money(v)}</strong></span>)}</div></section><MetricGrid rows={[['Pendapatan',p.revenue,'Periode aktif'],['Total Beban',p.totalExpense,'Periode aktif'],['Laba Bersih',p.netProfit,`Margin ${percent(p.netMargin)}`],['Saldo Kas Aktual',p.actualCash,'Posisi rekening'],['Kas Operasional Tersedia',p.operationalCash,p.cashRunway>=1?'Healthy':'Needs Attention'],['Fixed Cost Bulan Ini',p.budgetTotal,p.budgetGap>0?'Belum penuh didanai':'Terdanai'],['Gap Pendanaan',p.budgetGap,p.budgetGap>0?'Needs Attention':'Terdanai'],['Cash Runway',p.cashRunway,'Likuiditas',`${p.cashRunway.toFixed(1)} bulan`]]}/><section className="rk-finance-alerts">{p.alerts.length?p.alerts.slice(0,3).map(x=><article key={x[0]} data-tone={x[2]}><FiAlertTriangle/><span><strong>{x[0]}</strong><p>{x[1]}</p></span></article>):<article data-tone="healthy"><FiCheckCircle/><span><strong>Tidak ada risiko kritis</strong><p>Seluruh kontrol utama berada dalam batas yang ditetapkan.</p></span></article>}</section><section className="rk-finance-dashboard-grid"><article className="wide"><header><h3>Tren Keuangan 6 Bulan Terakhir</h3><p>Pendapatan, beban, dan laba bersih.</p></header><div className="rk-finance-chart">{p.trends.map(x=><div key={x.key}><span><i data-bar="revenue" style={{height:`${Math.max(3,x.revenue/p.maxTrend*130)}px`}}/><i data-bar="expense" style={{height:`${Math.max(3,x.expense/p.maxTrend*130)}px`}}/><i data-bar="profit" style={{height:`${Math.max(3,Math.abs(x.profit)/p.maxTrend*130)}px`}}/></span><small>{x.label}</small></div>)}</div></article><DataPanel title="Working Capital" rows={[['Piutang Aktif',p.receivables],['Piutang Overdue',p.overdue],['Kewajiban Aktif',p.liabilities],['Potential Lead',p.potentialLead]]}/><DataPanel title="Rekonsiliasi Bank" rows={[['Saldo Buku',p.bookBalance],['Saldo Aktual',p.actualCash],['Selisih',p.reconDifference]]} status={Math.abs(p.reconDifference)<1?'REKONSILIASI':'SELISIH'}/><BudgetPanel rows={p.budgetRows}/><FundPanel rows={p.funds}/><article><header><h3>Aktivitas Terbaru</h3><p>Transaksi terbaru di workspace.</p></header>{p.liveTx.slice(0,6).map(x=><div className="rk-finance-line" key={x.id}><span><strong>{x.description}</strong><small>{dateLabel(x.transaction_date)} · {x.transaction_number}</small></span><b>{money(x.amount)}</b></div>)}</article></section><section className="rk-score-components"><header><h3>Komponen Financial Health Score</h3><span>Skor {p.score.toFixed(1)}</span></header>{p.components.map(([label,weight,value])=><div key={label}><span>{label} ({weight}%)</span><strong>{value.toFixed(0)}</strong><i><b style={{width:`${Math.min(Math.max(value,0),100)}%`}}/></i></div>)}</section></>}
+function Overview(p: {
+  score: number;
+  scoreLabel: string;
+  components: [string, number, number][];
+  revenue: number;
+  totalExpense: number;
+  netProfit: number;
+  netMargin: number;
+  actualCash: number;
+  operationalCash: number;
+  budgetTotal: number;
+  budgetGap: number;
+  cashRunway: number;
+  alerts: string[][];
+  trends: {
+    key: string;
+    label: string;
+    revenue: number;
+    expense: number;
+    profit: number;
+  }[];
+  maxTrend: number;
+  receivables: number;
+  overdue: number;
+  liabilities: number;
+  potentialLead: number;
+  bookBalance: number;
+  reconDifference: number;
+  budgetRows: BudgetRow[];
+  funds: FundRow[];
+  liveTx: Tx[];
+}) {
+  return (
+    <>
+      <Heading
+        title="Company Dashboard"
+        description="Kondisi keuangan aktual berdasarkan Jurnal Transaksi Utama dan COA."
+      />
+      <section className="rk-health-card">
+        <div>
+          <small>FINANCIAL HEALTH SCORE</small>
+          <p>Skor kesehatan keuangan aktual</p>
+          <strong>
+            {p.score.toFixed(1)} <i>/ 100</i>
+          </strong>
+          <em data-tone={p.scoreLabel}>{p.scoreLabel}</em>
+          <p>
+            Likuiditas 25%, profitabilitas 25%, budget 15%, rekonsiliasi 15%,
+            working capital 10%, kesiapan dana 10%.
+          </p>
+        </div>
+        <div>
+          {[
+            ["Pendapatan", p.revenue],
+            ["Total Beban", p.totalExpense],
+            ["Saldo Kas Aktual", p.actualCash],
+          ].map(([l, v]) => (
+            <span key={l as string}>
+              <small>{l}</small>
+              <strong>{money(v)}</strong>
+            </span>
+          ))}
+        </div>
+      </section>
+      <MetricGrid
+        rows={[
+          ["Pendapatan", p.revenue, "Periode aktif"],
+          ["Total Beban", p.totalExpense, "Periode aktif"],
+          ["Laba Bersih", p.netProfit, `Margin ${percent(p.netMargin)}`],
+          ["Saldo Kas Aktual", p.actualCash, "Posisi rekening"],
+          [
+            "Kas Operasional Tersedia",
+            p.operationalCash,
+            p.cashRunway >= 1 ? "Healthy" : "Needs Attention",
+          ],
+          [
+            "Fixed Cost Bulan Ini",
+            p.budgetTotal,
+            p.budgetGap > 0 ? "Belum penuh didanai" : "Terdanai",
+          ],
+          [
+            "Gap Pendanaan",
+            p.budgetGap,
+            p.budgetGap > 0 ? "Needs Attention" : "Terdanai",
+          ],
+          [
+            "Cash Runway",
+            p.cashRunway,
+            "Likuiditas",
+            `${p.cashRunway.toFixed(1)} bulan`,
+          ],
+        ]}
+      />
+      <section className="rk-finance-alerts">
+        {p.alerts.length ? (
+          p.alerts.slice(0, 3).map((x) => (
+            <article key={x[0]} data-tone={x[2]}>
+              <FiAlertTriangle />
+              <span>
+                <strong>{x[0]}</strong>
+                <p>{x[1]}</p>
+              </span>
+            </article>
+          ))
+        ) : (
+          <article data-tone="healthy">
+            <FiCheckCircle />
+            <span>
+              <strong>Tidak ada risiko kritis</strong>
+              <p>Seluruh kontrol utama berada dalam batas yang ditetapkan.</p>
+            </span>
+          </article>
+        )}
+      </section>
+      <section className="rk-finance-dashboard-grid">
+        <article className="wide">
+          <header>
+            <h3>Tren Keuangan 6 Bulan Terakhir</h3>
+            <p>Pendapatan, beban, dan laba bersih.</p>
+          </header>
+          <div className="rk-finance-chart">
+            {p.trends.map((x) => (
+              <div key={x.key}>
+                <span>
+                  <i
+                    data-bar="revenue"
+                    style={{
+                      height: `${Math.max(3, (x.revenue / p.maxTrend) * 130)}px`,
+                    }}
+                  />
+                  <i
+                    data-bar="expense"
+                    style={{
+                      height: `${Math.max(3, (x.expense / p.maxTrend) * 130)}px`,
+                    }}
+                  />
+                  <i
+                    data-bar="profit"
+                    style={{
+                      height: `${Math.max(3, (Math.abs(x.profit) / p.maxTrend) * 130)}px`,
+                    }}
+                  />
+                </span>
+                <small>{x.label}</small>
+              </div>
+            ))}
+          </div>
+        </article>
+        <DataPanel
+          title="Working Capital"
+          rows={[
+            ["Piutang Aktif", p.receivables],
+            ["Piutang Overdue", p.overdue],
+            ["Kewajiban Aktif", p.liabilities],
+            ["Potential Lead", p.potentialLead],
+          ]}
+        />
+        <DataPanel
+          title="Rekonsiliasi Bank"
+          rows={[
+            ["Saldo Buku", p.bookBalance],
+            ["Saldo Aktual", p.actualCash],
+            ["Selisih", p.reconDifference],
+          ]}
+          status={Math.abs(p.reconDifference) < 1 ? "REKONSILIASI" : "SELISIH"}
+        />
+        <BudgetPanel rows={p.budgetRows} />
+        <FundPanel rows={p.funds} />
+        <article>
+          <header>
+            <h3>Aktivitas Terbaru</h3>
+            <p>Transaksi terbaru di workspace.</p>
+          </header>
+          {p.liveTx.slice(0, 6).map((x) => (
+            <div className="rk-finance-line" key={x.id}>
+              <span>
+                <strong>{x.description}</strong>
+                <small>
+                  {dateLabel(x.transaction_date)} · {x.transaction_number}
+                </small>
+              </span>
+              <b>{money(x.amount)}</b>
+            </div>
+          ))}
+        </article>
+      </section>
+      <section className="rk-score-components">
+        <header>
+          <h3>Komponen Financial Health Score</h3>
+          <span>Skor {p.score.toFixed(1)}</span>
+        </header>
+        {p.components.map(([label, weight, value]) => (
+          <div key={label}>
+            <span>
+              {label} ({weight}%)
+            </span>
+            <strong>{value.toFixed(0)}</strong>
+            <i>
+              <b style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }} />
+            </i>
+          </div>
+        ))}
+      </section>
+    </>
+  );
+}
 
-function ReportPage({title,description,cards,rows}:{title:string;description:string;cards:[string,number][];rows:[string,number][]}){return <><Heading title={title} description={description}/><section className="rk-finance-summary-row">{cards.map(([l,v])=><article key={l}><small>{l}</small><strong>{money(v)}</strong></article>)}</section><section className="rk-finance-table"><div className="rk-table-scroll"><table><thead><tr><th>Kategori</th><th>Nilai</th></tr></thead><tbody>{rows.map(([l,v])=><tr key={l}><td><strong>{l}</strong></td><td className={v<0?'amount-out':''}>{money(v)}</td></tr>)}</tbody></table></div></section></>}
-function CashFlow({cashIn,cashOut,bookBalance,actualCash,rows,banks,tx}:{cashIn:number;cashOut:number;bookBalance:number;actualCash:number;rows:[string,number][];banks:string[];tx:Tx[]}){return <><ReportPage title="Cash Flow" description="Arus kas operasional, investasi, pendanaan, dan posisi saldo bank." cards={[['Kas Masuk',cashIn],['Kas Keluar',cashOut],['Saldo Buku',bookBalance],['Saldo Aktual',actualCash]]} rows={rows}/><section className="rk-finance-table"><header><div><small>POSISI REKENING</small><h2>Kas & Bank</h2></div></header><div className="rk-table-scroll"><table><thead><tr><th>Rekening</th><th>Saldo Awal</th><th>Masuk</th><th>Keluar</th><th>Saldo Akhir</th></tr></thead><tbody>{banks.map(bank=>{const r=tx.filter(x=>x.bank_account===bank);const inn=r.filter(x=>x.flow==='in').reduce((s,x)=>s+n(x.amount),0);const out=r.filter(x=>x.flow==='out').reduce((s,x)=>s+n(x.amount),0);return <tr key={bank}><td><strong>{bank}</strong></td><td>{money(0)}</td><td>{money(inn)}</td><td>{money(out)}</td><td><strong>{money(inn-out)}</strong></td></tr>})}</tbody></table></div></section></>}
-function FinancialPosition({values}:{values:[string,number][]}){return <><Heading title="Financial Position" description="Posisi kas, piutang, kewajiban, aset, dan dana perusahaan."/><MetricGrid rows={values}/><p className="rk-finance-note">Ringkasan posisi keuangan operasional, bukan neraca akuntansi penuh. Data berasal dari jurnal, register aset, dan kontrol dana perusahaan.</p></>}
-function FundControl({funds}:{funds:FundRow[]}){return <><Heading title="Fund Control" description="Kontrol saldo, alokasi, penggunaan, target minimum, dan status setiap pos dana."/><section className="rk-finance-table"><div className="rk-table-scroll"><table><thead><tr><th>Pos Dana</th><th>Saldo Awal</th><th>Alokasi Baru</th><th>Penggunaan</th><th>Saldo Akhir</th><th>Target</th><th>Selisih</th><th>Status</th></tr></thead><tbody>{funds.map(x=><tr key={x.position}><td><strong>{x.position}</strong></td><td>{money(x.opening)}</td><td>{money(x.allocation)}</td><td>{money(x.usage)}</td><td><strong>{money(x.balance)}</strong></td><td>{money(x.target)}</td><td>{money(x.variance)}</td><td><b data-status={x.status}>{x.status}</b></td></tr>)}</tbody></table></div></section></>}
+function ReportPage({
+  title,
+  description,
+  cards,
+  rows,
+}: {
+  title: string;
+  description: string;
+  cards: [string, number][];
+  rows: [string, number][];
+}) {
+  return (
+    <>
+      <Heading title={title} description={description} />
+      <section className="rk-finance-summary-row">
+        {cards.map(([l, v]) => (
+          <article key={l}>
+            <small>{l}</small>
+            <strong>{money(v)}</strong>
+          </article>
+        ))}
+      </section>
+      <section className="rk-finance-table">
+        <div className="rk-table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Kategori</th>
+                <th>Nilai</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(([l, v]) => (
+                <tr key={l}>
+                  <td>
+                    <strong>{l}</strong>
+                  </td>
+                  <td className={v < 0 ? "amount-out" : ""}>{money(v)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
+function CashFlow({
+  cashIn,
+  cashOut,
+  bookBalance,
+  actualCash,
+  rows,
+  banks,
+  tx,
+}: {
+  cashIn: number;
+  cashOut: number;
+  bookBalance: number;
+  actualCash: number;
+  rows: [string, number][];
+  banks: BankAccount[];
+  tx: Tx[];
+}) {
+  return (
+    <>
+      <ReportPage
+        title="Cash Flow"
+        description="Arus kas operasional, investasi, pendanaan, dan posisi saldo bank."
+        cards={[
+          ["Kas Masuk", cashIn],
+          ["Kas Keluar", cashOut],
+          ["Saldo Buku", bookBalance],
+          ["Saldo Aktual", actualCash],
+        ]}
+        rows={rows}
+      />
+      <section className="rk-finance-table">
+        <header>
+          <div>
+            <small>POSISI REKENING</small>
+            <h2>Kas & Bank</h2>
+            <p>
+              Setiap transaksi kas langsung memperbarui saldo aktual rekening
+              yang dipilih.
+            </p>
+          </div>
+        </header>
+        <div className="rk-table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Rekening</th>
+                <th>Saldo Awal</th>
+                <th>Masuk</th>
+                <th>Keluar</th>
+                <th>Saldo Buku</th>
+                <th>Saldo Aktual</th>
+              </tr>
+            </thead>
+            <tbody>
+              {banks.map((bank) => {
+                const r = tx.filter(
+                  (x) => x.bank_account === bank.bank_account,
+                );
+                const inn = r
+                  .filter((x) => x.flow === "in")
+                  .reduce((s, x) => s + n(x.amount), 0);
+                const out = r
+                  .filter((x) => x.flow === "out")
+                  .reduce((s, x) => s + n(x.amount), 0);
+                return (
+                  <tr key={bank.bank_account}>
+                    <td>
+                      <strong>{bank.bank_account}</strong>
+                    </td>
+                    <td>{money(bank.opening_balance)}</td>
+                    <td>{money(inn)}</td>
+                    <td>{money(out)}</td>
+                    <td>{money(n(bank.opening_balance) + inn - out)}</td>
+                    <td>
+                      <strong>{money(bank.current_balance)}</strong>
+                      <small>
+                        {bank.last_snapshot_at
+                          ? "Pernah direkonsiliasi"
+                          : "Mengikuti jurnal"}
+                      </small>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
+function FinancialPosition({ values }: { values: [string, number][] }) {
+  return (
+    <>
+      <Heading
+        title="Financial Position"
+        description="Posisi kas, piutang, kewajiban, aset, dan dana perusahaan."
+      />
+      <MetricGrid rows={values} />
+      <p className="rk-finance-note">
+        Ringkasan posisi keuangan operasional, bukan neraca akuntansi penuh.
+        Data berasal dari jurnal, register aset, dan kontrol dana perusahaan.
+      </p>
+    </>
+  );
+}
+function FundControl({ funds }: { funds: FundRow[] }) {
+  return (
+    <>
+      <Heading
+        title="Fund Control"
+        description="Kontrol saldo, alokasi, penggunaan, target minimum, dan status setiap pos dana."
+      />
+      <section className="rk-finance-table">
+        <div className="rk-table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Pos Dana</th>
+                <th>Saldo Awal</th>
+                <th>Alokasi Baru</th>
+                <th>Penggunaan</th>
+                <th>Saldo Akhir</th>
+                <th>Target</th>
+                <th>Selisih</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {funds.map((x) => (
+                <tr key={x.position}>
+                  <td>
+                    <strong>{x.position}</strong>
+                  </td>
+                  <td>{money(x.opening)}</td>
+                  <td>{money(x.allocation)}</td>
+                  <td>{money(x.usage)}</td>
+                  <td>
+                    <strong>{money(x.balance)}</strong>
+                  </td>
+                  <td>{money(x.target)}</td>
+                  <td>{money(x.variance)}</td>
+                  <td>
+                    <b data-status={x.status}>{x.status}</b>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
 
-function Journal(p:{rows:Tx[];projects:string[];catalog:Catalog[];projectFilter:string;setProjectFilter:(v:string)=>void;eventFilter:string;setEventFilter:(v:string)=>void;query:string;setQuery:(v:string)=>void;canManage:boolean;add:()=>void;reverse:(x:Tx)=>void}){return <section className="rk-finance-table"><header><div><small>TRANSACTIONS</small><h2>Jurnal Transaksi Utama</h2><p>Satu-satunya sumber input transaksi; klasifikasi lain dihitung otomatis.</p></div>{p.canManage?<button onClick={p.add}><FiPlus/> Tambah</button>:null}</header><div className="rk-finance-filter"><select value={p.projectFilter} onChange={e=>p.setProjectFilter(e.target.value)}><option value="">Semua proyek</option>{p.projects.map(x=><option key={x}>{x}</option>)}</select><select value={p.eventFilter} onChange={e=>p.setEventFilter(e.target.value)}><option value="">Semua jenis</option>{p.catalog.map(x=><option key={x.event_name}>{x.event_name}</option>)}</select><input value={p.query} onChange={e=>p.setQuery(e.target.value)} placeholder="Cari keterangan, referensi, pihak terkait..."/></div><div className="rk-table-scroll"><table className="rk-journal-table"><thead><tr><th>Tanggal</th><th>ID</th><th>Proyek</th><th>Jenis</th><th>Akun</th><th>Keterangan</th><th>Masuk</th><th>Keluar</th><th>Status</th><th/></tr></thead><tbody>{p.rows.map(x=><tr key={x.id}><td>{dateLabel(x.transaction_date)}</td><td><strong>{x.transaction_number}</strong><small>{x.reference_number||'-'}</small></td><td>{x.project_name||'-'}</td><td><em>{x.transaction_event||x.event_type}</em></td><td><strong>{x.coa_code||'-'}</strong><small>{x.account_name||x.category}</small></td><td>{x.description}<small>{x.counterparty||x.bank_account||'-'}</small></td><td className="amount-in">{x.flow==='in'?money(x.amount):'-'}</td><td className="amount-out">{x.flow==='out'?money(x.amount):'-'}</td><td><b data-status={x.auto_status||x.status}>{x.auto_status||x.status}</b></td><td>{p.canManage&&x.status==='posted'&&!x.reversal_of_id?<button title="Reversal" onClick={()=>p.reverse(x)}><FiRotateCcw/></button>:null}</td></tr>)}</tbody></table></div></section>}
-type Balance={ref:string;recognized:number;settled:number;balance:number;party:string|null|undefined;project:string|null|undefined;due:string|null|undefined;status:string};
-function BalanceTable({title,rows}:{title:string;rows:Balance[]}){return <section className="rk-finance-table"><header><div><small>TRANSACTIONS</small><h2>{title}</h2><p>Saldo per ID referensi.</p></div></header><div className="rk-table-scroll"><table><thead><tr><th>Referensi</th><th>Pihak Terkait</th><th>Proyek</th><th>Diakui</th><th>Dibayar</th><th>Saldo</th><th>Jatuh Tempo</th><th>Status</th></tr></thead><tbody>{rows.map(x=><tr key={x.ref}><td><strong>{x.ref}</strong></td><td>{x.party||'-'}</td><td>{x.project||'-'}</td><td>{money(x.recognized)}</td><td>{money(x.settled)}</td><td><strong>{money(x.balance)}</strong></td><td>{dateLabel(x.due)}</td><td><b data-status={x.status}>{x.status}</b></td></tr>)}</tbody></table></div></section>}
-function Reconciliation({book,actual,difference,ratio,canManage,add}:{book:number;actual:number;difference:number;ratio:number;canManage:boolean;add:()=>void}){return <><Heading title="Rekonsiliasi Bank" description="Bandingkan saldo buku dengan snapshot saldo aktual rekening." action={canManage?<button onClick={add}>Catat Saldo Aktual</button>:null}/><MetricGrid rows={[['Saldo Buku',book,'Mandiri'],['Saldo Aktual',actual,'Kopra'],['Selisih',difference,Math.abs(difference)<1?'REKONSILIASI':'SELISIH - TELUSURI'],['Rasio Selisih',ratio,'Perbandingan saldo',percent(ratio)]]}/></>}
-function Documents({type,rows,canManage,add}:{type:DocForm['type'];rows:Doc[];canManage:boolean;add:()=>void}){const label=type==='invoice'?'Invoice':type==='quotation'?'Quotation':'Payment Receipt';return <section className="rk-finance-table"><header><div><small>DOCUMENTS</small><h2>{label}</h2><p>Register dokumen bisnis dan jurnal terkait.</p></div>{canManage?<button onClick={add}><FiPlus/> Buat</button>:null}</header><div className="rk-table-scroll"><table><thead><tr><th>No. Dokumen</th><th>Tanggal</th><th>Pelanggan</th><th>Proyek</th><th>Total</th><th>Dibayar</th><th>Sisa</th><th>Status</th></tr></thead><tbody>{rows.filter(x=>x.document_type===type).map(x=><tr key={x.id}><td><strong>{x.document_number}</strong></td><td>{dateLabel(x.document_date)}<small>Jatuh tempo {dateLabel(x.due_date)}</small></td><td>{x.client}</td><td>{x.project_name||'-'}</td><td>{money(x.total)}</td><td>{money(x.paid)}</td><td>{money(x.balance)}</td><td><em>{x.status}</em></td></tr>)}</tbody></table></div></section>}
-function SummaryRow({rows}:{rows:[string,number,boolean?][]}){return <section className="rk-finance-summary-row">{rows.map(([l,v,raw])=><article key={l}><small>{l}</small><strong>{raw?v:money(v)}</strong></article>)}</section>}
-function Budgets({rows,totals,canManage,add,edit}:{rows:BudgetRow[];totals:number[];canManage:boolean;coa:Coa[];add:()=>void;edit:(x:BudgetRow)=>void}){return <section className="rk-finance-table"><header><div><small>PLANNING & FUNDS</small><h2>Fixed Cost Budget</h2><p>Anggaran, aktual jurnal, alokasi dana, dan gap pendanaan.</p></div>{canManage?<button onClick={add}><FiPlus/> Buat / Update Budget</button>:null}</header><SummaryRow rows={[['Total Budget',totals[0]],['Aktual Jurnal',totals[1]],['Dana Dialokasikan',totals[2]],['Gap Pendanaan',totals[3]]]}/><div className="rk-table-scroll"><table><thead><tr><th>Komponen</th><th>COA</th><th>Budget</th><th>Aktual</th><th>Alokasi</th><th>Gap</th><th>Realisasi</th><th>Status</th><th/></tr></thead><tbody>{rows.map(x=><tr key={x.id}><td><strong>{x.category}</strong><small>PIC: {x.pic||'-'}</small></td><td>{x.coa_code}</td><td>{money(x.planned_amount)}</td><td>{money(x.actual)}</td><td>{money(x.allocated_amount)}</td><td>{money(x.gap)}</td><td>{percent(n(x.planned_amount)?x.actual/n(x.planned_amount)*100:0)}</td><td><b data-status={x.status}>{x.status}</b></td><td>{canManage?<button onClick={()=>edit(x)}><FiSettings/></button>:null}</td></tr>)}</tbody></table></div></section>}
-function Allocations({rows,canManage,add}:{rows:Allocation[];canManage:boolean;add:()=>void}){return <section className="rk-finance-table"><header><div><small>PLANNING & FUNDS</small><h2>Project Profit Allocation</h2><p>Pembagian laba 60% perusahaan, 40% eksekutif, fixed cost, laba ditahan, dan dana darurat.</p></div>{canManage?<button onClick={add}><FiPlus/> Alokasi Laba</button>:null}</header><SummaryRow rows={[['Laba Disetujui',rows.reduce((s,x)=>s+n(x.approved_profit),0)],['Bagian Perusahaan',rows.reduce((s,x)=>s+n(x.company_share),0)],['Hak Eksekutif',rows.reduce((s,x)=>s+n(x.executive_share),0)],['Jumlah Alokasi',rows.length,true]]}/><div className="rk-table-scroll"><table><thead><tr><th>ID</th><th>Proyek</th><th>Tutup</th><th>Laba</th><th>Perusahaan 60%</th><th>Eksekutif 40%</th><th>Fixed Cost</th><th>Laba Ditahan</th><th>Dana Darurat</th><th>CEO</th><th>COO</th><th>CTO</th><th>Status</th></tr></thead><tbody>{rows.map(x=><tr key={x.id}><td><strong>{x.allocation_code}</strong><small>{x.reference_number||'-'}</small></td><td>{x.project_name}</td><td>{dateLabel(x.closing_date)}</td><td>{money(x.approved_profit)}</td><td>{money(x.company_share)}</td><td>{money(x.executive_share)}</td><td>{money(x.operational_fixed_cost)}</td><td>{money(x.retained_earnings)}</td><td>{money(x.emergency_fund)}</td><td>{money(x.ceo_pool)}</td><td>{money(x.coo_pool)}</td><td>{money(x.cto_pool)}</td><td><b data-status={x.status}>{x.status}</b></td></tr>)}</tbody></table></div></section>}
-type AssetRow=Asset&{accumulated:number;bookValue:number};
-function Assets({rows,bookValue,canManage,add}:{rows:AssetRow[];bookValue:number;canManage:boolean;add:()=>void}){return <section className="rk-finance-table"><header><div><small>ASSETS</small><h2>Asset Register</h2><p>Aset fisik dan digital, nilai buku, PIC, lokasi, dan masa berlaku.</p></div>{canManage?<button onClick={add}><FiPlus/> Tambah Aset</button>:null}</header><SummaryRow rows={[['Total Aset',rows.length,true],['Aset Aktif',rows.filter(x=>x.asset_status==='Aktif').length,true],['Nilai Buku',bookValue],['Aset Digital',rows.filter(x=>x.asset_type==='Digital'&&x.asset_status==='Aktif').length,true],['Tanpa PIC',rows.filter(x=>!x.pic).length,true]]}/><div className="rk-table-scroll"><table><thead><tr><th>ID</th><th>Nama Aset</th><th>Jenis</th><th>Perolehan</th><th>Nilai Perolehan</th><th>Akumulasi</th><th>Nilai Buku</th><th>PIC</th><th>Lokasi</th><th>Berakhir</th><th>Status</th></tr></thead><tbody>{rows.map(x=><tr key={x.id}><td><strong>{x.asset_code}</strong><small>{x.journal_reference||'-'}</small></td><td><strong>{x.asset_name}</strong><small>{x.category||'-'}</small></td><td>{x.asset_type}</td><td>{dateLabel(x.acquisition_date)}</td><td>{money(x.acquisition_value)}</td><td>{money(x.accumulated)}</td><td><strong>{money(x.bookValue)}</strong></td><td>{x.pic||'-'}</td><td>{x.location||'-'}</td><td>{dateLabel(x.expiry_date)}</td><td><b data-status={x.asset_status}>{x.asset_status}</b></td></tr>)}</tbody></table></div></section>}
+function Journal(p: {
+  rows: Tx[];
+  projects: string[];
+  catalog: Catalog[];
+  projectFilter: string;
+  setProjectFilter: (v: string) => void;
+  eventFilter: string;
+  setEventFilter: (v: string) => void;
+  query: string;
+  setQuery: (v: string) => void;
+  canManage: boolean;
+  add: () => void;
+  correct: (x: Tx) => void;
+}) {
+  return (
+    <section className="rk-finance-table">
+      <header>
+        <div>
+          <small>TRANSACTIONS</small>
+          <h2>Jurnal Transaksi Utama</h2>
+          <p>
+            Satu-satunya sumber input transaksi; klasifikasi lain dihitung
+            otomatis.
+          </p>
+        </div>
+        {p.canManage ? (
+          <button onClick={p.add}>
+            <FiPlus /> Tambah
+          </button>
+        ) : null}
+      </header>
+      <div className="rk-finance-filter">
+        <select
+          value={p.projectFilter}
+          onChange={(e) => p.setProjectFilter(e.target.value)}
+        >
+          <option value="">Semua proyek</option>
+          {p.projects.map((x) => (
+            <option key={x}>{x}</option>
+          ))}
+        </select>
+        <select
+          value={p.eventFilter}
+          onChange={(e) => p.setEventFilter(e.target.value)}
+        >
+          <option value="">Semua jenis</option>
+          {p.catalog.map((x) => (
+            <option key={x.event_name}>{x.event_name}</option>
+          ))}
+        </select>
+        <input
+          value={p.query}
+          onChange={(e) => p.setQuery(e.target.value)}
+          placeholder="Cari keterangan, referensi, pihak terkait..."
+        />
+      </div>
+      <div className="rk-table-scroll">
+        <table className="rk-journal-table">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>ID</th>
+              <th>Proyek</th>
+              <th>Jenis</th>
+              <th>Akun</th>
+              <th>Keterangan</th>
+              <th>Masuk</th>
+              <th>Keluar</th>
+              <th>Status</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {p.rows.map((x) => (
+              <tr key={x.id}>
+                <td>{dateLabel(x.transaction_date)}</td>
+                <td>
+                  <strong>{x.transaction_number}</strong>
+                  <small>{x.reference_number || "-"}</small>
+                </td>
+                <td>{x.project_name || "-"}</td>
+                <td>
+                  <em>{x.transaction_event || x.event_type}</em>
+                </td>
+                <td>
+                  <strong>{x.coa_code || "-"}</strong>
+                  <small>{x.account_name || x.category}</small>
+                </td>
+                <td>
+                  {x.description}
+                  <small>{x.counterparty || x.bank_account || "-"}</small>
+                </td>
+                <td className="amount-in">
+                  {x.flow === "in" ? money(x.amount) : "-"}
+                </td>
+                <td className="amount-out">
+                  {x.flow === "out" ? money(x.amount) : "-"}
+                </td>
+                <td>
+                  <b data-status={x.auto_status || x.status}>
+                    {x.auto_status || x.status}
+                  </b>
+                </td>
+                <td>
+                  {p.canManage &&
+                  x.status === "posted" &&
+                  !x.reversal_of_id &&
+                  x.transaction_event !== "Saldo Aktual Bank" ? (
+                    <button
+                      title="Koreksi transaksi"
+                      onClick={() => p.correct(x)}
+                    >
+                      <FiEdit3 />
+                    </button>
+                  ) : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+type Balance = {
+  ref: string;
+  recognized: number;
+  settled: number;
+  balance: number;
+  party: string | null | undefined;
+  project: string | null | undefined;
+  due: string | null | undefined;
+  status: string;
+};
+function BalanceTable({ title, rows }: { title: string; rows: Balance[] }) {
+  return (
+    <section className="rk-finance-table">
+      <header>
+        <div>
+          <small>TRANSACTIONS</small>
+          <h2>{title}</h2>
+          <p>Saldo per ID referensi.</p>
+        </div>
+      </header>
+      <div className="rk-table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Referensi</th>
+              <th>Pihak Terkait</th>
+              <th>Proyek</th>
+              <th>Diakui</th>
+              <th>Dibayar</th>
+              <th>Saldo</th>
+              <th>Jatuh Tempo</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((x) => (
+              <tr key={x.ref}>
+                <td>
+                  <strong>{x.ref}</strong>
+                </td>
+                <td>{x.party || "-"}</td>
+                <td>{x.project || "-"}</td>
+                <td>{money(x.recognized)}</td>
+                <td>{money(x.settled)}</td>
+                <td>
+                  <strong>{money(x.balance)}</strong>
+                </td>
+                <td>{dateLabel(x.due)}</td>
+                <td>
+                  <b data-status={x.status}>{x.status}</b>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+function Reconciliation({
+  book,
+  actual,
+  difference,
+  ratio,
+  canManage,
+  add,
+}: {
+  book: number;
+  actual: number;
+  difference: number;
+  ratio: number;
+  canManage: boolean;
+  add: () => void;
+}) {
+  return (
+    <>
+      <Heading
+        title="Rekonsiliasi Bank"
+        description="Bandingkan saldo buku dengan snapshot saldo aktual rekening."
+        action={
+          canManage ? <button onClick={add}>Catat Saldo Aktual</button> : null
+        }
+      />
+      <MetricGrid
+        rows={[
+          ["Saldo Buku", book, "Mandiri"],
+          ["Saldo Aktual", actual, "Kopra"],
+          [
+            "Selisih",
+            difference,
+            Math.abs(difference) < 1 ? "REKONSILIASI" : "SELISIH - TELUSURI",
+          ],
+          ["Rasio Selisih", ratio, "Perbandingan saldo", percent(ratio)],
+        ]}
+      />
+    </>
+  );
+}
+function Documents({
+  type,
+  rows,
+  canManage,
+  add,
+  edit,
+  remove,
+  download,
+  print,
+}: {
+  type: DocForm["type"];
+  rows: Doc[];
+  canManage: boolean;
+  add: () => void;
+  edit: (x: Doc) => void;
+  remove: (x: Doc) => void;
+  download: (x: Doc) => void;
+  print: (x: Doc) => void;
+}) {
+  const label =
+    type === "invoice"
+      ? "Invoice"
+      : type === "quotation"
+        ? "Quotation"
+        : "Payment Receipt";
+  return (
+    <section className="rk-finance-table">
+      <header>
+        <div>
+          <small>DOCUMENTS</small>
+          <h2>{label}</h2>
+          <p>
+            Dokumen multi-item dengan template placeholder, ekspor DOC, serta
+            cetak PDF.
+          </p>
+        </div>
+        {canManage ? (
+          <button onClick={add}>
+            <FiPlus /> Buat
+          </button>
+        ) : null}
+      </header>
+      <div className="rk-table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>No. Dokumen</th>
+              <th>Tanggal</th>
+              <th>Pelanggan</th>
+              <th>Proyek</th>
+              <th>Item</th>
+              <th>Total</th>
+              <th>Dibayar</th>
+              <th>Sisa</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows
+              .filter((x) => x.document_type === type)
+              .map((x) => (
+                <tr key={x.id}>
+                  <td>
+                    <strong>{x.document_number}</strong>
+                  </td>
+                  <td>
+                    {dateLabel(x.document_date)}
+                    <small>Jatuh tempo {dateLabel(x.due_date)}</small>
+                  </td>
+                  <td>{x.client}</td>
+                  <td>{x.project_name || "-"}</td>
+                  <td>{x.items?.length || 0}</td>
+                  <td>{money(x.total)}</td>
+                  <td>{money(x.paid)}</td>
+                  <td>{money(x.balance)}</td>
+                  <td>
+                    <em>{x.status}</em>
+                  </td>
+                  <td>
+                    <div className="rk-document-actions">
+                      <button title="Download DOC" onClick={() => download(x)}>
+                        <FiDownload />
+                      </button>
+                      <button
+                        title="Cetak / Simpan PDF"
+                        onClick={() => print(x)}
+                      >
+                        <FiPrinter />
+                      </button>
+                      {canManage && x.document_type !== "receipt" ? (
+                        <button title="Edit dokumen" onClick={() => edit(x)}>
+                          <FiEdit3 />
+                        </button>
+                      ) : null}
+                      {canManage ? (
+                        <button
+                          title="Hapus / koreksi dokumen"
+                          onClick={() => remove(x)}
+                        >
+                          <FiTrash2 />
+                        </button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+function SummaryRow({ rows }: { rows: [string, number, boolean?][] }) {
+  return (
+    <section className="rk-finance-summary-row">
+      {rows.map(([l, v, raw]) => (
+        <article key={l}>
+          <small>{l}</small>
+          <strong>{raw ? v : money(v)}</strong>
+        </article>
+      ))}
+    </section>
+  );
+}
+function Budgets({
+  rows,
+  totals,
+  canManage,
+  add,
+  edit,
+}: {
+  rows: BudgetRow[];
+  totals: number[];
+  canManage: boolean;
+  coa: Coa[];
+  add: () => void;
+  edit: (x: BudgetRow) => void;
+}) {
+  return (
+    <section className="rk-finance-table">
+      <header>
+        <div>
+          <small>PLANNING & FUNDS</small>
+          <h2>Fixed Cost Budget</h2>
+          <p>Anggaran, aktual jurnal, alokasi dana, dan gap pendanaan.</p>
+        </div>
+        {canManage ? (
+          <button onClick={add}>
+            <FiPlus /> Buat / Update Budget
+          </button>
+        ) : null}
+      </header>
+      <SummaryRow
+        rows={[
+          ["Total Budget", totals[0]],
+          ["Aktual Jurnal", totals[1]],
+          ["Dana Dialokasikan", totals[2]],
+          ["Gap Pendanaan", totals[3]],
+        ]}
+      />
+      <div className="rk-table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Komponen</th>
+              <th>COA</th>
+              <th>Budget</th>
+              <th>Aktual</th>
+              <th>Alokasi</th>
+              <th>Gap</th>
+              <th>Realisasi</th>
+              <th>Status</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((x) => (
+              <tr key={x.id}>
+                <td>
+                  <strong>{x.category}</strong>
+                  <small>PIC: {x.pic || "-"}</small>
+                </td>
+                <td>{x.coa_code}</td>
+                <td>{money(x.planned_amount)}</td>
+                <td>{money(x.actual)}</td>
+                <td>{money(x.allocated_amount)}</td>
+                <td>{money(x.gap)}</td>
+                <td>
+                  {percent(
+                    n(x.planned_amount)
+                      ? (x.actual / n(x.planned_amount)) * 100
+                      : 0,
+                  )}
+                </td>
+                <td>
+                  <b data-status={x.status}>{x.status}</b>
+                </td>
+                <td>
+                  {canManage ? (
+                    <button onClick={() => edit(x)}>
+                      <FiSettings />
+                    </button>
+                  ) : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+function Allocations({
+  rows,
+  canManage,
+  add,
+}: {
+  rows: Allocation[];
+  canManage: boolean;
+  add: () => void;
+}) {
+  return (
+    <section className="rk-finance-table">
+      <header>
+        <div>
+          <small>PLANNING & FUNDS</small>
+          <h2>Project Profit Allocation</h2>
+          <p>
+            Pembagian laba 60% perusahaan, 40% eksekutif, fixed cost, laba
+            ditahan, dan dana darurat.
+          </p>
+        </div>
+        {canManage ? (
+          <button onClick={add}>
+            <FiPlus /> Alokasi Laba
+          </button>
+        ) : null}
+      </header>
+      <SummaryRow
+        rows={[
+          [
+            "Laba Disetujui",
+            rows.reduce((s, x) => s + n(x.approved_profit), 0),
+          ],
+          [
+            "Bagian Perusahaan",
+            rows.reduce((s, x) => s + n(x.company_share), 0),
+          ],
+          ["Hak Eksekutif", rows.reduce((s, x) => s + n(x.executive_share), 0)],
+          ["Jumlah Alokasi", rows.length, true],
+        ]}
+      />
+      <div className="rk-table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Proyek</th>
+              <th>Tutup</th>
+              <th>Laba</th>
+              <th>Perusahaan 60%</th>
+              <th>Eksekutif 40%</th>
+              <th>Fixed Cost</th>
+              <th>Laba Ditahan</th>
+              <th>Dana Darurat</th>
+              <th>CEO</th>
+              <th>COO</th>
+              <th>CTO</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((x) => (
+              <tr key={x.id}>
+                <td>
+                  <strong>{x.allocation_code}</strong>
+                  <small>{x.reference_number || "-"}</small>
+                </td>
+                <td>{x.project_name}</td>
+                <td>{dateLabel(x.closing_date)}</td>
+                <td>{money(x.approved_profit)}</td>
+                <td>{money(x.company_share)}</td>
+                <td>{money(x.executive_share)}</td>
+                <td>{money(x.operational_fixed_cost)}</td>
+                <td>{money(x.retained_earnings)}</td>
+                <td>{money(x.emergency_fund)}</td>
+                <td>{money(x.ceo_pool)}</td>
+                <td>{money(x.coo_pool)}</td>
+                <td>{money(x.cto_pool)}</td>
+                <td>
+                  <b data-status={x.status}>{x.status}</b>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+type AssetRow = Asset & { accumulated: number; bookValue: number };
+function Assets({
+  rows,
+  bookValue,
+  canManage,
+  add,
+}: {
+  rows: AssetRow[];
+  bookValue: number;
+  canManage: boolean;
+  add: () => void;
+}) {
+  return (
+    <section className="rk-finance-table">
+      <header>
+        <div>
+          <small>ASSETS</small>
+          <h2>Asset Register</h2>
+          <p>
+            Aset fisik dan digital, nilai buku, PIC, lokasi, dan masa berlaku.
+          </p>
+        </div>
+        {canManage ? (
+          <button onClick={add}>
+            <FiPlus /> Tambah Aset
+          </button>
+        ) : null}
+      </header>
+      <SummaryRow
+        rows={[
+          ["Total Aset", rows.length, true],
+          [
+            "Aset Aktif",
+            rows.filter((x) => x.asset_status === "Aktif").length,
+            true,
+          ],
+          ["Nilai Buku", bookValue],
+          [
+            "Aset Digital",
+            rows.filter(
+              (x) => x.asset_type === "Digital" && x.asset_status === "Aktif",
+            ).length,
+            true,
+          ],
+          ["Tanpa PIC", rows.filter((x) => !x.pic).length, true],
+        ]}
+      />
+      <div className="rk-table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nama Aset</th>
+              <th>Jenis</th>
+              <th>Perolehan</th>
+              <th>Nilai Perolehan</th>
+              <th>Akumulasi</th>
+              <th>Nilai Buku</th>
+              <th>PIC</th>
+              <th>Lokasi</th>
+              <th>Berakhir</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((x) => (
+              <tr key={x.id}>
+                <td>
+                  <strong>{x.asset_code}</strong>
+                  <small>{x.journal_reference || "-"}</small>
+                </td>
+                <td>
+                  <strong>{x.asset_name}</strong>
+                  <small>{x.category || "-"}</small>
+                </td>
+                <td>{x.asset_type}</td>
+                <td>{dateLabel(x.acquisition_date)}</td>
+                <td>{money(x.acquisition_value)}</td>
+                <td>{money(x.accumulated)}</td>
+                <td>
+                  <strong>{money(x.bookValue)}</strong>
+                </td>
+                <td>{x.pic || "-"}</td>
+                <td>{x.location || "-"}</td>
+                <td>{dateLabel(x.expiry_date)}</td>
+                <td>
+                  <b data-status={x.asset_status}>{x.asset_status}</b>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
 
-function ModalShell({eyebrow,title,close,children,footer}:{eyebrow:string;title:string;close:()=>void;children:ReactNode;footer:ReactNode}){return <div className="rk-finance-modal"><section role="dialog" aria-modal="true" aria-label={title}><header><div><small>{eyebrow}</small><h2>{title}</h2></div><button type="button" onClick={close} aria-label="Tutup"><FiX/></button></header>{children}<footer>{footer}</footer></section></div>}
-function Field({label,wide,children}:{label:string;wide?:boolean;children:ReactNode}){return <label className={wide?'wide':undefined}><span>{label}</span>{children}</label>}
+function ModalShell({
+  eyebrow,
+  title,
+  close,
+  children,
+  footer,
+}: {
+  eyebrow: string;
+  title: string;
+  close: () => void;
+  children: ReactNode;
+  footer: ReactNode;
+}) {
+  return (
+    <div className="rk-finance-modal">
+      <section role="dialog" aria-modal="true" aria-label={title}>
+        <header>
+          <div>
+            <small>{eyebrow}</small>
+            <h2>{title}</h2>
+          </div>
+          <button type="button" onClick={close} aria-label="Tutup">
+            <FiX />
+          </button>
+        </header>
+        {children}
+        <footer>{footer}</footer>
+      </section>
+    </div>
+  );
+}
+function Field({
+  label,
+  wide,
+  children,
+}: {
+  label: string;
+  wide?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <label className={wide ? "wide" : undefined}>
+      <span>{label}</span>
+      {children}
+    </label>
+  );
+}
 
-function TransactionModal(p:{step:number;setStep:(n:number)=>void;form:TxForm;setForm:(x:TxForm)=>void;catalog:Catalog[];coa:Coa[];projects:string[];options:(g:string)=>string[];allocations:Allocation[];saving:boolean;close:()=>void;choose:(x:Catalog)=>void;save:()=>void}){const selected=p.catalog.find(x=>x.event_name===p.form.event);const requiresRef=selected?.requires_reference;const createsAsset=selected?.creates_asset;const update=(key:keyof TxForm,value:string)=>p.setForm({...p.form,[key]:value});return <ModalShell eyebrow={`TRANSACTION · STEP ${p.step} OF 3`} title={p.step===1?'Pilih jenis transaksi':p.step===2?'Isi detail transaksi':'Periksa sebelum disimpan'} close={p.close} footer={<><button type="button" onClick={p.step===1?p.close:()=>p.setStep(p.step-1)}><FiArrowLeft/> {p.step===1?'Batal':'Kembali'}</button>{p.step===1?null:p.step===2?<button data-primary type="button" disabled={!p.form.coa||!p.form.description||!n(p.form.amount)||Boolean(requiresRef&&!p.form.reference)} onClick={()=>p.setStep(3)}>Review <FiChevronRight/></button>:<button data-primary type="button" disabled={p.saving} onClick={p.save}>{p.saving?'Menyimpan...':'Catat transaksi'}</button>}</>}>
- {p.step===1?<div className="rk-finance-event-groups">{['cash-in','cash-out','non-cash','control'].map(group=><article key={group}><h3>{p.catalog.find(x=>x.group_key===group)?.group_label}</h3>{p.catalog.filter(x=>x.group_key===group).map(x=><button type="button" key={x.event_name} onClick={()=>p.choose(x)}><span><strong>{x.label}</strong><small>{x.description}</small></span><FiChevronRight/></button>)}</article>)}</div>:null}
- {p.step===2?<div className="rk-finance-form"><Field label="Tanggal"><input type="date" value={p.form.date} onChange={e=>update('date',e.target.value)}/></Field><Field label="Proyek"><input list="rk-projects" value={p.form.project} onChange={e=>update('project',e.target.value)}/><datalist id="rk-projects">{p.projects.map(x=><option key={x}>{x}</option>)}</datalist></Field><Field label="COA"><select value={p.form.coa} onChange={e=>update('coa',e.target.value)}><option value="">Pilih akun</option>{p.coa.map(x=><option key={x.code} value={x.code}>{x.code} · {x.name}</option>)}</select></Field><Field label="Nominal"><input type="number" min="1" value={p.form.amount} onChange={e=>update('amount',e.target.value)}/></Field><Field label="Rekening / Bank"><select value={p.form.bank} onChange={e=>update('bank',e.target.value)}><option value="">Tidak berlaku</option>{p.options('bank').map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Pihak terkait"><input value={p.form.party} onChange={e=>update('party',e.target.value)}/></Field><Field label="No. referensi"><input value={p.form.reference} onChange={e=>update('reference',e.target.value)} required={requiresRef}/></Field><Field label="Jatuh tempo"><input type="date" value={p.form.dueDate} onChange={e=>update('dueDate',e.target.value)}/></Field><Field label="Sumber dana"><select value={p.form.fundSource} onChange={e=>update('fundSource',e.target.value)}><option value="">Tidak ditandai</option>{p.options('fund_source').map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Penggunaan dana"><select value={p.form.fundUse} onChange={e=>update('fundUse',e.target.value)}><option value="">Tidak ditandai</option>{p.options('fund_use').map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Kode alokasi laba"><select value={p.form.allocationCode} onChange={e=>update('allocationCode',e.target.value)}><option value="">Tidak terkait</option>{p.allocations.map(x=><option key={x.id} value={x.allocation_code}>{x.allocation_code} · {x.project_name}</option>)}</select></Field><Field label="Bukti / URL"><input type="url" value={p.form.evidence} onChange={e=>update('evidence',e.target.value)}/></Field><Field label="Keterangan" wide><textarea value={p.form.description} onChange={e=>update('description',e.target.value)}/></Field><Field label="Catatan" wide><textarea value={p.form.notes} onChange={e=>update('notes',e.target.value)}/></Field>{createsAsset?<><h3 className="wide">Register aset otomatis</h3><Field label="Nama aset"><input value={p.form.assetName} onChange={e=>update('assetName',e.target.value)}/></Field><Field label="Jenis"><select value={p.form.assetType} onChange={e=>update('assetType',e.target.value)}>{p.options('asset_type').map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Kategori"><input value={p.form.assetCategory} onChange={e=>update('assetCategory',e.target.value)}/></Field><Field label="Masa manfaat (bulan)"><input type="number" min="1" value={p.form.assetLife} onChange={e=>update('assetLife',e.target.value)}/></Field><Field label="Lokasi"><input value={p.form.assetLocation} onChange={e=>update('assetLocation',e.target.value)}/></Field><Field label="PIC"><input value={p.form.assetPic} onChange={e=>update('assetPic',e.target.value)}/></Field></>:null}</div>:null}
- {p.step===3?<div className="rk-finance-review"><div><span>Jenis transaksi</span><strong>{p.form.event}</strong></div><div><span>Tanggal</span><strong>{dateLabel(p.form.date)}</strong></div><div><span>Akun</span><strong>{p.form.coa} · {p.coa.find(x=>x.code===p.form.coa)?.name}</strong></div><div><span>Nominal</span><strong>{money(p.form.amount)}</strong></div><div><span>Arus</span><strong>{selected?.flow}</strong></div><div><span>Referensi</span><strong>{p.form.reference||'-'}</strong></div><div className="wide"><span>Keterangan</span><strong>{p.form.description}</strong></div><p className="wide">Setelah disimpan, kelas akun, arus kas, sifat biaya, dan posisi kontrol diisi otomatis berdasarkan COA.</p></div>:null}
- </ModalShell>}
+function TransactionModal(p: {
+  step: number;
+  setStep: (n: number) => void;
+  form: TxForm;
+  setForm: (x: TxForm) => void;
+  catalog: Catalog[];
+  coa: Coa[];
+  projects: string[];
+  options: (g: string) => string[];
+  allocations: Allocation[];
+  documents: Doc[];
+  transactions: Tx[];
+  banks: BankAccount[];
+  saving: boolean;
+  close: () => void;
+  choose: (x: Catalog) => void;
+  save: () => void;
+}) {
+  const selected = p.catalog.find((x) => x.event_name === p.form.event);
+  const requiresRef = selected?.requires_reference;
+  const requiresBank = selected?.flow === "Masuk" || selected?.flow === "Keluar" || p.form.event === "Saldo Aktual Bank";
+  const createsAsset = selected?.creates_asset;
+  const openInvoices = p.documents.filter((x) => x.document_type === "invoice" && n(x.balance) > 0);
+  const trackedReferences = p.transactions.filter((x) => x.reference_number && x.status === "posted");
+  const referenceSuggestions = Array.from(new Set([
+    ...(p.form.event.includes("Piutang") ? openInvoices.map((x) => x.document_number) : []),
+    ...(p.form.event.includes("Kewajiban") ? trackedReferences.filter((x) => x.transaction_event?.includes("Kewajiban")).map((x) => x.reference_number as string) : []),
+    ...p.allocations.map((x) => x.allocation_code),
+  ]));
+  const parties = Array.from(new Set([...p.documents.map((x) => x.client), ...p.transactions.map((x) => x.counterparty).filter(Boolean) as string[]])).sort();
+  const selectedBank = p.banks.find((x) => x.bank_account === p.form.bank);
+  const projectedBalance = selectedBank ? (p.form.event === "Saldo Aktual Bank" ? n(p.form.amount) : n(selectedBank.current_balance) + (selected?.flow === "Masuk" ? n(p.form.amount) : selected?.flow === "Keluar" ? -n(p.form.amount) : 0)) : 0;
+  const referenceHelp = p.form.event.includes("Piutang") ? "Pilih nomor invoice, misalnya INV-202608-0001." : p.form.event.includes("Kewajiban") ? "Gunakan ID tagihan/vendor yang sama sampai lunas, misalnya BILL-VENDOR-001." : p.form.event.includes("Aset") ? "Gunakan nomor invoice pembelian atau kode aset." : "Gunakan nomor dokumen, kontrak, proyek, atau ID internal yang mudah ditelusuri.";
+  const update = (key: keyof TxForm, value: string) =>
+    p.setForm({ ...p.form, [key]: value });
+  const applyReference = (value: string) => {
+    const invoice = openInvoices.find((x) => x.document_number === value);
+    p.setForm({ ...p.form, reference: value, party: invoice?.client ?? p.form.party, project: invoice?.project_name ?? p.form.project, dueDate: invoice?.due_date ?? p.form.dueDate });
+  };
+  return (
+    <ModalShell
+      eyebrow={`${p.form.correctionId ? "KOREKSI TRANSAKSI" : "TRANSACTION"} · STEP ${p.step} OF 3`}
+      title={
+        p.step === 1
+          ? "Pilih jenis transaksi"
+          : p.step === 2
+            ? p.form.correctionId ? "Koreksi transaksi" : "Isi detail transaksi"
+            : "Periksa sebelum disimpan"
+      }
+      close={p.close}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={p.step === 1 ? p.close : () => p.setStep(p.step - 1)}
+          >
+            <FiArrowLeft /> {p.step === 1 ? "Batal" : "Kembali"}
+          </button>
+          {p.step === 1 ? null : p.step === 2 ? (
+            <button
+              data-primary
+              type="button"
+              disabled={
+                !p.form.coa ||
+                !p.form.description ||
+                !n(p.form.amount) ||
+                Boolean(requiresRef && !p.form.reference) ||
+                Boolean(requiresBank && !p.form.bank) ||
+                Boolean(p.form.correctionId && p.form.correctionReason.trim().length < 5)
+              }
+              onClick={() => p.setStep(3)}
+            >
+              Review <FiChevronRight />
+            </button>
+          ) : (
+            <button
+              data-primary
+              type="button"
+              disabled={p.saving}
+              onClick={p.save}
+            >
+              {p.saving ? "Menyimpan..." : p.form.correctionId ? "Simpan koreksi" : "Catat transaksi"}
+            </button>
+          )}
+        </>
+      }
+    >
+      {p.step === 1 ? (
+        <div className="rk-finance-event-groups">
+          {["cash-in", "cash-out", "non-cash", "control"].map((group) => (
+            <article key={group}>
+              <h3>
+                {p.catalog.find((x) => x.group_key === group)?.group_label}
+              </h3>
+              {p.catalog
+                .filter((x) => x.group_key === group)
+                .map((x) => (
+                  <button
+                    type="button"
+                    key={x.event_name}
+                    onClick={() => p.choose(x)}
+                  >
+                    <span>
+                      <strong>{x.label}</strong>
+                      <small>{x.description}</small>
+                    </span>
+                    <FiChevronRight />
+                  </button>
+                ))}
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {p.step === 2 ? (
+        <div className="rk-finance-form">
+          <Field label="Tanggal">
+            <input
+              type="date"
+              value={p.form.date}
+              onChange={(e) => update("date", e.target.value)}
+            />
+          </Field>
+          <Field label="Proyek">
+            <input
+              list="rk-projects"
+              value={p.form.project}
+              onChange={(e) => update("project", e.target.value)}
+            />
+            <datalist id="rk-projects">
+              {p.projects.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </datalist>
+          </Field>
+          <Field label="COA">
+            <select
+              value={p.form.coa}
+              onChange={(e) => update("coa", e.target.value)}
+            >
+              <option value="">Pilih akun</option>
+              {p.coa.map((x) => (
+                <option key={x.code} value={x.code}>
+                  {x.code} · {x.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Nominal">
+            <input
+              type="number"
+              min="1"
+              value={p.form.amount}
+              onChange={(e) => update("amount", e.target.value)}
+            />
+          </Field>
+          <Field label="Rekening / Bank">
+            <select
+              value={p.form.bank}
+              onChange={(e) => update("bank", e.target.value)}
+            >
+              <option value="">{requiresBank ? "Pilih rekening" : "Tidak berlaku"}</option>
+              {p.banks.map((x) => (
+                <option key={x.bank_account} value={x.bank_account}>{x.bank_account} · {money(x.current_balance)}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Pihak terkait">
+            <input
+              list="rk-finance-parties"
+              value={p.form.party}
+              onChange={(e) => update("party", e.target.value)}
+            />
+            <datalist id="rk-finance-parties">{parties.map((x) => <option key={x} value={x}/>)}</datalist>
+          </Field>
+          <Field label="No. referensi">
+            <input
+              list="rk-finance-references"
+              value={p.form.reference}
+              onChange={(e) => applyReference(e.target.value)}
+              required={requiresRef}
+            />
+            <datalist id="rk-finance-references">{referenceSuggestions.map((x) => <option key={x} value={x}/>)}</datalist>
+            <small className="rk-field-help">{referenceHelp}</small>
+          </Field>
+          <Field label="Jatuh tempo">
+            <input
+              type="date"
+              value={p.form.dueDate}
+              onChange={(e) => update("dueDate", e.target.value)}
+            />
+          </Field>
+          <Field label="Sumber dana">
+            <select
+              value={p.form.fundSource}
+              onChange={(e) => update("fundSource", e.target.value)}
+            >
+              <option value="">Tidak ditandai</option>
+              {p.options("fund_source").map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Penggunaan dana">
+            <select
+              value={p.form.fundUse}
+              onChange={(e) => update("fundUse", e.target.value)}
+            >
+              <option value="">Tidak ditandai</option>
+              {p.options("fund_use").map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Kode alokasi laba">
+            <select
+              value={p.form.allocationCode}
+              onChange={(e) => update("allocationCode", e.target.value)}
+            >
+              <option value="">Tidak terkait</option>
+              {p.allocations.map((x) => (
+                <option key={x.id} value={x.allocation_code}>
+                  {x.allocation_code} · {x.project_name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Bukti / URL">
+            <input
+              type="url"
+              value={p.form.evidence}
+              onChange={(e) => update("evidence", e.target.value)}
+            />
+          </Field>
+          <Field label="Keterangan" wide>
+            <textarea
+              value={p.form.description}
+              onChange={(e) => update("description", e.target.value)}
+            />
+          </Field>
+          <Field label="Catatan" wide>
+            <textarea
+              value={p.form.notes}
+              onChange={(e) => update("notes", e.target.value)}
+            />
+          </Field>
+          {selectedBank ? <div className="rk-bank-impact wide"><span><small>Saldo aktual sebelum</small><strong>{money(selectedBank.current_balance)}</strong></span><FiChevronRight/><span><small>Setelah transaksi</small><strong>{money(projectedBalance)}</strong></span></div> : null}
+          {p.form.correctionId ? <Field label="Alasan koreksi" wide><textarea value={p.form.correctionReason} onChange={(e) => update("correctionReason", e.target.value)} placeholder="Jelaskan kesalahan dan alasan perubahan (minimal 5 karakter)." required/></Field> : null}
+          {createsAsset ? (
+            <>
+              <h3 className="wide">Register aset otomatis</h3>
+              <Field label="Nama aset">
+                <input
+                  value={p.form.assetName}
+                  onChange={(e) => update("assetName", e.target.value)}
+                />
+              </Field>
+              <Field label="Jenis">
+                <select
+                  value={p.form.assetType}
+                  onChange={(e) => update("assetType", e.target.value)}
+                >
+                  {p.options("asset_type").map((x) => (
+                    <option key={x}>{x}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Kategori">
+                <input
+                  value={p.form.assetCategory}
+                  onChange={(e) => update("assetCategory", e.target.value)}
+                />
+              </Field>
+              <Field label="Masa manfaat (bulan)">
+                <input
+                  type="number"
+                  min="1"
+                  value={p.form.assetLife}
+                  onChange={(e) => update("assetLife", e.target.value)}
+                />
+              </Field>
+              <Field label="Lokasi">
+                <input
+                  value={p.form.assetLocation}
+                  onChange={(e) => update("assetLocation", e.target.value)}
+                />
+              </Field>
+              <Field label="PIC">
+                <input
+                  value={p.form.assetPic}
+                  onChange={(e) => update("assetPic", e.target.value)}
+                />
+              </Field>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+      {p.step === 3 ? (
+        <div className="rk-finance-review">
+          <div>
+            <span>Jenis transaksi</span>
+            <strong>{p.form.event}</strong>
+          </div>
+          <div>
+            <span>Tanggal</span>
+            <strong>{dateLabel(p.form.date)}</strong>
+          </div>
+          <div>
+            <span>Akun</span>
+            <strong>
+              {p.form.coa} · {p.coa.find((x) => x.code === p.form.coa)?.name}
+            </strong>
+          </div>
+          <div>
+            <span>Nominal</span>
+            <strong>{money(p.form.amount)}</strong>
+          </div>
+          <div>
+            <span>Arus</span>
+            <strong>{selected?.flow}</strong>
+          </div>
+          <div>
+            <span>Referensi</span>
+            <strong>{p.form.reference || "-"}</strong>
+          </div>
+          <div>
+            <span>Rekening</span>
+            <strong>{p.form.bank || "Tidak berlaku"}</strong>
+          </div>
+          <div>
+            <span>Saldo setelah transaksi</span>
+            <strong>{selectedBank ? money(projectedBalance) : "-"}</strong>
+          </div>
+          <div className="wide">
+            <span>Keterangan</span>
+            <strong>{p.form.description}</strong>
+          </div>
+          <p className="wide">
+            {p.form.correctionId ? "Sistem membuat jejak koreksi tanpa menghapus transaksi lama, lalu memasukkan transaksi pengganti." : "Setelah disimpan, klasifikasi COA dan saldo aktual rekening diperbarui otomatis."}
+          </p>
+        </div>
+      ) : null}
+    </ModalShell>
+  );
+}
 
-function DocumentModal(p:{form:DocForm;setForm:(x:DocForm)=>void;documents:Doc[];saving:boolean;close:()=>void;save:(e:FormEvent)=>void}){const f=p.form;const set=(k:keyof DocForm,v:string)=>p.setForm({...f,[k]:v});const title=f.type==='quotation'?'Quotation':f.type==='invoice'?'Invoice':'Payment Receipt';return <form onSubmit={p.save}><ModalShell eyebrow="BUSINESS DOCUMENT" title={`Buat ${title}`} close={p.close} footer={<><button type="button" onClick={p.close}>Batal</button><button data-primary disabled={p.saving}>{p.saving?'Menyimpan...':'Simpan dokumen'}</button></>}><div className="rk-finance-form"><Field label="Tanggal"><input type="date" value={f.date} onChange={e=>set('date',e.target.value)} required/></Field>{f.type==='receipt'?<><Field label="Invoice" wide><select value={f.invoiceId} onChange={e=>set('invoiceId',e.target.value)} required><option value="">Pilih invoice aktif</option>{p.documents.filter(x=>x.document_type==='invoice'&&n(x.balance)>0).map(x=><option key={x.id} value={x.id}>{x.document_number} · {x.client} · {money(x.balance)}</option>)}</select></Field><Field label="Nominal diterima" wide><input type="number" min="1" value={f.receiptAmount} onChange={e=>set('receiptAmount',e.target.value)} required/></Field></>:<><Field label="Client"><input value={f.client} onChange={e=>set('client',e.target.value)} required/></Field><Field label="Proyek"><input value={f.project} onChange={e=>set('project',e.target.value)}/></Field>{f.type==='invoice'?<Field label="Jatuh tempo"><input type="date" value={f.dueDate} onChange={e=>set('dueDate',e.target.value)}/></Field>:null}<Field label="Alamat client" wide><textarea value={f.address} onChange={e=>set('address',e.target.value)}/></Field><Field label="Item" wide><input value={f.itemName} onChange={e=>set('itemName',e.target.value)} required/></Field><Field label="Jumlah"><input type="number" min="0.01" step="0.01" value={f.quantity} onChange={e=>set('quantity',e.target.value)}/></Field><Field label="Harga satuan"><input type="number" min="1" value={f.unitPrice} onChange={e=>set('unitPrice',e.target.value)} required/></Field><Field label="Diskon"><input type="number" min="0" value={f.discount} onChange={e=>set('discount',e.target.value)}/></Field><Field label="Pajak"><input type="number" min="0" value={f.tax} onChange={e=>set('tax',e.target.value)}/></Field></>}<Field label="Catatan" wide><textarea value={f.notes} onChange={e=>set('notes',e.target.value)}/></Field></div></ModalShell></form>}
+function DocumentModal(p: {
+  form: DocForm;
+  setForm: (x: DocForm) => void;
+  documents: Doc[];
+  banks: BankAccount[];
+  saving: boolean;
+  close: () => void;
+  save: (e: FormEvent) => void;
+}) {
+  const f = p.form;
+  const set = (k: keyof DocForm, v: string) => p.setForm({ ...f, [k]: v });
+  const updateItem = (index: number, key: keyof DocItem, value: string) => p.setForm({ ...f, items: f.items.map((item, i) => i === index ? { ...item, [key]: value } : item) });
+  const addItem = () => p.setForm({ ...f, items: [...f.items, emptyDocItem()] });
+  const removeItem = (index: number) => p.setForm({ ...f, items: f.items.filter((_, i) => i !== index) });
+  const subtotal = f.items.reduce((sum, item) => sum + n(item.quantity) * n(item.unit_price), 0);
+  const total = Math.max(subtotal - n(f.discount) + n(f.tax), 0);
+  const title =
+    f.type === "quotation"
+      ? "Quotation"
+      : f.type === "invoice"
+        ? "Invoice"
+        : "Payment Receipt";
+  return (
+    <form onSubmit={p.save}>
+      <ModalShell
+        eyebrow="BUSINESS DOCUMENT"
+        title={`${f.id ? "Edit" : "Buat"} ${title}`}
+        close={p.close}
+        footer={
+          <>
+            <button type="button" onClick={p.close}>
+              Batal
+            </button>
+            <button data-primary disabled={p.saving}>
+              {p.saving ? "Menyimpan..." : f.id ? "Simpan perubahan" : "Simpan dokumen"}
+            </button>
+          </>
+        }
+      >
+        <div className="rk-finance-form">
+          <Field label="Tanggal">
+            <input
+              type="date"
+              value={f.date}
+              onChange={(e) => set("date", e.target.value)}
+              required
+            />
+          </Field>
+          {f.type === "receipt" ? (
+            <>
+              <Field label="Invoice" wide>
+                <select
+                  value={f.invoiceId}
+                  onChange={(e) => set("invoiceId", e.target.value)}
+                  required
+                >
+                  <option value="">Pilih invoice aktif</option>
+                  {p.documents
+                    .filter(
+                      (x) => x.document_type === "invoice" && n(x.balance) > 0,
+                    )
+                    .map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {x.document_number} · {x.client} · {money(x.balance)}
+                      </option>
+                    ))}
+                </select>
+              </Field>
+              <Field label="Nominal diterima" wide>
+                <input
+                  type="number"
+                  min="1"
+                  value={f.receiptAmount}
+                  onChange={(e) => set("receiptAmount", e.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Rekening penerimaan" wide>
+                <select value={f.bank} onChange={(e) => set("bank", e.target.value)} required>
+                  <option value="">Pilih rekening</option>
+                  {p.banks.map((x) => <option key={x.bank_account} value={x.bank_account}>{x.bank_account} · saldo {money(x.current_balance)}</option>)}
+                </select>
+              </Field>
+            </>
+          ) : (
+            <>
+              <Field label="Client">
+                <input
+                  value={f.client}
+                  onChange={(e) => set("client", e.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Proyek">
+                <input
+                  value={f.project}
+                  onChange={(e) => set("project", e.target.value)}
+                />
+              </Field>
+              {f.type === "invoice" ? (
+                <Field label="Jatuh tempo">
+                  <input
+                    type="date"
+                    value={f.dueDate}
+                    onChange={(e) => set("dueDate", e.target.value)}
+                  />
+                </Field>
+              ) : null}
+              <Field label="Alamat client" wide>
+                <textarea
+                  value={f.address}
+                  onChange={(e) => set("address", e.target.value)}
+                />
+              </Field>
+              <section className="rk-document-items wide">
+                <header><div><strong>Item dokumen</strong><small>Bisa lebih dari satu layanan atau produk.</small></div><button type="button" onClick={addItem}><FiPlus/> Tambah item</button></header>
+                {f.items.map((item, index) => <div key={index} className="rk-document-item-row">
+                  <label><span>Deskripsi</span><input value={item.description} onChange={(e) => updateItem(index, "description", e.target.value)} required/></label>
+                  <label><span>Qty</span><input type="number" min="0.01" step="0.01" value={item.quantity} onChange={(e) => updateItem(index, "quantity", e.target.value)} required/></label>
+                  <label><span>Harga satuan</span><input type="number" min="1" value={item.unit_price} onChange={(e) => updateItem(index, "unit_price", e.target.value)} required/></label>
+                  <strong>{money(n(item.quantity) * n(item.unit_price))}</strong>
+                  <button type="button" title="Hapus item" disabled={f.items.length === 1} onClick={() => removeItem(index)}><FiTrash2/></button>
+                </div>)}
+              </section>
+              <Field label="Diskon">
+                <input
+                  type="number"
+                  min="0"
+                  value={f.discount}
+                  onChange={(e) => set("discount", e.target.value)}
+                />
+              </Field>
+              <Field label="Pajak">
+                <input
+                  type="number"
+                  min="0"
+                  value={f.tax}
+                  onChange={(e) => set("tax", e.target.value)}
+                />
+              </Field>
+              <div className="rk-document-total wide"><span>Subtotal <strong>{money(subtotal)}</strong></span><span>Diskon <strong>{money(f.discount)}</strong></span><span>Pajak <strong>{money(f.tax)}</strong></span><span>Total <strong>{money(total)}</strong></span></div>
+            </>
+          )}
+          <Field label="Catatan" wide>
+            <textarea
+              value={f.notes}
+              onChange={(e) => set("notes", e.target.value)}
+            />
+          </Field>
+        </div>
+      </ModalShell>
+    </form>
+  );
+}
 
-function BudgetModal(p:{form:BudgetForm;setForm:(x:BudgetForm)=>void;coa:Coa[];saving:boolean;close:()=>void;save:(e:FormEvent)=>void}){const f=p.form;const set=(k:keyof BudgetForm,v:string)=>p.setForm({...f,[k]:v});return <form onSubmit={p.save}><ModalShell eyebrow="PLANNING & FUNDS" title={f.id?'Update Fixed Cost Budget':'Buat Fixed Cost Budget'} close={p.close} footer={<><button type="button" onClick={p.close}>Batal</button><button data-primary disabled={p.saving}>{p.saving?'Menyimpan...':'Simpan budget'}</button></>}><div className="rk-finance-form"><Field label="Periode"><input type="month" value={f.period} onChange={e=>set('period',e.target.value)} required/></Field><Field label="COA"><select value={f.coa} onChange={e=>{const c=p.coa.find(x=>x.code===e.target.value);p.setForm({...f,coa:e.target.value,component:f.component||c?.name||''})}} required><option value="">Pilih akun fixed cost</option>{p.coa.filter(x=>x.account_class==='Beban Operasional').map(x=><option key={x.code} value={x.code}>{x.code} · {x.name}</option>)}</select></Field><Field label="Komponen" wide><input value={f.component} onChange={e=>set('component',e.target.value)} required/></Field><Field label="Budget"><input type="number" min="0" value={f.budget} onChange={e=>set('budget',e.target.value)} required/></Field><Field label="Dana dialokasikan"><input type="number" min="0" value={f.allocated} onChange={e=>set('allocated',e.target.value)}/></Field><Field label="PIC"><input value={f.pic} onChange={e=>set('pic',e.target.value)}/></Field><Field label="Catatan" wide><textarea value={f.notes} onChange={e=>set('notes',e.target.value)}/></Field></div></ModalShell></form>}
+function BudgetModal(p: {
+  form: BudgetForm;
+  setForm: (x: BudgetForm) => void;
+  coa: Coa[];
+  saving: boolean;
+  close: () => void;
+  save: (e: FormEvent) => void;
+}) {
+  const f = p.form;
+  const set = (k: keyof BudgetForm, v: string) => p.setForm({ ...f, [k]: v });
+  return (
+    <form onSubmit={p.save}>
+      <ModalShell
+        eyebrow="PLANNING & FUNDS"
+        title={f.id ? "Update Fixed Cost Budget" : "Buat Fixed Cost Budget"}
+        close={p.close}
+        footer={
+          <>
+            <button type="button" onClick={p.close}>
+              Batal
+            </button>
+            <button data-primary disabled={p.saving}>
+              {p.saving ? "Menyimpan..." : "Simpan budget"}
+            </button>
+          </>
+        }
+      >
+        <div className="rk-finance-form">
+          <Field label="Periode">
+            <input
+              type="month"
+              value={f.period}
+              onChange={(e) => set("period", e.target.value)}
+              required
+            />
+          </Field>
+          <Field label="COA">
+            <select
+              value={f.coa}
+              onChange={(e) => {
+                const c = p.coa.find((x) => x.code === e.target.value);
+                p.setForm({
+                  ...f,
+                  coa: e.target.value,
+                  component: f.component || c?.name || "",
+                });
+              }}
+              required
+            >
+              <option value="">Pilih akun fixed cost</option>
+              {p.coa
+                .filter((x) => x.account_class === "Beban Operasional")
+                .map((x) => (
+                  <option key={x.code} value={x.code}>
+                    {x.code} · {x.name}
+                  </option>
+                ))}
+            </select>
+          </Field>
+          <Field label="Komponen" wide>
+            <input
+              value={f.component}
+              onChange={(e) => set("component", e.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Budget">
+            <input
+              type="number"
+              min="0"
+              value={f.budget}
+              onChange={(e) => set("budget", e.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Dana dialokasikan">
+            <input
+              type="number"
+              min="0"
+              value={f.allocated}
+              onChange={(e) => set("allocated", e.target.value)}
+            />
+          </Field>
+          <Field label="PIC">
+            <input value={f.pic} onChange={(e) => set("pic", e.target.value)} />
+          </Field>
+          <Field label="Catatan" wide>
+            <textarea
+              value={f.notes}
+              onChange={(e) => set("notes", e.target.value)}
+            />
+          </Field>
+        </div>
+      </ModalShell>
+    </form>
+  );
+}
 
-function AllocationModal(p:{form:AllocationForm;setForm:(x:AllocationForm)=>void;statuses:string[];saving:boolean;close:()=>void;save:(e:FormEvent)=>void}){const f=p.form;const set=(k:keyof AllocationForm,v:string)=>p.setForm({...f,[k]:v});const profit=n(f.profit),company=profit*.6,executive=profit*.4,remainder=Math.max(company-n(f.operational),0);return <form onSubmit={p.save}><ModalShell eyebrow="PROJECT PROFIT ALLOCATION" title="Alokasi Laba Proyek" close={p.close} footer={<><button type="button" onClick={p.close}>Batal</button><button data-primary disabled={p.saving}>{p.saving?'Menyimpan...':'Simpan alokasi'}</button></>}><div className="rk-finance-form"><Field label="Status"><select value={f.status} onChange={e=>set('status',e.target.value)}>{p.statuses.map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Tanggal tutup"><input type="date" value={f.date} onChange={e=>set('date',e.target.value)} required/></Field><Field label="Proyek" wide><input value={f.project} onChange={e=>set('project',e.target.value)} required/></Field><Field label="Laba disetujui"><input type="number" min="0" value={f.profit} onChange={e=>set('profit',e.target.value)} required/></Field><Field label="Fixed cost operasional"><input type="number" min="0" max={company} value={f.operational} onChange={e=>set('operational',e.target.value)}/></Field><Field label="No. referensi"><input value={f.reference} onChange={e=>set('reference',e.target.value)}/></Field><Field label="Catatan" wide><textarea value={f.notes} onChange={e=>set('notes',e.target.value)}/></Field></div><div className="rk-allocation-preview"><span>Perusahaan 60%<strong>{money(company)}</strong></span><span>Eksekutif 40%<strong>{money(executive)}</strong></span><span>Laba Ditahan 50%<strong>{money(remainder*.5)}</strong></span><span>Dana Darurat 50%<strong>{money(remainder*.5)}</strong></span><span>CEO 40%<strong>{money(executive*.4)}</strong></span><span>COO / CTO masing-masing 30%<strong>{money(executive*.3)}</strong></span></div></ModalShell></form>}
+function AllocationModal(p: {
+  form: AllocationForm;
+  setForm: (x: AllocationForm) => void;
+  statuses: string[];
+  saving: boolean;
+  close: () => void;
+  save: (e: FormEvent) => void;
+}) {
+  const f = p.form;
+  const set = (k: keyof AllocationForm, v: string) =>
+    p.setForm({ ...f, [k]: v });
+  const profit = n(f.profit),
+    company = profit * 0.6,
+    executive = profit * 0.4,
+    remainder = Math.max(company - n(f.operational), 0);
+  return (
+    <form onSubmit={p.save}>
+      <ModalShell
+        eyebrow="PROJECT PROFIT ALLOCATION"
+        title="Alokasi Laba Proyek"
+        close={p.close}
+        footer={
+          <>
+            <button type="button" onClick={p.close}>
+              Batal
+            </button>
+            <button data-primary disabled={p.saving}>
+              {p.saving ? "Menyimpan..." : "Simpan alokasi"}
+            </button>
+          </>
+        }
+      >
+        <div className="rk-finance-form">
+          <Field label="Status">
+            <select
+              value={f.status}
+              onChange={(e) => set("status", e.target.value)}
+            >
+              {p.statuses.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Tanggal tutup">
+            <input
+              type="date"
+              value={f.date}
+              onChange={(e) => set("date", e.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Proyek" wide>
+            <input
+              value={f.project}
+              onChange={(e) => set("project", e.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Laba disetujui">
+            <input
+              type="number"
+              min="0"
+              value={f.profit}
+              onChange={(e) => set("profit", e.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Fixed cost operasional">
+            <input
+              type="number"
+              min="0"
+              max={company}
+              value={f.operational}
+              onChange={(e) => set("operational", e.target.value)}
+            />
+          </Field>
+          <Field label="No. referensi">
+            <input
+              value={f.reference}
+              onChange={(e) => set("reference", e.target.value)}
+            />
+          </Field>
+          <Field label="Catatan" wide>
+            <textarea
+              value={f.notes}
+              onChange={(e) => set("notes", e.target.value)}
+            />
+          </Field>
+        </div>
+        <div className="rk-allocation-preview">
+          <span>
+            Perusahaan 60%<strong>{money(company)}</strong>
+          </span>
+          <span>
+            Eksekutif 40%<strong>{money(executive)}</strong>
+          </span>
+          <span>
+            Laba Ditahan 50%<strong>{money(remainder * 0.5)}</strong>
+          </span>
+          <span>
+            Dana Darurat 50%<strong>{money(remainder * 0.5)}</strong>
+          </span>
+          <span>
+            CEO 40%<strong>{money(executive * 0.4)}</strong>
+          </span>
+          <span>
+            COO / CTO masing-masing 30%<strong>{money(executive * 0.3)}</strong>
+          </span>
+        </div>
+      </ModalShell>
+    </form>
+  );
+}
 
-function AssetModal(p:{form:AssetForm;setForm:(x:AssetForm)=>void;statuses:string[];types:string[];fundSources:string[];saving:boolean;close:()=>void;save:(e:FormEvent)=>void}){const f=p.form;const set=(k:keyof AssetForm,v:string)=>p.setForm({...f,[k]:v});return <form onSubmit={p.save}><ModalShell eyebrow="ASSET REGISTER" title="Tambah Aset" close={p.close} footer={<><button type="button" onClick={p.close}>Batal</button><button data-primary disabled={p.saving}>{p.saving?'Menyimpan...':'Simpan aset'}</button></>}><div className="rk-finance-form"><Field label="Nama aset" wide><input value={f.name} onChange={e=>set('name',e.target.value)} required/></Field><Field label="Jenis"><select value={f.type} onChange={e=>set('type',e.target.value)}>{p.types.map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Status"><select value={f.status} onChange={e=>set('status',e.target.value)}>{p.statuses.map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Kategori"><input value={f.category} onChange={e=>set('category',e.target.value)}/></Field><Field label="Tanggal perolehan"><input type="date" value={f.date} onChange={e=>set('date',e.target.value)} required/></Field><Field label="Nilai perolehan"><input type="number" min="0" value={f.value} onChange={e=>set('value',e.target.value)} required/></Field><Field label="Masa manfaat (bulan)"><input type="number" min="1" value={f.life} onChange={e=>set('life',e.target.value)}/></Field><Field label="Sumber dana"><select value={f.fundSource} onChange={e=>set('fundSource',e.target.value)}><option value="">Pilih</option>{p.fundSources.map(x=><option key={x}>{x}</option>)}</select></Field><Field label="Referensi jurnal"><input value={f.journalReference} onChange={e=>set('journalReference',e.target.value)}/></Field><Field label="PIC"><input value={f.pic} onChange={e=>set('pic',e.target.value)}/></Field><Field label="Lokasi"><input value={f.location} onChange={e=>set('location',e.target.value)}/></Field><Field label="Tanggal berakhir"><input type="date" value={f.expiry} onChange={e=>set('expiry',e.target.value)}/></Field><Field label="Serial / akun"><input value={f.serial} onChange={e=>set('serial',e.target.value)}/></Field><Field label="Bukti / URL"><input type="url" value={f.evidence} onChange={e=>set('evidence',e.target.value)}/></Field><Field label="Catatan" wide><textarea value={f.notes} onChange={e=>set('notes',e.target.value)}/></Field></div></ModalShell></form>}
+function AssetModal(p: {
+  form: AssetForm;
+  setForm: (x: AssetForm) => void;
+  statuses: string[];
+  types: string[];
+  fundSources: string[];
+  saving: boolean;
+  close: () => void;
+  save: (e: FormEvent) => void;
+}) {
+  const f = p.form;
+  const set = (k: keyof AssetForm, v: string) => p.setForm({ ...f, [k]: v });
+  return (
+    <form onSubmit={p.save}>
+      <ModalShell
+        eyebrow="ASSET REGISTER"
+        title="Tambah Aset"
+        close={p.close}
+        footer={
+          <>
+            <button type="button" onClick={p.close}>
+              Batal
+            </button>
+            <button data-primary disabled={p.saving}>
+              {p.saving ? "Menyimpan..." : "Simpan aset"}
+            </button>
+          </>
+        }
+      >
+        <div className="rk-finance-form">
+          <Field label="Nama aset" wide>
+            <input
+              value={f.name}
+              onChange={(e) => set("name", e.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Jenis">
+            <select
+              value={f.type}
+              onChange={(e) => set("type", e.target.value)}
+            >
+              {p.types.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Status">
+            <select
+              value={f.status}
+              onChange={(e) => set("status", e.target.value)}
+            >
+              {p.statuses.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Kategori">
+            <input
+              value={f.category}
+              onChange={(e) => set("category", e.target.value)}
+            />
+          </Field>
+          <Field label="Tanggal perolehan">
+            <input
+              type="date"
+              value={f.date}
+              onChange={(e) => set("date", e.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Nilai perolehan">
+            <input
+              type="number"
+              min="0"
+              value={f.value}
+              onChange={(e) => set("value", e.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Masa manfaat (bulan)">
+            <input
+              type="number"
+              min="1"
+              value={f.life}
+              onChange={(e) => set("life", e.target.value)}
+            />
+          </Field>
+          <Field label="Sumber dana">
+            <select
+              value={f.fundSource}
+              onChange={(e) => set("fundSource", e.target.value)}
+            >
+              <option value="">Pilih</option>
+              {p.fundSources.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Referensi jurnal">
+            <input
+              value={f.journalReference}
+              onChange={(e) => set("journalReference", e.target.value)}
+            />
+          </Field>
+          <Field label="PIC">
+            <input value={f.pic} onChange={(e) => set("pic", e.target.value)} />
+          </Field>
+          <Field label="Lokasi">
+            <input
+              value={f.location}
+              onChange={(e) => set("location", e.target.value)}
+            />
+          </Field>
+          <Field label="Tanggal berakhir">
+            <input
+              type="date"
+              value={f.expiry}
+              onChange={(e) => set("expiry", e.target.value)}
+            />
+          </Field>
+          <Field label="Serial / akun">
+            <input
+              value={f.serial}
+              onChange={(e) => set("serial", e.target.value)}
+            />
+          </Field>
+          <Field label="Bukti / URL">
+            <input
+              type="url"
+              value={f.evidence}
+              onChange={(e) => set("evidence", e.target.value)}
+            />
+          </Field>
+          <Field label="Catatan" wide>
+            <textarea
+              value={f.notes}
+              onChange={(e) => set("notes", e.target.value)}
+            />
+          </Field>
+        </div>
+      </ModalShell>
+    </form>
+  );
+}
