@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FiActivity, FiBarChart2, FiBriefcase, FiCheckSquare, FiDollarSign, FiEdit3, FiLayers, FiLock, FiSettings, FiShield, FiTrendingUp, FiUser } from 'react-icons/fi';
+import { FiActivity, FiBarChart2, FiBookOpen, FiBriefcase, FiCheckSquare, FiDollarSign, FiEdit3, FiFileText, FiLayers, FiLock, FiSettings, FiShield, FiTrendingUp, FiUser } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
 type AccessSummary = {
@@ -135,6 +135,8 @@ export default function RuangKawanDashboardPage() {
           {access.permissions.includes('pipeline.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/pipeline/"><FiTrendingUp /><span><strong>Pipeline BD</strong><small>Lead, follow-up, meeting, proposal, dan closing.</small></span></Link> : null}
           {access.permissions.includes('projects.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/projects/"><FiBriefcase /><span><strong>Project Management</strong><small>Handover, Project Lead, planning, execution, deliverable, dan closing.</small></span></Link> : null}
           {access.permissions.includes('kpi.view_self') ? <Link className="rk-admin-entry" href="/ruang-kawan/kpi/"><FiBarChart2 /><span><strong>KPI Management</strong><small>Target, realisasi, evidence, review, dan penilaian bulanan.</small></span></Link> : null}
+          {access.permissions.includes('documents.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/documents/"><FiBookOpen /><span><strong>Document Center</strong><small>Dokumen terkendali, template, versi, request, dan tautan Google Drive.</small></span></Link> : null}
+          {access.permissions.includes('reports.view_self') ? <Link className="rk-admin-entry" href="/ruang-kawan/reports/"><FiFileText /><span><strong>Report &amp; Analysis</strong><small>Report personal 3P + Priority dari KPI dan aktivitas.</small></span></Link> : null}
           {access.permissions.includes('finance.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/finance/"><FiDollarSign /><span><strong>Finance</strong><small>Transaksi, dokumen, piutang, budget, dan aset.</small></span></Link> : null}
         </div>
 
