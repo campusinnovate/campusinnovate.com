@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FiActivity, FiCheckSquare, FiDollarSign, FiEdit3, FiLayers, FiLock, FiSettings, FiShield, FiUser } from 'react-icons/fi';
+import { FiActivity, FiCheckSquare, FiDollarSign, FiEdit3, FiLayers, FiLock, FiSettings, FiShield, FiTrendingUp, FiUser } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
 type AccessSummary = {
@@ -132,6 +132,7 @@ export default function RuangKawanDashboardPage() {
           {access.permissions.includes('notes.manage_self') ? <Link className="rk-admin-entry" href="/ruang-kawan/notes/"><FiEdit3 /><span><strong>Coret-coret</strong><small>Brainstorm dan catatan penting yang hanya dapat kamu lihat.</small></span></Link> : null}
           {access.permissions.includes('activity.view_self') ? <Link className="rk-admin-entry" href="/ruang-kawan/assignments/"><FiCheckSquare /><span><strong>Assignment</strong><small>Pekerjaan tim, diskusi, pengajuan hasil, dan review.</small></span></Link> : null}
           {access.permissions.includes('content_plan.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/content-plan/"><FiLayers /><span><strong>Content Plan</strong><small>Ide, brief, produksi, review, dan jadwal publikasi.</small></span></Link> : null}
+          {access.permissions.includes('pipeline.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/pipeline/"><FiTrendingUp /><span><strong>Pipeline BD</strong><small>Lead, follow-up, meeting, proposal, dan closing.</small></span></Link> : null}
           {access.permissions.includes('finance.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/finance/"><FiDollarSign /><span><strong>Finance</strong><small>Transaksi, dokumen, piutang, budget, dan aset.</small></span></Link> : null}
         </div>
 

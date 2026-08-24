@@ -8,7 +8,7 @@ import {
 } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
-type FieldSchema = { key: string; label: string; type: 'text' | 'number' | 'date' | 'url' | 'textarea' };
+type FieldSchema = { key: string; label: string; type: 'text' | 'number' | 'date' | 'url' | 'textarea' | 'select' | 'checkbox'; options?: string[] };
 type WorkSource = {
   id: string;
   key: string;
@@ -17,6 +17,7 @@ type WorkSource = {
   color: string;
   icon: string;
   source_kind: string;
+  module_type: 'activity' | 'content_plan' | 'pipeline';
   field_schema: FieldSchema[];
 };
 type Activity = {
@@ -37,10 +38,16 @@ type Activity = {
   blocker_risk: string | null;
   next_action: string | null;
   evidence_url: string | null;
-  custom_data: Record<string, string | number>;
+  custom_data: Record<string, string | number | boolean>;
   assigned_by_membership_id: string | null;
   reviewer_membership_id: string | null;
   review_status: 'not_submitted' | 'waiting_review' | 'approved' | 'revision_requested';
+  feed_kind: 'manual' | 'assignment' | 'content_plan' | 'pipeline';
+  relationship: 'mine' | 'assigned_by_me' | 'review';
+  module_route: string | null;
+  owner_name: string;
+  assigned_by_name: string | null;
+  reviewer_name: string | null;
   work_sources?: WorkSource;
 };
 type CalendarConnection = { connected: true; email: string | null; selected_calendar_ids: string[]; updated_at: string } | null;
@@ -66,7 +73,7 @@ type ActivityForm = {
   blockerRisk: string;
   nextAction: string;
   evidenceUrl: string;
-  customData: Record<string, string>;
+  customData: Record<string, string | boolean>;
 };
 
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -77,6 +84,8 @@ const emptyForm = (): ActivityForm => ({
 const statusLabels = { not_started: 'Belum Mulai', in_progress: 'Berjalan', done: 'Selesai', blocked: 'Terhambat' };
 const priorityLabels = { low: 'Rendah', medium: 'Sedang', high: 'Tinggi', urgent: 'Mendesak' };
 const reviewLabels = { not_submitted: 'Belum diajukan', waiting_review: 'Menunggu review', approved: 'Disetujui', revision_requested: 'Perlu revisi' };
+const feedKindLabels = { manual: 'Aktivitas Manual', assignment: 'Assignment', content_plan: 'Content Plan', pipeline: 'Pipeline BD' };
+const relationshipLabels = { mine: 'Untuk saya', assigned_by_me: 'Saya delegasikan', review: 'Perlu review' };
 const monthLabels = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 function toIso(date: string, time: string) {
@@ -98,6 +107,7 @@ function googleEventTime(event: GoogleEvent) {
 export default function MyActivityPage() {
   const [state, setState] = useState<'loading' | 'ready' | 'denied'>('loading');
   const [membershipId, setMembershipId] = useState('');
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [sources, setSources] = useState<WorkSource[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [calendarStatus, setCalendarStatus] = useState<CalendarStatus>({ personal: null, company: null });
@@ -105,6 +115,7 @@ export default function MyActivityPage() {
   const [monthCursor, setMonthCursor] = useState(() => new Date(`${today()}T12:00:00`));
   const [selectedDate, setSelectedDate] = useState(today());
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [kindFilter, setKindFilter] = useState<'all' | Activity['feed_kind']>('all');
   const [form, setForm] = useState<ActivityForm>(emptyForm());
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -117,33 +128,28 @@ export default function MyActivityPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { window.location.replace('/ruang-kawan/'); return; }
 
-    const [accessResult, membershipResult, sourcesResult, calendarResult] = await Promise.all([
+    const [accessResult, membershipResult, sourcesResult, feedResult, calendarResult] = await Promise.all([
       supabase.rpc('get_my_access'),
       supabase.rpc('current_membership_id'),
       supabase.rpc('list_my_work_sources'),
+      supabase.rpc('list_my_activity_feed'),
       supabase.rpc('get_my_calendar_status'),
     ]);
     const access = Array.isArray(accessResult.data) ? accessResult.data[0] : accessResult.data;
     if (!access || access.membership_status !== 'active' || !access.permissions?.includes('activity.view_self')) {
       setState('denied'); return;
     }
-    if (membershipResult.error || sourcesResult.error) {
+    if (membershipResult.error || sourcesResult.error || feedResult.error) {
       setError('My Activity belum dapat dimuat. Silakan muat ulang.');
       setState('ready'); return;
     }
 
     const memberId = membershipResult.data as string;
     const availableSources = (sourcesResult.data ?? []) as WorkSource[];
-    const activityResult = await supabase
-      .from('activities')
-      .select('*, work_sources(*)')
-      .eq('owner_membership_id', memberId)
-      .order('activity_date', { ascending: false })
-      .order('created_at', { ascending: false });
-
     setMembershipId(memberId);
+    setPermissions(access.permissions ?? []);
     setSources(availableSources);
-    setActivities((activityResult.data ?? []) as unknown as Activity[]);
+    setActivities((feedResult.data ?? []) as Activity[]);
     const connectedCalendars = (calendarResult.data ?? { personal: null, company: null }) as CalendarStatus;
     setCalendarStatus(connectedCalendars);
     if (connectedCalendars.personal || connectedCalendars.company) {
@@ -162,6 +168,14 @@ export default function MyActivityPage() {
   useEffect(() => { void loadData(); }, []);
 
   const selectedSource = useMemo(() => sources.find((source) => source.id === form.sourceId), [sources, form.sourceId]);
+  const manualSources = useMemo(() => sources.filter((source) => source.module_type === 'activity'), [sources]);
+  const filterSources = useMemo(() => {
+    const byId = new Map(sources.map((source) => [source.id, source]));
+    activities.forEach((activity) => {
+      if (activity.work_sources) byId.set(activity.work_sources.id, activity.work_sources);
+    });
+    return [...byId.values()];
+  }, [activities, sources]);
   const monthDays = useMemo(() => {
     const year = monthCursor.getFullYear();
     const month = monthCursor.getMonth();
@@ -173,13 +187,16 @@ export default function MyActivityPage() {
     ];
   }, [monthCursor]);
 
-  const filteredActivities = useMemo(() => activities.filter((activity) => sourceFilter === 'all' || activity.source_id === sourceFilter), [activities, sourceFilter]);
+  const filteredActivities = useMemo(() => activities.filter((activity) =>
+    (sourceFilter === 'all' || activity.source_id === sourceFilter)
+    && (kindFilter === 'all' || activity.feed_kind === kindFilter)
+  ), [activities, kindFilter, sourceFilter]);
   const selectedActivities = useMemo(() => filteredActivities.filter((activity) => activity.activity_date === selectedDate), [filteredActivities, selectedDate]);
   const selectedGoogleEvents = useMemo(() => googleEvents.filter((event) => googleEventDate(event) === selectedDate), [googleEvents, selectedDate]);
   const countByDate = useMemo(() => filteredActivities.reduce<Record<string, number>>((counts, activity) => ({ ...counts, [activity.activity_date]: (counts[activity.activity_date] ?? 0) + 1 }), {}), [filteredActivities]);
 
   function startCreate(date = selectedDate) {
-    setForm({ ...emptyForm(), date, sourceId: sources[0]?.id ?? '' });
+    setForm({ ...emptyForm(), date, sourceId: manualSources[0]?.id ?? '' });
     setError(''); setMessage(''); setFormOpen(true);
   }
 
@@ -189,9 +206,15 @@ export default function MyActivityPage() {
       startTime: timeFromIso(activity.start_at), endTime: timeFromIso(activity.end_at), activityType: activity.activity_type ?? '',
       linkedKpi: activity.linked_kpi ?? '', status: activity.status, progress: activity.progress, priority: activity.priority,
       detail: activity.detail ?? '', output: activity.output ?? '', blockerRisk: activity.blocker_risk ?? '', nextAction: activity.next_action ?? '',
-      evidenceUrl: activity.evidence_url ?? '', customData: Object.fromEntries(Object.entries(activity.custom_data ?? {}).map(([key, value]) => [key, String(value)])),
+      evidenceUrl: activity.evidence_url ?? '', customData: Object.fromEntries(Object.entries(activity.custom_data ?? {}).map(([key, value]) => [key, typeof value === 'boolean' ? value : String(value)])),
     });
     setError(''); setMessage(''); setFormOpen(true);
+  }
+
+  function canEditDirectly(activity: Activity) {
+    return activity.feed_kind === 'manual'
+      && activity.owner_membership_id === membershipId
+      && permissions.includes('activity.manage_self');
   }
 
   async function saveActivity(event: FormEvent<HTMLFormElement>) {
@@ -258,8 +281,8 @@ export default function MyActivityPage() {
         </nav>
 
         <header className="rk-activity-heading">
-          <div><small>Ruang Kawan · Pusat kerja personal</small><h1>My Activity</h1><p>Satu feed untuk aktivitas manual, Content Plan, Pipeline BD, Finance, HR, dan sumber kerja buatan admin.</p></div>
-          <button type="button" onClick={() => startCreate()}><FiPlus /> Tambah aktivitas</button>
+          <div><small>Ruang Kawan · Pusat kerja personal</small><h1>My Activity</h1><p>Satu feed untuk aktivitas manual, assignment, Content Plan, dan seluruh Pipeline BD yang terkait langsung dengan kamu.</p></div>
+          {permissions.includes('activity.manage_self') && manualSources.length ? <button type="button" onClick={() => startCreate()}><FiPlus /> Tambah aktivitas</button> : null}
         </header>
 
         <section className="rk-calendar-connections">
@@ -269,7 +292,12 @@ export default function MyActivityPage() {
 
         <div className="rk-source-filter" role="tablist" aria-label="Filter sumber kerja">
           <button type="button" data-active={sourceFilter === 'all'} onClick={() => setSourceFilter('all')}>Semua sumber <span>{activities.length}</span></button>
-          {sources.map((source) => <button type="button" key={source.id} data-active={sourceFilter === source.id} onClick={() => setSourceFilter(source.id)}><i style={{ background: source.color }} />{source.name}<span>{activities.filter((activity) => activity.source_id === source.id).length}</span></button>)}
+          {filterSources.map((source) => <button type="button" key={source.id} data-active={sourceFilter === source.id} onClick={() => setSourceFilter(source.id)}><i style={{ background: source.color }} />{source.name}<span>{activities.filter((activity) => activity.source_id === source.id).length}</span></button>)}
+        </div>
+
+        <div className="rk-kind-filter" role="tablist" aria-label="Filter jenis aktivitas">
+          <button type="button" data-active={kindFilter === 'all'} onClick={() => setKindFilter('all')}>Semua jenis <span>{activities.length}</span></button>
+          {(Object.keys(feedKindLabels) as Activity['feed_kind'][]).map((kind) => <button type="button" key={kind} data-active={kindFilter === kind} onClick={() => setKindFilter(kind)}>{feedKindLabels[kind]} <span>{activities.filter((activity) => activity.feed_kind === kind).length}</span></button>)}
         </div>
 
         {error ? <p className="rk-activity-alert" data-error>{error}</p> : null}
@@ -283,19 +311,19 @@ export default function MyActivityPage() {
           </div>
 
           <aside className="rk-day-panel">
-            <div className="rk-day-heading"><div><small>Agenda harian</small><h2>{new Date(`${selectedDate}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</h2></div><button type="button" onClick={() => startCreate(selectedDate)}><FiPlus /></button></div>
-            <div className="rk-day-list">{selectedActivities.map((activity) => <button type="button" key={activity.id} onClick={() => startEdit(activity)}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><span><small>{activity.start_at ? timeFromIso(activity.start_at) : 'Seharian'} · {activity.work_sources?.name}</small><strong>{activity.title}</strong><em data-status={activity.status}>{statusLabels[activity.status]}</em></span></button>)}{selectedGoogleEvents.map((event) => <a key={`${event.calendarType}-${event.id}`} href={event.htmlLink} target="_blank" rel="noreferrer" data-calendar={event.calendarType}><i /><span><small>{googleEventTime(event)} · Google Calendar {event.calendarType === 'company' ? 'Perusahaan' : 'Pribadi'}</small><strong>{event.title}</strong><em>{event.calendarType === 'company' ? 'Company' : 'Personal'}</em></span><FiExternalLink /></a>)}{!selectedActivities.length && !selectedGoogleEvents.length ? <div className="rk-activity-empty"><FiCalendar /><strong>Belum ada aktivitas</strong><p>Tambahkan agenda kerja untuk tanggal ini.</p></div> : null}</div>
+            <div className="rk-day-heading"><div><small>Agenda harian</small><h2>{new Date(`${selectedDate}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</h2></div>{permissions.includes('activity.manage_self') && manualSources.length ? <button type="button" onClick={() => startCreate(selectedDate)}><FiPlus /></button> : null}</div>
+            <div className="rk-day-list">{selectedActivities.map((activity) => canEditDirectly(activity) ? <button type="button" key={activity.id} onClick={() => startEdit(activity)}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><span><small>{activity.start_at ? timeFromIso(activity.start_at) : 'Seharian'} · {feedKindLabels[activity.feed_kind]} · {activity.work_sources?.name}</small><strong>{activity.title}</strong><em data-status={activity.status}>{statusLabels[activity.status]}</em></span></button> : <Link key={activity.id} href={activity.module_route ?? '/ruang-kawan/assignments/'} data-work-module={activity.feed_kind}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><span><small>{activity.start_at ? timeFromIso(activity.start_at) : 'Seharian'} · {feedKindLabels[activity.feed_kind]} · {activity.work_sources?.name}</small><strong>{activity.title}</strong><em data-status={activity.status}>{statusLabels[activity.status]}</em></span><FiExternalLink /></Link>)}{selectedGoogleEvents.map((event) => <a key={`${event.calendarType}-${event.id}`} href={event.htmlLink} target="_blank" rel="noreferrer" data-calendar={event.calendarType}><i /><span><small>{googleEventTime(event)} · Google Calendar {event.calendarType === 'company' ? 'Perusahaan' : 'Pribadi'}</small><strong>{event.title}</strong><em>{event.calendarType === 'company' ? 'Company' : 'Personal'}</em></span><FiExternalLink /></a>)}{!selectedActivities.length && !selectedGoogleEvents.length ? <div className="rk-activity-empty"><FiCalendar /><strong>Belum ada aktivitas</strong><p>Tambahkan agenda kerja untuk tanggal ini.</p></div> : null}</div>
           </aside>
         </section>
 
         <section className="rk-feed-panel">
-          <div className="rk-feed-heading"><div><small>Feed terpadu</small><h2>Aktivitas terbaru</h2></div><span>{filteredActivities.length} aktivitas</span></div>
-          <div className="rk-feed-list">{filteredActivities.length ? filteredActivities.map((activity) => <article key={activity.id}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><div className="rk-feed-content"><div><small>{new Date(`${activity.activity_date}T12:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} · {activity.work_sources?.name}</small><span data-priority={activity.priority}>{priorityLabels[activity.priority]}</span></div><h3>{activity.title}</h3>{activity.detail ? <p>{activity.detail}</p> : null}<footer><em data-status={activity.status}>{statusLabels[activity.status]}</em><b>{activity.progress}%</b>{activity.assigned_by_membership_id ? <Link href="/ruang-kawan/assignments/" data-review={activity.review_status}>{reviewLabels[activity.review_status]}</Link> : null}{activity.linked_kpi ? <span>KPI · {activity.linked_kpi}</span> : null}{activity.evidence_url ? <a href={activity.evidence_url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}><FiExternalLink /> Bukti</a> : null}</footer></div><button type="button" aria-label={`Ubah ${activity.title}`} onClick={() => startEdit(activity)}><FiEdit3 /></button></article>) : <div className="rk-activity-empty"><FiClock /><strong>Feed masih kosong</strong><p>Aktivitas dari seluruh sumber kerja akan muncul di sini.</p></div>}</div>
+          <div className="rk-feed-heading"><div><small>Feed terpadu</small><h2>Pekerjaan yang terkait dengan saya</h2></div><span>{filteredActivities.length} aktivitas</span></div>
+          <div className="rk-feed-list">{filteredActivities.length ? filteredActivities.map((activity) => <article key={activity.id} data-feed-kind={activity.feed_kind}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><div className="rk-feed-content"><div><small>{new Date(`${activity.activity_date}T12:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} · {activity.work_sources?.name}</small><span data-feed-kind={activity.feed_kind}>{feedKindLabels[activity.feed_kind]}</span><span data-relationship={activity.relationship}>{relationshipLabels[activity.relationship]}</span><span data-priority={activity.priority}>{priorityLabels[activity.priority]}</span></div><h3>{activity.title}</h3>{activity.detail ? <p>{activity.detail}</p> : null}<footer><em data-status={activity.status}>{statusLabels[activity.status]}</em><b>{activity.progress}%</b>{activity.feed_kind === 'assignment' ? <Link href="/ruang-kawan/assignments/" data-review={activity.review_status}>{reviewLabels[activity.review_status]}</Link> : null}{activity.feed_kind === 'assignment' ? <span>PIC · {activity.owner_name}</span> : null}{activity.output ? <span>{activity.feed_kind === 'pipeline' ? 'Stage' : activity.feed_kind === 'content_plan' ? 'Format' : 'Output'} · {activity.output}</span> : null}{activity.next_action ? <span>Berikutnya · {activity.next_action}</span> : null}{activity.linked_kpi ? <span>KPI · {activity.linked_kpi}</span> : null}{activity.evidence_url ? <a href={activity.evidence_url} target="_blank" rel="noreferrer"><FiExternalLink /> Bukti</a> : null}</footer></div>{canEditDirectly(activity) ? <button type="button" aria-label={`Ubah ${activity.title}`} onClick={() => startEdit(activity)}><FiEdit3 /></button> : <Link className="rk-feed-open" href={activity.module_route ?? '/ruang-kawan/assignments/'} aria-label={`Buka ${feedKindLabels[activity.feed_kind]}`}><FiExternalLink /></Link>}</article>) : <div className="rk-activity-empty"><FiClock /><strong>Feed masih kosong</strong><p>Aktivitas manual, assignment, Content Plan, dan Pipeline BD akan muncul di sini.</p></div>}</div>
         </section>
       </section>
 
       {formOpen ? <div className="rk-activity-modal" role="dialog" aria-modal="true" aria-label="Form aktivitas"><form onSubmit={saveActivity}><header><div><small>{form.id ? 'Ubah aktivitas' : 'Aktivitas baru'}</small><h2>{form.id ? form.title : 'Catat pekerjaan'}</h2></div><button type="button" aria-label="Tutup" onClick={() => setFormOpen(false)}><FiX /></button></header><div className="rk-activity-form-grid">
-        <label>Sumber kerja<select value={form.sourceId} onChange={(event) => setForm({ ...form, sourceId: event.target.value, customData: {} })} required><option value="">Pilih sumber</option>{sources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select></label>
+        <label>Sumber kerja<select value={form.sourceId} onChange={(event) => setForm({ ...form, sourceId: event.target.value, customData: {} })} required><option value="">Pilih sumber</option>{manualSources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select></label>
         <label className="rk-form-wide">Judul aktivitas<input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} maxLength={180} required /></label>
         <label>Tanggal<input type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} required /></label>
         <label>Jenis aktivitas<input value={form.activityType} onChange={(event) => setForm({ ...form, activityType: event.target.value })} placeholder="Meeting, follow-up, produksi..." /></label>
@@ -305,7 +333,7 @@ export default function MyActivityPage() {
         <label>Prioritas<select value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value as Activity['priority'] })}>{Object.entries(priorityLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
         <label>Progress ({form.status === 'done' ? 100 : form.progress}%)<input type="range" min="0" max="100" step="5" value={form.status === 'done' ? 100 : form.progress} onChange={(event) => setForm({ ...form, progress: Number(event.target.value) })} disabled={form.status === 'done'} /></label>
         <label>KPI terkait<input value={form.linkedKpi} onChange={(event) => setForm({ ...form, linkedKpi: event.target.value })} placeholder="Opsional" /></label>
-        {selectedSource?.field_schema?.map((field) => <label key={field.key} className={field.type === 'textarea' ? 'rk-form-wide' : ''}>{field.label}{field.type === 'textarea' ? <textarea value={form.customData[field.key] ?? ''} onChange={(event) => setForm({ ...form, customData: { ...form.customData, [field.key]: event.target.value } })} /> : <input type={field.type} value={form.customData[field.key] ?? ''} onChange={(event) => setForm({ ...form, customData: { ...form.customData, [field.key]: event.target.value } })} />}</label>)}
+        {selectedSource?.field_schema?.map((field) => field.type === 'checkbox' ? <label key={field.key}><input type="checkbox" checked={Boolean(form.customData[field.key])} onChange={(event) => setForm({ ...form, customData: { ...form.customData, [field.key]: event.target.checked } })} />{field.label}</label> : <label key={field.key} className={field.type === 'textarea' ? 'rk-form-wide' : ''}>{field.label}{field.type === 'textarea' ? <textarea value={String(form.customData[field.key] ?? '')} onChange={(event) => setForm({ ...form, customData: { ...form.customData, [field.key]: event.target.value } })} /> : field.type === 'select' ? <select value={String(form.customData[field.key] ?? '')} onChange={(event) => setForm({ ...form, customData: { ...form.customData, [field.key]: event.target.value } })}><option value="">Belum dipilih</option>{field.options?.map((option) => <option key={option}>{option}</option>)}</select> : <input type={field.type} value={String(form.customData[field.key] ?? '')} onChange={(event) => setForm({ ...form, customData: { ...form.customData, [field.key]: event.target.value } })} />}</label>)}
         <label className="rk-form-wide">Detail<textarea value={form.detail} onChange={(event) => setForm({ ...form, detail: event.target.value })} /></label>
         <label className="rk-form-wide">Output<textarea value={form.output} onChange={(event) => setForm({ ...form, output: event.target.value })} /></label>
         <label className="rk-form-wide">Blocker / risiko<textarea value={form.blockerRisk} onChange={(event) => setForm({ ...form, blockerRisk: event.target.value })} /></label>
