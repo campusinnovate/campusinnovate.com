@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { FiArrowDownLeft, FiArrowLeft, FiArrowUpRight, FiBox, FiFileText, FiPlus, FiRefreshCw, FiRotateCcw, FiTrendingUp, FiX } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
+import FinanceWorkspace from './FinanceWorkspace';
+
+export default FinanceWorkspace;
 
 type Tx={id:string;transaction_number:string;transaction_date:string;event_type:string;flow:'in'|'out'|'non_cash';category:string;description:string;counterparty:string|null;amount:number;status:string;reference_number:string|null;reversal_of_id:string|null};
 type Doc={id:string;document_type:'quotation'|'invoice'|'receipt';document_number:string;document_date:string;due_date:string|null;client:string;project_name:string|null;status:string;total:number;paid:number;balance:number;linked_invoice_id:string|null;google_doc_url:string|null;pdf_url:string|null};
@@ -17,7 +20,7 @@ const emptyTx=():TxForm=>({date:today(),eventType:'expense',flow:'out',accountId
 const emptyDoc=():DocForm=>({type:'quotation',date:today(),dueDate:'',client:'',address:'',project:'',itemName:'',quantity:'1',unitPrice:'',discount:'0',tax:'0',notes:'',invoiceId:'',receiptAmount:''});
 const money=(value:number|string)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(value)||0);
 
-export default function FinancePage(){
+function LegacyFinancePage(){
  const [state,setState]=useState<'loading'|'ready'|'denied'>('loading');const [permissions,setPermissions]=useState<string[]>([]);const [tab,setTab]=useState<'overview'|'transactions'|'documents'|'planning'>('overview');const [transactions,setTransactions]=useState<Tx[]>([]);const [documents,setDocuments]=useState<Doc[]>([]);const [budgets,setBudgets]=useState<Budget[]>([]);const [assets,setAssets]=useState<Asset[]>([]);const [accounts,setAccounts]=useState<Account[]>([]);const [txForm,setTxForm]=useState<TxForm>(emptyTx());const [docForm,setDocForm]=useState<DocForm>(emptyDoc());const [modal,setModal]=useState<'tx'|'doc'|null>(null);const [saving,setSaving]=useState(false);const [error,setError]=useState('');const [message,setMessage]=useState('');
  async function load(){setError('');const supabase=createClient();const {data:{session}}=await supabase.auth.getSession();if(!session){window.location.replace('/ruang-kawan/');return;}const accessR=await supabase.rpc('get_my_access');const access=Array.isArray(accessR.data)?accessR.data[0]:accessR.data;if(!access?.permissions?.includes('finance.view')){setState('denied');return;}setPermissions(access.permissions??[]);const [txR,docR,budgetR,assetR,accountR]=await Promise.all([supabase.from('finance_transactions').select('*').order('transaction_date',{ascending:false}).limit(200),supabase.from('finance_documents').select('*').is('deleted_at',null).order('document_date',{ascending:false}).limit(200),supabase.from('finance_budgets').select('*').order('period_month',{ascending:false}),supabase.from('finance_assets').select('*').eq('is_active',true).order('asset_name'),supabase.from('finance_accounts').select('*').eq('is_active',true).order('code')]);setTransactions((txR.data??[]) as Tx[]);setDocuments((docR.data??[]) as Doc[]);setBudgets((budgetR.data??[]) as Budget[]);setAssets((assetR.data??[]) as Asset[]);setAccounts((accountR.data??[]) as Account[]);setState('ready');}
  useEffect(()=>{void load();},[]);
