@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FiActivity, FiBarChart2, FiBookOpen, FiBriefcase, FiCheckSquare, FiDollarSign, FiEdit3, FiFileText, FiLayers, FiLock, FiSettings, FiShield, FiTrendingUp, FiUser } from 'react-icons/fi';
+import { FiActivity, FiBarChart2, FiBookOpen, FiBriefcase, FiDollarSign, FiFileText, FiLock, FiSettings, FiShield, FiTrendingUp, FiUser } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
 type AccessSummary = {
@@ -18,7 +18,14 @@ type AccessSummary = {
 type DashboardState =
   | { status: 'loading' }
   | { status: 'denied' }
-  | { status: 'ready'; access: AccessSummary; email: string };
+  | { status: 'ready'; access: AccessSummary; email: string; workspace: DashboardWorkspace | null };
+
+type DashboardWorkspace = {
+  mood: { score: number } | null;
+  notifications: { id: string; title: string; message: string | null; route: string | null; read_at: string | null }[];
+  work: { overdue: number; due_today: number; reviews: number; open_actions: number };
+  kpi: { score: number | null; status: string | null; period: string } | null;
+};
 
 export default function RuangKawanDashboardPage() {
   const [state, setState] = useState<DashboardState>({ status: 'loading' });
@@ -27,6 +34,7 @@ export default function RuangKawanDashboardPage() {
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [moodBusy, setMoodBusy] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -38,14 +46,16 @@ export default function RuangKawanDashboardPage() {
         return;
       }
 
-      const { data, error } = await supabase.rpc('get_my_access');
+      const [{ data, error }, workspaceResult] = await Promise.all([
+        supabase.rpc('get_my_access'), supabase.rpc('dashboard_workspace'),
+      ]);
       const access = (Array.isArray(data) ? data[0] : data) as AccessSummary | null;
       if (error || !access || access.membership_status !== 'active') {
         setState({ status: 'denied' });
         return;
       }
 
-      setState({ status: 'ready', access, email: session.user.email ?? '' });
+      setState({ status: 'ready', access, email: session.user.email ?? '', workspace: workspaceResult.error ? null : workspaceResult.data as DashboardWorkspace });
     }
 
     void loadAccess();
@@ -54,6 +64,13 @@ export default function RuangKawanDashboardPage() {
   async function signOut() {
     await createClient().auth.signOut();
     window.location.replace('/ruang-kawan/');
+  }
+
+  async function saveMood(score: number) {
+    setMoodBusy(true);
+    const { error } = await createClient().rpc('save_mood_checkin', { score_value: score, note_value: null });
+    setMoodBusy(false);
+    if (!error && state.status === 'ready') setState({ ...state, workspace: state.workspace ? { ...state.workspace, mood: { score } } : state.workspace });
   }
 
   async function savePassword(event: FormEvent<HTMLFormElement>) {
@@ -102,7 +119,9 @@ export default function RuangKawanDashboardPage() {
     );
   }
 
-  const { access, email } = state;
+  const { access, email, workspace } = state;
+  const attention = (workspace?.work.overdue ?? 0) + (workspace?.work.reviews ?? 0) + (workspace?.work.open_actions ?? 0);
+  const performanceLabel = attention === 0 ? 'Good' : attention <= 3 ? 'Needs Attention' : 'Not Good';
   return (
     <main className="rk-dashboard-foundation">
       <section className="rk-dashboard-shell">
@@ -110,7 +129,7 @@ export default function RuangKawanDashboardPage() {
           <div>
             <small>Ruang Kawan</small>
             <h1>Selamat datang, {access.full_name || email}</h1>
-            <p>Fondasi akses sudah aktif. Workflow Management System akan dibangun di atas ruang yang aman ini.</p>
+            <p>Semua pekerjaan, keputusan, dokumen, dan laporan tim dalam satu ruang kerja.</p>
           </div>
           <button type="button" onClick={signOut}>Keluar</button>
         </header>
@@ -121,18 +140,19 @@ export default function RuangKawanDashboardPage() {
           <article><FiLock /><span>Akses</span><strong>{access.roles.length ? access.roles.join(', ') : 'Akses dasar'}</strong></article>
         </div>
 
-        {access.permissions.includes('activity.view_self') ? (
-          <Link className="rk-admin-entry rk-activity-entry" href="/ruang-kawan/activity/">
-            <FiActivity />
-            <span><strong>Buka My Activity</strong><small>Kelola feed kerja, agenda harian, dan kalender terpadu.</small></span>
-          </Link>
-        ) : null}
+        <section className="rk-dashboard-summary">
+          <article className="rk-mood-card">
+            <small>Mood Check-in · pribadi</small><h2>{workspace?.mood ? `Mood hari ini: ${workspace.mood.score}/10` : 'Apa kabar hari ini?'}</h2>
+            <div>{[1,2,3,4,5,6,7,8,9,10].map(score => <button key={score} type="button" disabled={moodBusy} data-selected={workspace?.mood?.score===score} onClick={()=>void saveMood(score)}>{score}</button>)}</div>
+            <p>Opsional, tidak memengaruhi KPI, dan tren perusahaan hanya anonim.</p>
+          </article>
+          <article className="rk-performance-card"><small>Status kinerja</small><h2 data-status={performanceLabel}>{performanceLabel}</h2><div><span><b>{workspace?.work.due_today ?? 0}</b> hari ini</span><span><b>{workspace?.work.overdue ?? 0}</b> terlambat</span><span><b>{workspace?.work.reviews ?? 0}</b> review</span><span><b>{workspace?.work.open_actions ?? 0}</b> action item</span></div><p>{workspace?.kpi ? `${workspace.kpi.period} · KPI ${workspace.kpi.score?.toFixed(1) ?? '—'}%` : 'Ringkasan KPI akan muncul setelah assignment aktif.'}</p></article>
+          <article className="rk-notification-card"><small>Notifikasi</small><h2>{workspace?.notifications.filter(item=>!item.read_at).length ?? 0} belum dibaca</h2>{workspace?.notifications.slice(0,3).map(item => item.route ? <Link key={item.id} href={item.route}><strong>{item.title}</strong><span>{item.message}</span></Link> : <div key={item.id}><strong>{item.title}</strong><span>{item.message}</span></div>)}{!workspace?.notifications.length?<p>Belum ada notifikasi baru.</p>:null}</article>
+        </section>
 
         <div className="rk-dashboard-module-grid">
-          {access.permissions.includes('notes.manage_self') ? <Link className="rk-admin-entry" href="/ruang-kawan/notes/"><FiEdit3 /><span><strong>Coret-coret</strong><small>Brainstorm dan catatan penting yang hanya dapat kamu lihat.</small></span></Link> : null}
-          {access.permissions.includes('activity.view_self') ? <Link className="rk-admin-entry" href="/ruang-kawan/assignments/"><FiCheckSquare /><span><strong>Assignment</strong><small>Pekerjaan tim, diskusi, pengajuan hasil, dan review.</small></span></Link> : null}
-          {access.permissions.includes('content_plan.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/content-plan/"><FiLayers /><span><strong>Content Plan</strong><small>Ide, brief, produksi, review, dan jadwal publikasi.</small></span></Link> : null}
-          {access.permissions.includes('pipeline.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/pipeline/"><FiTrendingUp /><span><strong>Pipeline BD</strong><small>Lead, follow-up, meeting, proposal, dan closing.</small></span></Link> : null}
+          {access.permissions.includes('activity.view_self') ? <Link className="rk-admin-entry rk-activity-entry" href="/ruang-kawan/activity/"><FiActivity /><span><strong>My Activity</strong><small>Feed kerja, coret-coret, assignment, dan kalender pribadi.</small></span></Link> : null}
+          {['marketing.view', 'content_plan.view', 'pipeline.view'].some((key) => access.permissions.includes(key)) ? <Link className="rk-admin-entry" href="/ruang-kawan/marketing/"><FiTrendingUp /><span><strong>Marketing</strong><small>Content, brand, pipeline, layanan, proposal, dan vendor sesuai izin.</small></span></Link> : null}
           {access.permissions.includes('projects.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/projects/"><FiBriefcase /><span><strong>Project Management</strong><small>Handover, Project Lead, planning, execution, deliverable, dan closing.</small></span></Link> : null}
           {access.permissions.includes('kpi.view_self') ? <Link className="rk-admin-entry" href="/ruang-kawan/kpi/"><FiBarChart2 /><span><strong>KPI Management</strong><small>Target, realisasi, evidence, review, dan penilaian bulanan.</small></span></Link> : null}
           {access.permissions.includes('documents.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/documents/"><FiBookOpen /><span><strong>Document Center</strong><small>Dokumen terkendali, template, versi, request, dan tautan Google Drive.</small></span></Link> : null}

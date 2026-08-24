@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
-  FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight, FiClock,
+  FiActivity, FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight, FiClock,
   FiEdit3, FiExternalLink, FiPlus, FiRefreshCw, FiX,
 } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
@@ -285,7 +285,14 @@ export default function MyActivityPage() {
           {permissions.includes('activity.manage_self') && manualSources.length ? <button type="button" onClick={() => startCreate()}><FiPlus /> Tambah aktivitas</button> : null}
         </header>
 
-        <section className="rk-calendar-connections">
+        <nav className="rk-personal-tabs" aria-label="Bagian My Activity">
+          <a href="#overview"><FiActivity /> Overview & Feed</a>
+          {permissions.includes('notes.manage_self') ? <Link href="/ruang-kawan/notes/"><FiEdit3 /> Coret-coret</Link> : null}
+          <Link href="/ruang-kawan/assignments/"><FiClock /> Assignment</Link>
+          <a href="#calendar"><FiCalendar /> Calendar</a>
+        </nav>
+
+        <section className="rk-calendar-connections" id="overview">
           <article><span><FiCalendar /><i>Kalender Perusahaan</i></span><strong>Campus Innovate</strong><small>{calendarStatus.company ? `Terhubung melalui ${calendarStatus.company.email}` : 'Kalender utama innovatecampus@gmail.com'}</small>{calendarStatus.company ? <b data-connected>Terhubung</b> : <button type="button" onClick={() => void connectCalendar('company')}>Hubungkan bridge</button>}</article>
           <article><span><FiCalendar /><i>Kalender Pribadi</i></span><strong>Google Calendar saya</strong><small>{calendarStatus.personal ? `Terhubung sebagai ${calendarStatus.personal.email}` : 'Tampil bersama agenda kerja kamu'}</small>{calendarStatus.personal ? <b data-connected>Terhubung</b> : <button type="button" onClick={() => void connectCalendar('personal')}>Hubungkan kalender</button>}</article>
         </section>
@@ -303,7 +310,7 @@ export default function MyActivityPage() {
         {error ? <p className="rk-activity-alert" data-error>{error}</p> : null}
         {message ? <p className="rk-activity-alert">{message}</p> : null}
 
-        <section className="rk-activity-layout">
+        <section className="rk-activity-layout" id="calendar">
           <div className="rk-calendar-panel">
             <div className="rk-calendar-toolbar"><div><small>Kalender terpadu</small><h2>{monthLabels[monthCursor.getMonth()]} {monthCursor.getFullYear()}</h2></div><span><button type="button" aria-label="Bulan sebelumnya" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}><FiChevronLeft /></button><button type="button" onClick={() => { const current = new Date(`${today()}T12:00:00`); setMonthCursor(current); setSelectedDate(today()); }}>Hari ini</button><button type="button" aria-label="Bulan berikutnya" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}><FiChevronRight /></button></span></div>
             <div className="rk-calendar-grid rk-calendar-weekdays">{['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((day) => <strong key={day}>{day}</strong>)}</div>
