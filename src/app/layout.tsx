@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './ruang-kawan-modules.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://campusinnovate.com'),
