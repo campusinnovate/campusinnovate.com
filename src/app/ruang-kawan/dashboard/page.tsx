@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FiActivity, FiLock, FiSettings, FiShield, FiUser } from 'react-icons/fi';
+import { FiActivity, FiCheckSquare, FiDollarSign, FiEdit3, FiLock, FiSettings, FiShield, FiUser } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
 type AccessSummary = {
@@ -127,6 +127,12 @@ export default function RuangKawanDashboardPage() {
             <span><strong>Buka My Activity</strong><small>Kelola feed kerja, agenda harian, dan kalender terpadu.</small></span>
           </Link>
         ) : null}
+
+        <div className="rk-dashboard-module-grid">
+          {access.permissions.includes('notes.manage_self') ? <Link className="rk-admin-entry" href="/ruang-kawan/notes/"><FiEdit3 /><span><strong>Coret-coret</strong><small>Brainstorm dan catatan penting yang hanya dapat kamu lihat.</small></span></Link> : null}
+          {access.permissions.includes('activity.view_self') ? <Link className="rk-admin-entry" href="/ruang-kawan/assignments/"><FiCheckSquare /><span><strong>Assignment</strong><small>Pekerjaan tim, diskusi, pengajuan hasil, dan review.</small></span></Link> : null}
+          {access.permissions.includes('finance.view') ? <Link className="rk-admin-entry" href="/ruang-kawan/finance/"><FiDollarSign /><span><strong>Finance</strong><small>Transaksi, dokumen, piutang, budget, dan aset.</small></span></Link> : null}
+        </div>
 
         {access.permissions.includes('access.manage') ? (
           <Link className="rk-admin-entry" href="/ruang-kawan/admin/">

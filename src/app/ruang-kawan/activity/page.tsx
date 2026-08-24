@@ -38,6 +38,9 @@ type Activity = {
   next_action: string | null;
   evidence_url: string | null;
   custom_data: Record<string, string | number>;
+  assigned_by_membership_id: string | null;
+  reviewer_membership_id: string | null;
+  review_status: 'not_submitted' | 'waiting_review' | 'approved' | 'revision_requested';
   work_sources?: WorkSource;
 };
 type CalendarConnection = { connected: true; email: string | null; selected_calendar_ids: string[]; updated_at: string } | null;
@@ -73,6 +76,7 @@ const emptyForm = (): ActivityForm => ({
 });
 const statusLabels = { not_started: 'Belum Mulai', in_progress: 'Berjalan', done: 'Selesai', blocked: 'Terhambat' };
 const priorityLabels = { low: 'Rendah', medium: 'Sedang', high: 'Tinggi', urgent: 'Mendesak' };
+const reviewLabels = { not_submitted: 'Belum diajukan', waiting_review: 'Menunggu review', approved: 'Disetujui', revision_requested: 'Perlu revisi' };
 const monthLabels = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 function toIso(date: string, time: string) {
@@ -286,7 +290,7 @@ export default function MyActivityPage() {
 
         <section className="rk-feed-panel">
           <div className="rk-feed-heading"><div><small>Feed terpadu</small><h2>Aktivitas terbaru</h2></div><span>{filteredActivities.length} aktivitas</span></div>
-          <div className="rk-feed-list">{filteredActivities.length ? filteredActivities.map((activity) => <article key={activity.id}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><div className="rk-feed-content"><div><small>{new Date(`${activity.activity_date}T12:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} · {activity.work_sources?.name}</small><span data-priority={activity.priority}>{priorityLabels[activity.priority]}</span></div><h3>{activity.title}</h3>{activity.detail ? <p>{activity.detail}</p> : null}<footer><em data-status={activity.status}>{statusLabels[activity.status]}</em><b>{activity.progress}%</b>{activity.linked_kpi ? <span>KPI · {activity.linked_kpi}</span> : null}{activity.evidence_url ? <a href={activity.evidence_url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}><FiExternalLink /> Bukti</a> : null}</footer></div><button type="button" aria-label={`Ubah ${activity.title}`} onClick={() => startEdit(activity)}><FiEdit3 /></button></article>) : <div className="rk-activity-empty"><FiClock /><strong>Feed masih kosong</strong><p>Aktivitas dari seluruh sumber kerja akan muncul di sini.</p></div>}</div>
+          <div className="rk-feed-list">{filteredActivities.length ? filteredActivities.map((activity) => <article key={activity.id}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><div className="rk-feed-content"><div><small>{new Date(`${activity.activity_date}T12:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} · {activity.work_sources?.name}</small><span data-priority={activity.priority}>{priorityLabels[activity.priority]}</span></div><h3>{activity.title}</h3>{activity.detail ? <p>{activity.detail}</p> : null}<footer><em data-status={activity.status}>{statusLabels[activity.status]}</em><b>{activity.progress}%</b>{activity.assigned_by_membership_id ? <Link href="/ruang-kawan/assignments/" data-review={activity.review_status}>{reviewLabels[activity.review_status]}</Link> : null}{activity.linked_kpi ? <span>KPI · {activity.linked_kpi}</span> : null}{activity.evidence_url ? <a href={activity.evidence_url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}><FiExternalLink /> Bukti</a> : null}</footer></div><button type="button" aria-label={`Ubah ${activity.title}`} onClick={() => startEdit(activity)}><FiEdit3 /></button></article>) : <div className="rk-activity-empty"><FiClock /><strong>Feed masih kosong</strong><p>Aktivitas dari seluruh sumber kerja akan muncul di sini.</p></div>}</div>
         </section>
       </section>
 
