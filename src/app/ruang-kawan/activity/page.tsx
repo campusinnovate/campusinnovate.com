@@ -17,7 +17,7 @@ type WorkSource = {
   color: string;
   icon: string;
   source_kind: string;
-  module_type: 'activity' | 'content_plan' | 'pipeline';
+  module_type: 'activity' | 'content_plan' | 'pipeline' | 'project';
   field_schema: FieldSchema[];
 };
 type Activity = {
@@ -42,7 +42,7 @@ type Activity = {
   assigned_by_membership_id: string | null;
   reviewer_membership_id: string | null;
   review_status: 'not_submitted' | 'waiting_review' | 'approved' | 'revision_requested';
-  feed_kind: 'manual' | 'assignment' | 'content_plan' | 'pipeline';
+  feed_kind: 'manual' | 'assignment' | 'content_plan' | 'pipeline' | 'project';
   relationship: 'mine' | 'assigned_by_me' | 'review';
   module_route: string | null;
   owner_name: string;
@@ -84,7 +84,7 @@ const emptyForm = (): ActivityForm => ({
 const statusLabels = { not_started: 'Belum Mulai', in_progress: 'Berjalan', done: 'Selesai', blocked: 'Terhambat' };
 const priorityLabels = { low: 'Rendah', medium: 'Sedang', high: 'Tinggi', urgent: 'Mendesak' };
 const reviewLabels = { not_submitted: 'Belum diajukan', waiting_review: 'Menunggu review', approved: 'Disetujui', revision_requested: 'Perlu revisi' };
-const feedKindLabels = { manual: 'Aktivitas Manual', assignment: 'Assignment', content_plan: 'Content Plan', pipeline: 'Pipeline BD' };
+const feedKindLabels = { manual: 'Aktivitas Manual', assignment: 'Assignment', content_plan: 'Content Plan', pipeline: 'Pipeline BD', project: 'Project Management' };
 const relationshipLabels = { mine: 'Untuk saya', assigned_by_me: 'Saya delegasikan', review: 'Perlu review' };
 const monthLabels = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
