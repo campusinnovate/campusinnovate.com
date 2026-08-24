@@ -7,14 +7,15 @@ import { createClient } from '@/lib/supabase/client';
 
 type Reference = { roles: { key: string; name: string }[]; positions: { key: string; name: string }[] };
 type Field = { key: string; label: string; type: 'text' | 'number' | 'date' | 'url' | 'textarea' };
+type ModuleConfig = { platforms?: string[]; content_formats?: string[]; content_pillars?: string[]; content_strategies?: string[]; funnels?: string[]; publish_times?: string[] };
 type Source = {
   id: string; key: string; name: string; description: string | null; color: string; icon: string;
   source_kind: string; field_schema: Field[]; allowed_role_keys: string[]; allowed_position_keys: string[];
-  is_active: boolean; sort_order: number;
+  is_active: boolean; sort_order: number; module_type: 'activity' | 'content_plan' | 'pipeline'; module_config: ModuleConfig;
 };
 type FormState = Omit<Source, 'id' | 'source_kind'> & { id: string | null };
 
-const blankForm = (): FormState => ({ id: null, key: '', name: '', description: '', color: '#315c4f', icon: 'activity', field_schema: [], allowed_role_keys: [], allowed_position_keys: [], is_active: true, sort_order: 100 });
+const blankForm = (): FormState => ({ id: null, key: '', name: '', description: '', color: '#315c4f', icon: 'activity', field_schema: [], allowed_role_keys: [], allowed_position_keys: [], is_active: true, sort_order: 100, module_type: 'activity', module_config: {} });
 
 export default function WorkSourcesAdminPage() {
   const [state, setState] = useState<'loading' | 'ready' | 'denied'>('loading');
@@ -50,7 +51,8 @@ export default function WorkSourcesAdminPage() {
   function toggle(list: string[], key: string) { return list.includes(key) ? list.filter((item) => item !== key) : [...list, key]; }
   function addField() { setForm({ ...form, field_schema: [...form.field_schema, { key: '', label: '', type: 'text' }] }); }
   function updateField(index: number, patch: Partial<Field>) { setForm({ ...form, field_schema: form.field_schema.map((field, fieldIndex) => fieldIndex === index ? { ...field, ...patch } : field) }); }
-  function editSource(source: Source) { setForm({ ...source, description: source.description ?? '' }); setError(''); setMessage(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  function editSource(source: Source) { setForm({ ...source, description: source.description ?? '', module_type: source.module_type ?? 'activity', module_config: source.module_config ?? {} }); setError(''); setMessage(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  function updateConfigList(key: keyof ModuleConfig, value: string) { setForm({ ...form, module_config: { ...form.module_config, [key]: value.split('\n').map((item) => item.trim()).filter(Boolean) } }); }
 
   async function saveSource(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setError(''); setMessage('');
@@ -61,6 +63,7 @@ export default function WorkSourcesAdminPage() {
       source_color: form.color, source_icon: form.icon, source_field_schema: form.field_schema,
       source_allowed_role_keys: form.allowed_role_keys, source_allowed_position_keys: form.allowed_position_keys,
       source_is_active: form.is_active, source_sort_order: form.sort_order,
+      source_module_type: form.module_type, source_module_config: form.module_config,
     });
     setSaving(false);
     if (saveError) { setError(saveError.message || 'Sumber kerja belum berhasil disimpan.'); return; }
@@ -82,8 +85,11 @@ export default function WorkSourcesAdminPage() {
           <label>Kode sumber<input value={form.key} onChange={(event) => setForm({ ...form, key: event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })} disabled={Boolean(form.id)} placeholder="contoh: partnership" required /></label>
           <label>Warna<input type="color" value={form.color} onChange={(event) => setForm({ ...form, color: event.target.value })} /></label>
           <label>Urutan<input type="number" value={form.sort_order} onChange={(event) => setForm({ ...form, sort_order: Number(event.target.value) })} /></label>
+          <label>Tipe modul<select value={form.module_type} onChange={(event) => setForm({ ...form, module_type: event.target.value as FormState['module_type'] })}><option value="activity">Aktivitas umum</option><option value="content_plan">Content Plan</option><option value="pipeline">Pipeline BD</option></select></label>
         </div>
         <label className="rk-reason-field">Deskripsi<textarea value={form.description ?? ''} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
+
+        {form.module_type === 'content_plan' ? <fieldset><legend>Dropdown Content Plan</legend><p className="rk-field-hint">Satu pilihan per baris. Perubahan langsung dipakai oleh form Content Plan.</p><div className="rk-form-grid"><label>Platform<textarea value={(form.module_config.platforms ?? []).join('\n')} onChange={(event) => updateConfigList('platforms', event.target.value)} /></label><label>Bentuk konten<textarea value={(form.module_config.content_formats ?? []).join('\n')} onChange={(event) => updateConfigList('content_formats', event.target.value)} /></label><label>Content pillar<textarea value={(form.module_config.content_pillars ?? []).join('\n')} onChange={(event) => updateConfigList('content_pillars', event.target.value)} /></label><label>Content strategy<textarea value={(form.module_config.content_strategies ?? []).join('\n')} onChange={(event) => updateConfigList('content_strategies', event.target.value)} /></label><label>Funnel<textarea value={(form.module_config.funnels ?? []).join('\n')} onChange={(event) => updateConfigList('funnels', event.target.value)} /></label><label>Jam publish<textarea value={(form.module_config.publish_times ?? []).join('\n')} onChange={(event) => updateConfigList('publish_times', event.target.value)} /></label></div></fieldset> : null}
 
         <fieldset><legend>Field tambahan</legend><p className="rk-field-hint">Field inti seperti tanggal, status, progress, KPI, output, risiko, dan bukti sudah otomatis tersedia.</p><div className="rk-source-fields">{form.field_schema.map((field, index) => <div key={`${index}-${field.key}`}><input value={field.label} onChange={(event) => updateField(index, { label: event.target.value })} placeholder="Nama field" /><input value={field.key} onChange={(event) => updateField(index, { key: event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })} placeholder="kode_field" /><select value={field.type} onChange={(event) => updateField(index, { type: event.target.value as Field['type'] })}><option value="text">Teks</option><option value="textarea">Teks panjang</option><option value="number">Angka</option><option value="date">Tanggal</option><option value="url">URL</option></select><button type="button" aria-label="Hapus field" onClick={() => setForm({ ...form, field_schema: form.field_schema.filter((_, fieldIndex) => fieldIndex !== index) })}><FiTrash2 /></button></div>)}</div><button className="rk-secondary-admin-button" type="button" onClick={addField}><FiPlus /> Tambah field</button></fieldset>
 
@@ -93,7 +99,7 @@ export default function WorkSourcesAdminPage() {
         {error ? <p className="rk-password-error">{error}</p> : null}{message ? <p className="rk-password-success">{message}</p> : null}
         <button className="rk-primary-admin-button" type="submit" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan sumber kerja'}</button>
       </form>
-      <div className="rk-admin-side"><section className="rk-member-list"><div className="rk-admin-section-title"><FiLayers /><div><small>{sources.length} sumber</small><h2>Daftar sumber kerja</h2></div></div>{sources.map((source) => <article key={source.id}><div><strong><i className="rk-source-dot" style={{ background: source.color }} />{source.name}</strong><span>{source.key} · {source.source_kind === 'custom' ? 'Buatan admin' : 'Sumber awal'}</span><small>{source.description || 'Tanpa deskripsi'}</small><div className="rk-member-tags"><i data-status={source.is_active ? 'active' : 'inactive'}>{source.is_active ? 'Aktif' : 'Nonaktif'}</i><i>{source.field_schema.length} field tambahan</i></div></div><button type="button" onClick={() => editSource(source)} aria-label={`Ubah ${source.name}`}><FiEdit3 /></button></article>)}</section></div>
+      <div className="rk-admin-side"><section className="rk-member-list"><div className="rk-admin-section-title"><FiLayers /><div><small>{sources.length} sumber</small><h2>Daftar sumber kerja</h2></div></div>{sources.map((source) => <article key={source.id}><div><strong><i className="rk-source-dot" style={{ background: source.color }} />{source.name}</strong><span>{source.key} · {source.source_kind === 'custom' ? 'Buatan admin' : 'Sumber awal'}</span><small>{source.description || 'Tanpa deskripsi'}</small><div className="rk-member-tags"><i data-status={source.is_active ? 'active' : 'inactive'}>{source.is_active ? 'Aktif' : 'Nonaktif'}</i><i>{source.module_type === 'content_plan' ? 'Content Plan' : source.module_type === 'pipeline' ? 'Pipeline BD' : 'Aktivitas'}</i><i>{source.field_schema.length} field tambahan</i></div></div><button type="button" onClick={() => editSource(source)} aria-label={`Ubah ${source.name}`}><FiEdit3 /></button></article>)}</section></div>
     </section>
   </section></main>;
 }
