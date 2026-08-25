@@ -62,7 +62,7 @@ async function refreshConnection(connection: Record<string, any>) {
 async function googleFetch(connection: Record<string, any>, path: string, init?: RequestInit) {
   const ready = await refreshConnection(connection);
   const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, { ...init, headers: { Authorization: `Bearer ${ready.access_token}`, 'Content-Type': 'application/json', ...(init?.headers ?? {}) } });
-  const body = await response.json();
+  const body = response.status === 204 ? {} : await response.json();
   if (!response.ok) throw new Error(body.error?.message || 'Google Calendar request gagal.');
   return body;
 }
@@ -290,6 +290,81 @@ async function listEvents(req: Request, origin: string | null) {
   return json({ events: [...uniqueEvents.values()] }, 200, origin);
 }
 
+async function createChatMeeting(req: Request, origin: string | null) {
+  const auth = await authenticatedClient(req); if (!auth) return json({ error: 'Sesi tidak valid.' }, 401, origin);
+  const body = await req.json().catch(() => ({}));
+  const conversationId = String(body.conversationId ?? '');
+  const title = String(body.title ?? '').trim();
+  const startsAt = String(body.startsAt ?? ''); const endsAt = String(body.endsAt ?? '');
+  const timezone = String(body.timezone ?? 'Asia/Jakarta');
+  const attendeeIds = Array.isArray(body.attendeeMembershipIds) ? body.attendeeMembershipIds.map(String) : [];
+  if (!conversationId || !title || !startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt)) return json({ error: 'Judul serta waktu meeting tidak valid.' }, 400, origin);
+  const [{ data: memberAllowed }, { data: accessData }] = await Promise.all([
+    auth.client.rpc('is_chat_member', { target_conversation_id: conversationId }), auth.client.rpc('get_my_access'),
+  ]);
+  const access = Array.isArray(accessData) ? accessData[0] : accessData;
+  if (!memberAllowed || !access?.permissions?.includes('meeting.create')) return json({ error: 'Akses membuat meeting ditolak.' }, 403, origin);
+  const { data: allowedMembers } = attendeeIds.length
+    ? await service.from('chat_conversation_members').select('membership_id,memberships!inner(email)').eq('conversation_id',conversationId).is('left_at',null).in('membership_id',attendeeIds)
+    : { data: [] };
+  const attendees = (allowedMembers ?? []).map((row: any) => String(row.memberships?.email ?? '')).filter((email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)).map((email: string) => ({ email }));
+  const { data: personal } = await service.from('google_calendar_connections').select('*').eq('connection_type','personal').eq('owner_user_id',auth.user.id).eq('is_active',true).maybeSingle();
+  const connection = personal ?? await companyWorkspaceConnection();
+  if (!connection) return json({ error: 'Google Calendar belum dihubungkan.', needsAuthorization: true }, 409, origin);
+  const calendarId = connection.selected_calendar_ids?.[0] ?? (connection.connection_type === 'company' ? COMPANY_CALENDAR_ID : 'primary');
+  const requestId = crypto.randomUUID();
+  const event = await googleFetch(connection, `/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1&sendUpdates=all`, {
+    method: 'POST', body: JSON.stringify({
+      summary: title, description: String(body.agenda ?? ''), attendees,
+      start: { dateTime: startsAt, timeZone: timezone }, end: { dateTime: endsAt, timeZone: timezone },
+      conferenceData: { createRequest: { requestId, conferenceSolutionKey: { type: 'hangoutsMeet' } } },
+      extendedProperties: { private: { ruangKawanConversationId: conversationId, source: 'kawan-chat' } },
+    }),
+  });
+  const meetUrl = event.hangoutLink ?? event.conferenceData?.entryPoints?.find((item: Record<string,any>) => item.entryPointType === 'video')?.uri ?? null;
+  const payload = {
+    title, agenda: String(body.agenda ?? ''), starts_at: startsAt, ends_at: endsAt, timezone,
+    attendee_membership_ids: attendeeIds, google_event_id: event.id, google_calendar_id: calendarId,
+    meet_url: meetUrl, html_link: event.htmlLink ?? null,
+  };
+  const registered = await auth.client.rpc('register_chat_meeting', { target_conversation_id: conversationId, target_message_id: body.sourceMessageId || null, meeting_payload: payload });
+  if (registered.error) {
+    await googleFetch(connection, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(event.id)}?sendUpdates=none`, { method: 'DELETE' }).catch(() => null);
+    return json({ error: `Meeting dibatalkan karena registrasi Ruang Kawan gagal: ${registered.error.message}` }, 500, origin);
+  }
+  return json({ ready: true, meetingId: registered.data, eventId: event.id, meetUrl, htmlLink: event.htmlLink ?? null }, 200, origin);
+}
+
+async function uploadChatAttachment(req: Request, origin: string | null) {
+  const auth = await authenticatedClient(req); if (!auth) return json({ error: 'Sesi tidak valid.' }, 401, origin);
+  const form = await req.formData(); const file = form.get('file'); const conversationId = String(form.get('conversationId') ?? '');
+  const registerDocument = String(form.get('registerDocument') ?? 'true') !== 'false';
+  if (!conversationId || !(file instanceof File)) return json({ error: 'Percakapan dan file wajib dipilih.' }, 400, origin);
+  if (file.size <= 0 || file.size > 25 * 1024 * 1024) return json({ error: 'Ukuran file harus antara 1 byte dan 25 MB.' }, 400, origin);
+  const { data: memberAllowed } = await auth.client.rpc('is_chat_member', { target_conversation_id: conversationId });
+  if (!memberAllowed) return json({ error: 'Percakapan tidak dapat diakses.' }, 403, origin);
+  const company = await companyWorkspaceConnection();
+  const { data: personal } = await service.from('google_calendar_connections').select('*').eq('connection_type','personal').eq('owner_user_id',auth.user.id).eq('is_active',true).maybeSingle();
+  const connection = workspaceReady(company) ? company : workspaceReady(personal) ? personal : null;
+  if (!connection) return json({ error: 'Google Drive belum dihubungkan untuk upload lampiran.', needsAuthorization: true }, 409, origin);
+  const safeName = file.name.replace(/[\u0000-\u001f<>:"/\\|?*]/g, '_').slice(0, 180) || 'Lampiran Kawan Chat';
+  const metadata = { name: safeName, mimeType: file.type || 'application/octet-stream', appProperties: { source: 'kawan-chat', conversationId } };
+  const boundary = `rk_chat_${crypto.randomUUID()}`; const bytes = new Uint8Array(await file.arrayBuffer());
+  const prefix = new TextEncoder().encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: ${metadata.mimeType}\r\n\r\n`);
+  const suffix = new TextEncoder().encode(`\r\n--${boundary}--`); const multipart = new Uint8Array(prefix.length + bytes.length + suffix.length); multipart.set(prefix); multipart.set(bytes, prefix.length); multipart.set(suffix, prefix.length + bytes.length);
+  const uploaded = await googleApi(connection!, 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink,webContentLink', { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body: multipart }) as Record<string,any>;
+  const { data: conversationMembers } = await service.from('chat_conversation_members').select('memberships!inner(email)').eq('conversation_id',conversationId).is('left_at',null);
+  const emails = (conversationMembers ?? []).map((row: any) => String(row.memberships?.email ?? '')).filter((email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+  const sharing = await shareDriveFile(connection!, String(uploaded.id), emails, 'reader');
+  const fileUrl = uploaded.webViewLink ?? `https://drive.google.com/open?id=${uploaded.id}`;
+  const registered = await auth.client.rpc('register_chat_attachment', { target_conversation_id: conversationId, register_document: registerDocument, file_payload: { file_name: safeName, file_url: fileUrl, drive_file_id: uploaded.id, mime_type: uploaded.mimeType ?? metadata.mimeType, size_bytes: Number(uploaded.size ?? file.size) } });
+  if (registered.error) {
+    await googleApi(connection!, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(uploaded.id)}`, { method: 'DELETE' }, false).catch(() => null);
+    return json({ error: `File dibatalkan karena registrasi Kawan Chat gagal: ${registered.error.message}` }, 500, origin);
+  }
+  return json({ ready: true, attachment: { id: registered.data, name: safeName, url: fileUrl, mime_type: uploaded.mimeType ?? metadata.mimeType, size_bytes: Number(uploaded.size ?? file.size) }, sharing }, 200, origin);
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin'); if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
   const path = new URL(req.url).pathname.replace(/^.*\/ruang-kawan-calendar/, '') || '/';
@@ -298,6 +373,8 @@ Deno.serve(async (req) => {
     if (path === '/callback' && req.method === 'GET') return await callback(req);
     if (path === '/calendars' && req.method === 'GET') return await listCalendars(req, origin);
     if (path === '/events' && req.method === 'GET') return await listEvents(req, origin);
+    if (path === '/meetings' && req.method === 'POST') return await createChatMeeting(req, origin);
+    if (path === '/chat/attachments' && req.method === 'POST') return await uploadChatAttachment(req, origin);
     if (path === '/workspace/status' && req.method === 'GET') return await workspaceStatus(req, origin);
     if (path === '/workspace/generate-report' && req.method === 'POST') return await generateWorkspaceReport(req, origin);
     if (path === '/workspace/personal-spreadsheet' && ['GET','POST'].includes(req.method)) return await personalSpreadsheet(req, origin);
