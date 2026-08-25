@@ -1,33 +1,962 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
-import { FiArrowLeft,FiBarChart2,FiCheck,FiEdit3,FiFileText,FiPlus,FiRefreshCw,FiSave,FiTrash2,FiUsers,FiX } from 'react-icons/fi';
-import { createClient } from '@/lib/supabase/client';
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
+import {
+  FiArrowLeft,
+  FiBarChart2,
+  FiCheck,
+  FiEdit3,
+  FiFileText,
+  FiPlus,
+  FiRefreshCw,
+  FiSave,
+  FiTrash2,
+  FiUsers,
+  FiX,
+} from "react-icons/fi";
+import { createClient } from "@/lib/supabase/client";
 
-type Draft={id:string;report_type:string;period_start:string;period_end:string;status:string;revision:number;score_cache:number|null;last_autosaved_at:string|null;updated_at:string;item_count:number;artifact_count:number};
-type Section='progress'|'problem'|'plan'|'priority'|'notes'|'insight'|'action_item';
-type Item={id:string;report_id:string;section:Section;text:string;justification:string|null;source_type:string;source_id:string|null;evidence_url:string|null;sort_order:number};
-type Artifact={id:string;artifact_type:string;url:string|null;status:string};type Snapshot={id:string;draft_revision:number;score:number|null;checksum:string;created_at:string;artifacts:Artifact[]};
-type Member={id:string;name:string};type Action={id:string;report_id:string;report_item_id:string|null;pic_membership_id:string;pic_name:string;title:string;deadline:string;priority:string;status:string;source_module:string|null;source_id:string|null;activity_id:string|null};
-type Modal='period'|'item'|'action'|'artifact'|null;
-const sections:Section[]=['progress','problem','plan','priority','notes','insight','action_item'];const sectionLabels:Record<Section,string>={progress:'Progress',problem:'Problem',plan:'Plan',priority:'Priority',notes:'Notes',insight:'Insight',action_item:'Action Item'};const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
+type Draft = {
+  id: string;
+  report_type: string;
+  period_start: string;
+  period_end: string;
+  status: string;
+  revision: number;
+  score_cache: number | null;
+  last_autosaved_at: string | null;
+  updated_at: string;
+  item_count: number;
+  artifact_count: number;
+};
+type Section =
+  | "progress"
+  | "problem"
+  | "plan"
+  | "priority"
+  | "notes"
+  | "insight"
+  | "action_item";
+type Item = {
+  id: string;
+  report_id: string;
+  section: Section;
+  text: string;
+  justification: string | null;
+  source_type: string;
+  source_id: string | null;
+  evidence_url: string | null;
+  sort_order: number;
+};
+type Artifact = {
+  id: string;
+  artifact_type: string;
+  url: string | null;
+  status: string;
+};
+type Snapshot = {
+  id: string;
+  draft_revision: number;
+  score: number | null;
+  checksum: string;
+  created_at: string;
+  artifacts: Artifact[];
+};
+type Member = { id: string; name: string };
+type Action = {
+  id: string;
+  report_id: string;
+  report_item_id: string | null;
+  pic_membership_id: string;
+  pic_name: string;
+  title: string;
+  deadline: string;
+  priority: string;
+  status: string;
+  source_module: string | null;
+  source_id: string | null;
+  activity_id: string | null;
+};
+type WorkspaceTemplate = {
+  id: string;
+  name: string;
+  google_file_type: "document" | "presentation";
+  active_version: number;
+  status: string;
+  output_folder_url: string | null;
+};
+type WorkspaceStatus = {
+  connected: boolean;
+  ready: boolean;
+  account: string | null;
+  canManage: boolean;
+};
+type Modal = "period" | "item" | "action" | "artifact" | null;
+const sections: Section[] = [
+  "progress",
+  "problem",
+  "plan",
+  "priority",
+  "notes",
+  "insight",
+  "action_item",
+];
+const sectionLabels: Record<Section, string> = {
+  progress: "Progress",
+  problem: "Problem",
+  plan: "Plan",
+  priority: "Priority",
+  notes: "Notes",
+  insight: "Insight",
+  action_item: "Action Item",
+};
+const today = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
-export default function Reports(){
- const[state,setState]=useState<'loading'|'ready'|'denied'>('loading');const[drafts,setDrafts]=useState<Draft[]>([]);const[selected,setSelected]=useState<Draft|null>(null);const[items,setItems]=useState<Item[]>([]);const[snapshots,setSnapshots]=useState<Snapshot[]>([]);const[members,setMembers]=useState<Member[]>([]);const[actions,setActions]=useState<Action[]>([]);const[usage,setUsage]=useState({published:0,last_90_days:0});const[modal,setModal]=useState<Modal>(null);const[period,setPeriod]=useState({kind:'weekly',start:today(),end:today()});const[itemForm,setItemForm]=useState({id:'',section:'progress' as Section,text:'',justification:'',evidence_url:'',sort_order:'100'});const[actionForm,setActionForm]=useState({id:'',report_item_id:'',pic_membership_id:'',title:'',deadline:today(),priority:'medium',status:'open',source_module:'reports',source_id:''});const[artifactForm,setArtifactForm]=useState({snapshot_id:'',kind:'document',url:''});const[saving,setSaving]=useState(false);const[error,setError]=useState('');const[message,setMessage]=useState('');
- async function load(){const s=createClient();const{data:{session}}=await s.auth.getSession();if(!session){location.replace('/ruang-kawan/');return}const[a,w]=await Promise.all([s.rpc('get_my_access'),s.rpc('report_workspace')]);const access=Array.isArray(a.data)?a.data[0]:a.data;if(!access?.permissions?.includes('reports.view_self')){setState('denied');return}if(w.error){setError(w.error.message);setState('ready');return}setDrafts(w.data.drafts??[]);setUsage(w.data.usage??{published:0,last_90_days:0});setState('ready')}
- useEffect(()=>{void load()},[]);
- async function open(d:Draft){setError('');const s=createClient();const[r,c]=await Promise.all([s.rpc('get_report_detail',{target:d.id}),s.rpc('report_action_workspace',{target:d.id})]);if(r.error||c.error){setError(r.error?.message??c.error?.message??'Report gagal dimuat.');return}setSelected(r.data.report??d);setItems(r.data.items??[]);setSnapshots(r.data.snapshots??[]);setMembers(c.data.members??[]);setActions(c.data.actions??[])}
- async function rpc(name:string,args:Record<string,unknown>){setSaving(true);setError('');const r=await createClient().rpc(name,args);setSaving(false);if(r.error){setError(r.error.message);return null}setModal(null);setMessage('Perubahan report berhasil disimpan.');await load();return r.data}
- async function createDraft(e:FormEvent){e.preventDefault();const id=await rpc('build_report_auto_draft',{kind:period.kind,start_input:period.kind==='custom'?period.start:null,end_input:period.kind==='custom'?period.end:null});if(id){const w=await createClient().rpc('report_workspace');const d=w.data?.drafts?.find((x:Draft)=>x.id===id);if(d)await open(d)}}
- async function saveItem(e:FormEvent){e.preventDefault();if(!selected)return;await rpc('save_report_item',{item_id:itemForm.id||null,payload:{report_id:selected.id,...itemForm}});await open(selected)}
- async function saveAction(e:FormEvent){e.preventDefault();if(!selected)return;await rpc('save_report_action_item',{target:actionForm.id||null,payload:{report_id:selected.id,...actionForm}});await open(selected)}
- async function removeItem(id:string){if(!confirm('Hapus item ini dari draft?'))return;await rpc('delete_report_item',{target_item:id});if(selected)await open(selected)}
- async function snapshot(){if(!selected)return;const id=await rpc('snapshot_report',{target:selected.id,idempotency:`${selected.id}:${selected.revision}`});if(id){setMessage('Snapshot immutable berhasil dibuat.');await open(selected)}}
- async function registerArtifact(e:FormEvent){e.preventDefault();await rpc('register_report_artifact',{target_snapshot:artifactForm.snapshot_id,kind:artifactForm.kind,url_value:artifactForm.url,status_value:'ready'});if(selected)await open(selected)}
- function editItem(i?:Item,section:Section='progress'){setItemForm(i?{id:i.id,section:i.section,text:i.text,justification:i.justification??'',evidence_url:i.evidence_url??'',sort_order:String(i.sort_order)}:{id:'',section,text:'',justification:'',evidence_url:'',sort_order:'100'});setModal('item')}
- function editAction(a?:Action,item?:Item){setActionForm(a?{id:a.id,report_item_id:a.report_item_id??'',pic_membership_id:a.pic_membership_id,title:a.title,deadline:a.deadline,priority:a.priority,status:a.status,source_module:a.source_module??'reports',source_id:a.source_id??''}:{id:'',report_item_id:item?.id??'',pic_membership_id:'',title:item?.text??'',deadline:today(),priority:'medium',status:'open',source_module:'reports',source_id:item?.id??''});setModal('action')}
- if(state==='loading')return <main className="rk-dashboard-foundation"><section className="rk-access-denied">Menyiapkan Report & Analysis...</section></main>;if(state==='denied')return <main className="rk-dashboard-foundation"><section className="rk-access-denied"><h1>Report belum tersedia</h1><Link href="/ruang-kawan/dashboard/">Kembali</Link></section></main>;
- return <main className="rk-report-foundation"><section className="rk-report-shell"><nav><Link href="/ruang-kawan/dashboard/"><FiArrowLeft/> Dashboard</Link><button onClick={()=>void load()}><FiRefreshCw/> Muat ulang</button></nav><header className="rk-report-heading"><div><small>Personal meeting report</small><h1>Report & Analysis</h1><p>KPI + seluruh aktivitas kerja → draft 3P + Priority → action item → snapshot → output.</p></div><button onClick={()=>setModal('period')}><FiPlus/> Buat report</button></header><section className="rk-report-metrics"><article><FiFileText/><b>{drafts.length}</b><span>Total report</span></article><article><FiCheck/><b>{usage.published}</b><span>Published</span></article><article><FiUsers/><b>{actions.filter(a=>a.status!=='done'&&a.status!=='cancelled').length}</b><span>Action item terbuka</span></article><article><FiBarChart2/><b>{selected?.score_cache?.toFixed(1)??'—'}%</b><span>KPI score</span></article></section>{message?<p className="rk-report-alert">{message}</p>:null}{error?<p className="rk-report-alert" data-error>{error}</p>:null}<section className="rk-report-layout"><aside>{drafts.map(d=><button key={d.id} data-active={selected?.id===d.id} onClick={()=>void open(d)}><span>{d.report_type}</span><b>{d.period_start} — {d.period_end}</b><small>{d.status} · rev {d.revision} · {d.item_count} item</small></button>)}{!drafts.length?<p>Belum ada report. Buat report pertama dari KPI dan aktivitas kamu.</p>:null}</aside><div className="rk-report-workspace">{selected?<><header><div><small>{selected.report_type} report · revision {selected.revision}</small><h2>{selected.period_start} — {selected.period_end}</h2><p>Data otomatis tetap dapat diedit dan dilengkapi sebelum snapshot.</p></div><i data-status={selected.status}>{selected.status}</i></header><div className="rk-report-sections">{sections.map(section=><section key={section}><header><h3>{sectionLabels[section]}</h3><button onClick={()=>section==='action_item'?editAction():editItem(undefined,section)}><FiPlus/></button></header>{section==='action_item'?actions.map(a=><article key={a.id}><span>{a.priority} · {a.pic_name}</span><b>{a.title}</b><p>{a.deadline} · {a.status}</p><footer><button onClick={()=>editAction(a)}><FiEdit3/></button></footer></article>):items.filter(i=>i.section===section).map(i=><article key={i.id}><span>{i.source_type}</span><b>{i.text}</b>{i.justification?<p>{i.justification}</p>:null}<footer>{i.evidence_url?<a href={i.evidence_url} target="_blank">Evidence</a>:<small>Tanpa evidence</small>}<button onClick={()=>editItem(i)}><FiEdit3/></button>{section==='priority'?<button onClick={()=>editAction(undefined,i)} title="Jadikan action item"><FiUsers/></button>:null}<button onClick={()=>void removeItem(i.id)}><FiTrash2/></button></footer></article>)}{section==='action_item'?!actions.length&&<p className="empty">Belum ada action item.</p>:!items.some(i=>i.section===section)&&<p className="empty">Belum ada item.</p>}</section>)}</div><div className="rk-report-actions"><button onClick={()=>void snapshot()} disabled={saving}><FiSave/> Save Snapshot</button></div><section className="rk-report-history"><h3>Snapshot & Generated Files</h3>{snapshots.map(s=><article key={s.id}><div><b>Revision {s.draft_revision}</b><small>{new Date(s.created_at).toLocaleString('id-ID')} · checksum {s.checksum.slice(0,10)}</small></div><span>{s.artifacts.map(a=><a key={a.id} href={a.url??'#'} target="_blank">{a.artifact_type} · {a.status}</a>)}</span><button onClick={()=>{setArtifactForm({snapshot_id:s.id,kind:'document',url:''});setModal('artifact')}}><FiPlus/> Register output</button></article>)}</section></>:<div className="rk-report-empty"><FiBarChart2/><h2>Pilih report</h2><p>Draft, analisis, action item, dan snapshot akan tampil di sini.</p></div>}</div></section></section>
- {modal?<div className="rk-report-modal"><form onSubmit={modal==='period'?createDraft:modal==='item'?saveItem:modal==='action'?saveAction:registerArtifact}><header><h2>{modal==='period'?'Buat report personal':modal==='item'?'Edit report item':modal==='action'?'Action item':'Register output'}</h2><button type="button" onClick={()=>setModal(null)}><FiX/></button></header><div>{modal==='period'?<><label>Tipe<select value={period.kind} onChange={e=>setPeriod({...period,kind:e.target.value})}><option value="weekly">Weekly terakhir selesai</option><option value="monthly">Monthly sebelumnya</option><option value="custom">Custom date</option></select></label>{period.kind==='custom'?<><label>Mulai<input type="date" value={period.start} onChange={e=>setPeriod({...period,start:e.target.value})}/></label><label>Selesai<input type="date" value={period.end} onChange={e=>setPeriod({...period,end:e.target.value})}/></label></>:null}</>:modal==='item'?<><label>Bagian<select value={itemForm.section} onChange={e=>setItemForm({...itemForm,section:e.target.value as Section})}>{sections.filter(x=>x!=='action_item').map(x=><option key={x} value={x}>{sectionLabels[x]}</option>)}</select></label><label className="wide">Narasi<textarea value={itemForm.text} onChange={e=>setItemForm({...itemForm,text:e.target.value})} required/></label><label className="wide">Justifikasi<textarea value={itemForm.justification} onChange={e=>setItemForm({...itemForm,justification:e.target.value})}/></label><label className="wide">Evidence URL<input type="url" value={itemForm.evidence_url} onChange={e=>setItemForm({...itemForm,evidence_url:e.target.value})}/></label></>:modal==='action'?<><label className="wide">Action item<input value={actionForm.title} onChange={e=>setActionForm({...actionForm,title:e.target.value})} required/></label><label>PIC<select value={actionForm.pic_membership_id} onChange={e=>setActionForm({...actionForm,pic_membership_id:e.target.value})}><option value="">Saya sendiri</option>{members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label>Deadline<input type="date" value={actionForm.deadline} onChange={e=>setActionForm({...actionForm,deadline:e.target.value})} required/></label><label>Prioritas<select value={actionForm.priority} onChange={e=>setActionForm({...actionForm,priority:e.target.value})}>{['low','medium','high','urgent'].map(x=><option key={x}>{x}</option>)}</select></label><label>Status<select value={actionForm.status} onChange={e=>setActionForm({...actionForm,status:e.target.value})}>{['open','in_progress','done','cancelled'].map(x=><option key={x}>{x}</option>)}</select></label></>:<><label>Jenis<select value={artifactForm.kind} onChange={e=>setArtifactForm({...artifactForm,kind:e.target.value})}><option value="document">Google Docs</option><option value="presentation">Google Slides</option><option value="pdf">PDF</option></select></label><label className="wide">URL output<input type="url" value={artifactForm.url} onChange={e=>setArtifactForm({...artifactForm,url:e.target.value})} required/></label><p className="wide">Output otomatis diregistrasikan ke Document Center dari snapshot yang sama.</p></>}</div><footer><button type="button" onClick={()=>setModal(null)}>Batal</button><button data-primary disabled={saving}>{saving?'Menyimpan...':'Simpan'}</button></footer></form></div>:null}</main>
+export default function Reports() {
+  const [state, setState] = useState<"loading" | "ready" | "denied">("loading");
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [selected, setSelected] = useState<Draft | null>(null);
+  const [items, setItems] = useState<Item[]>([]);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [actions, setActions] = useState<Action[]>([]);
+  const [usage, setUsage] = useState({ published: 0, last_90_days: 0 });
+  const [templates, setTemplates] = useState<WorkspaceTemplate[]>([]);
+  const [workspace, setWorkspace] = useState<WorkspaceStatus>({
+    connected: false,
+    ready: false,
+    account: null,
+    canManage: false,
+  });
+  const [modal, setModal] = useState<Modal>(null);
+  const [period, setPeriod] = useState({
+    kind: "weekly",
+    start: today(),
+    end: today(),
+  });
+  const [itemForm, setItemForm] = useState({
+    id: "",
+    section: "progress" as Section,
+    text: "",
+    justification: "",
+    evidence_url: "",
+    sort_order: "100",
+  });
+  const [actionForm, setActionForm] = useState({
+    id: "",
+    report_item_id: "",
+    pic_membership_id: "",
+    title: "",
+    deadline: today(),
+    priority: "medium",
+    status: "open",
+    source_module: "reports",
+    source_id: "",
+  });
+  const [artifactForm, setArtifactForm] = useState({
+    snapshot_id: "",
+    kind: "document",
+    template_id: "",
+    url: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  async function load() {
+    const s = createClient();
+    const {
+      data: { session },
+    } = await s.auth.getSession();
+    if (!session) {
+      location.replace("/ruang-kawan/");
+      return;
+    }
+    const [a, w, t, status] = await Promise.all([
+      s.rpc("get_my_access"),
+      s.rpc("report_workspace"),
+      s.rpc("list_workspace_generation_templates"),
+      fetch(
+        "https://lxwqhtuhlddgwfxjtlas.supabase.co/functions/v1/ruang-kawan-calendar/workspace/status",
+        { headers: { Authorization: `Bearer ${session.access_token}` } },
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    ]);
+    const access = Array.isArray(a.data) ? a.data[0] : a.data;
+    if (!access?.permissions?.includes("reports.view_self")) {
+      setState("denied");
+      return;
+    }
+    if (w.error) {
+      setError(w.error.message);
+      setState("ready");
+      return;
+    }
+    setDrafts(w.data.drafts ?? []);
+    setUsage(w.data.usage ?? { published: 0, last_90_days: 0 });
+    if (!t.error) setTemplates(t.data ?? []);
+    if (status) setWorkspace(status);
+    setState("ready");
+  }
+  useEffect(() => {
+    void load();
+  }, []);
+  async function open(d: Draft) {
+    setError("");
+    const s = createClient();
+    const [r, c] = await Promise.all([
+      s.rpc("get_report_detail", { target: d.id }),
+      s.rpc("report_action_workspace", { target: d.id }),
+    ]);
+    if (r.error || c.error) {
+      setError(r.error?.message ?? c.error?.message ?? "Report gagal dimuat.");
+      return;
+    }
+    setSelected(r.data.report ?? d);
+    setItems(r.data.items ?? []);
+    setSnapshots(r.data.snapshots ?? []);
+    setMembers(c.data.members ?? []);
+    setActions(c.data.actions ?? []);
+  }
+  async function rpc(name: string, args: Record<string, unknown>) {
+    setSaving(true);
+    setError("");
+    const r = await createClient().rpc(name, args);
+    setSaving(false);
+    if (r.error) {
+      setError(r.error.message);
+      return null;
+    }
+    setModal(null);
+    setMessage("Perubahan report berhasil disimpan.");
+    await load();
+    return r.data;
+  }
+  async function createDraft(e: FormEvent) {
+    e.preventDefault();
+    const id = await rpc("build_report_auto_draft", {
+      kind: period.kind,
+      start_input: period.kind === "custom" ? period.start : null,
+      end_input: period.kind === "custom" ? period.end : null,
+    });
+    if (id) {
+      const w = await createClient().rpc("report_workspace");
+      const d = w.data?.drafts?.find((x: Draft) => x.id === id);
+      if (d) await open(d);
+    }
+  }
+  async function saveItem(e: FormEvent) {
+    e.preventDefault();
+    if (!selected) return;
+    await rpc("save_report_item", {
+      item_id: itemForm.id || null,
+      payload: { report_id: selected.id, ...itemForm },
+    });
+    await open(selected);
+  }
+  async function saveAction(e: FormEvent) {
+    e.preventDefault();
+    if (!selected) return;
+    await rpc("save_report_action_item", {
+      target: actionForm.id || null,
+      payload: { report_id: selected.id, ...actionForm },
+    });
+    await open(selected);
+  }
+  async function removeItem(id: string) {
+    if (!confirm("Hapus item ini dari draft?")) return;
+    await rpc("delete_report_item", { target_item: id });
+    if (selected) await open(selected);
+  }
+  async function snapshot() {
+    if (!selected) return;
+    const id = await rpc("snapshot_report", {
+      target: selected.id,
+      idempotency: `${selected.id}:${selected.revision}`,
+    });
+    if (id) {
+      setMessage("Snapshot immutable berhasil dibuat.");
+      await open(selected);
+    }
+  }
+  async function registerArtifact(e: FormEvent) {
+    e.preventDefault();
+    if (artifactForm.url) {
+      await rpc("register_report_artifact", {
+        target_snapshot: artifactForm.snapshot_id,
+        kind: artifactForm.kind,
+        url_value: artifactForm.url,
+        status_value: "ready",
+      });
+      if (selected) await open(selected);
+      return;
+    }
+    if (!artifactForm.template_id) {
+      setError("Pilih template atau masukkan URL output yang sudah ada.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    const s = createClient();
+    const refreshed = await s.auth.refreshSession();
+    const session =
+      refreshed.data.session ?? (await s.auth.getSession()).data.session;
+    try {
+      if (!session) throw new Error("Sesi berakhir. Silakan login kembali.");
+      const response = await fetch(
+        "https://lxwqhtuhlddgwfxjtlas.supabase.co/functions/v1/ruang-kawan-calendar/workspace/generate-report",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            snapshotId: artifactForm.snapshot_id,
+            templateId: artifactForm.template_id,
+            kind: artifactForm.kind,
+          }),
+        },
+      );
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error ?? "Output belum berhasil dibuat.");
+      setModal(null);
+      setMessage(
+        "Output Google Workspace berhasil dibuat dan terdaftar di Document Center.",
+      );
+      if (selected) await open(selected);
+    } catch (generationError) {
+      setError(
+        generationError instanceof Error
+          ? generationError.message
+          : "Generator Workspace gagal.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function activateWorkspace() {
+    setError("");
+    const s = createClient();
+    const refreshed = await s.auth.refreshSession();
+    const session =
+      refreshed.data.session ?? (await s.auth.getSession()).data.session;
+    if (!session) return;
+    const response = await fetch(
+      "https://lxwqhtuhlddgwfxjtlas.supabase.co/functions/v1/ruang-kawan-calendar/authorize",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          connectionType: "company",
+          returnUrl: window.location.href,
+        }),
+      },
+    );
+    const result = await response.json();
+    if (!response.ok || !result.url) {
+      setError(
+        result.error ?? "Aktivasi Google Workspace belum dapat dimulai.",
+      );
+      return;
+    }
+    window.location.assign(result.url);
+  }
+  function editItem(i?: Item, section: Section = "progress") {
+    setItemForm(
+      i
+        ? {
+            id: i.id,
+            section: i.section,
+            text: i.text,
+            justification: i.justification ?? "",
+            evidence_url: i.evidence_url ?? "",
+            sort_order: String(i.sort_order),
+          }
+        : {
+            id: "",
+            section,
+            text: "",
+            justification: "",
+            evidence_url: "",
+            sort_order: "100",
+          },
+    );
+    setModal("item");
+  }
+  function editAction(a?: Action, item?: Item) {
+    setActionForm(
+      a
+        ? {
+            id: a.id,
+            report_item_id: a.report_item_id ?? "",
+            pic_membership_id: a.pic_membership_id,
+            title: a.title,
+            deadline: a.deadline,
+            priority: a.priority,
+            status: a.status,
+            source_module: a.source_module ?? "reports",
+            source_id: a.source_id ?? "",
+          }
+        : {
+            id: "",
+            report_item_id: item?.id ?? "",
+            pic_membership_id: "",
+            title: item?.text ?? "",
+            deadline: today(),
+            priority: "medium",
+            status: "open",
+            source_module: "reports",
+            source_id: item?.id ?? "",
+          },
+    );
+    setModal("action");
+  }
+  if (state === "loading")
+    return (
+      <main className="rk-dashboard-foundation">
+        <section className="rk-access-denied">
+          Menyiapkan Report & Analysis...
+        </section>
+      </main>
+    );
+  if (state === "denied")
+    return (
+      <main className="rk-dashboard-foundation">
+        <section className="rk-access-denied">
+          <h1>Report belum tersedia</h1>
+          <Link href="/ruang-kawan/dashboard/">Kembali</Link>
+        </section>
+      </main>
+    );
+  return (
+    <main className="rk-report-foundation">
+      <section className="rk-report-shell">
+        <nav>
+          <Link href="/ruang-kawan/dashboard/">
+            <FiArrowLeft /> Dashboard
+          </Link>
+          <button onClick={() => void load()}>
+            <FiRefreshCw /> Muat ulang
+          </button>
+        </nav>
+        <header className="rk-report-heading">
+          <div>
+            <small>Personal meeting report</small>
+            <h1>Report & Analysis</h1>
+            <p>
+              KPI + seluruh aktivitas kerja → draft 3P + Priority → action item
+              → snapshot → output.
+            </p>
+          </div>
+          <button onClick={() => setModal("period")}>
+            <FiPlus /> Buat report
+          </button>
+        </header>
+        <section className="rk-report-metrics">
+          <article>
+            <FiFileText />
+            <b>{drafts.length}</b>
+            <span>Total report</span>
+          </article>
+          <article>
+            <FiCheck />
+            <b>{usage.published}</b>
+            <span>Published</span>
+          </article>
+          <article>
+            <FiUsers />
+            <b>
+              {
+                actions.filter(
+                  (a) => a.status !== "done" && a.status !== "cancelled",
+                ).length
+              }
+            </b>
+            <span>Action item terbuka</span>
+          </article>
+          <article>
+            <FiBarChart2 />
+            <b>{selected?.score_cache?.toFixed(1) ?? "—"}%</b>
+            <span>KPI score</span>
+          </article>
+        </section>
+        {message ? <p className="rk-report-alert">{message}</p> : null}
+        {error ? (
+          <p className="rk-report-alert" data-error>
+            {error}
+          </p>
+        ) : null}
+        <section className="rk-report-layout">
+          <aside>
+            {drafts.map((d) => (
+              <button
+                key={d.id}
+                data-active={selected?.id === d.id}
+                onClick={() => void open(d)}
+              >
+                <span>{d.report_type}</span>
+                <b>
+                  {d.period_start} — {d.period_end}
+                </b>
+                <small>
+                  {d.status} · rev {d.revision} · {d.item_count} item
+                </small>
+              </button>
+            ))}
+            {!drafts.length ? (
+              <p>
+                Belum ada report. Buat report pertama dari KPI dan aktivitas
+                kamu.
+              </p>
+            ) : null}
+          </aside>
+          <div className="rk-report-workspace">
+            {selected ? (
+              <>
+                <header>
+                  <div>
+                    <small>
+                      {selected.report_type} report · revision{" "}
+                      {selected.revision}
+                    </small>
+                    <h2>
+                      {selected.period_start} — {selected.period_end}
+                    </h2>
+                    <p>
+                      Data otomatis tetap dapat diedit dan dilengkapi sebelum
+                      snapshot.
+                    </p>
+                  </div>
+                  <i data-status={selected.status}>{selected.status}</i>
+                </header>
+                <div className="rk-report-sections">
+                  {sections.map((section) => (
+                    <section key={section}>
+                      <header>
+                        <h3>{sectionLabels[section]}</h3>
+                        <button
+                          onClick={() =>
+                            section === "action_item"
+                              ? editAction()
+                              : editItem(undefined, section)
+                          }
+                        >
+                          <FiPlus />
+                        </button>
+                      </header>
+                      {section === "action_item"
+                        ? actions.map((a) => (
+                            <article key={a.id}>
+                              <span>
+                                {a.priority} · {a.pic_name}
+                              </span>
+                              <b>{a.title}</b>
+                              <p>
+                                {a.deadline} · {a.status}
+                              </p>
+                              <footer>
+                                <button onClick={() => editAction(a)}>
+                                  <FiEdit3 />
+                                </button>
+                              </footer>
+                            </article>
+                          ))
+                        : items
+                            .filter((i) => i.section === section)
+                            .map((i) => (
+                              <article key={i.id}>
+                                <span>{i.source_type}</span>
+                                <b>{i.text}</b>
+                                {i.justification ? (
+                                  <p>{i.justification}</p>
+                                ) : null}
+                                <footer>
+                                  {i.evidence_url ? (
+                                    <a href={i.evidence_url} target="_blank">
+                                      Evidence
+                                    </a>
+                                  ) : (
+                                    <small>Tanpa evidence</small>
+                                  )}
+                                  <button onClick={() => editItem(i)}>
+                                    <FiEdit3 />
+                                  </button>
+                                  {section === "priority" ? (
+                                    <button
+                                      onClick={() => editAction(undefined, i)}
+                                      title="Jadikan action item"
+                                    >
+                                      <FiUsers />
+                                    </button>
+                                  ) : null}
+                                  <button onClick={() => void removeItem(i.id)}>
+                                    <FiTrash2 />
+                                  </button>
+                                </footer>
+                              </article>
+                            ))}
+                      {section === "action_item"
+                        ? !actions.length && (
+                            <p className="empty">Belum ada action item.</p>
+                          )
+                        : !items.some((i) => i.section === section) && (
+                            <p className="empty">Belum ada item.</p>
+                          )}
+                    </section>
+                  ))}
+                </div>
+                <div className="rk-report-actions">
+                  <button onClick={() => void snapshot()} disabled={saving}>
+                    <FiSave /> Save Snapshot
+                  </button>
+                </div>
+                <section className="rk-report-history">
+                  <h3>Snapshot & Generated Files</h3>
+                  {snapshots.map((s) => (
+                    <article key={s.id}>
+                      <div>
+                        <b>Revision {s.draft_revision}</b>
+                        <small>
+                          {new Date(s.created_at).toLocaleString("id-ID")} ·
+                          checksum {s.checksum.slice(0, 10)}
+                        </small>
+                      </div>
+                      <span>
+                        {s.artifacts.map((a) => (
+                          <a key={a.id} href={a.url ?? "#"} target="_blank">
+                            {a.artifact_type} · {a.status}
+                          </a>
+                        ))}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setArtifactForm({
+                            snapshot_id: s.id,
+                            kind: "document",
+                            template_id: "",
+                            url: "",
+                          });
+                          setModal("artifact");
+                        }}
+                      >
+                        <FiPlus /> Generate output
+                      </button>
+                    </article>
+                  ))}
+                </section>
+              </>
+            ) : (
+              <div className="rk-report-empty">
+                <FiBarChart2 />
+                <h2>Pilih report</h2>
+                <p>
+                  Draft, analisis, action item, dan snapshot akan tampil di
+                  sini.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      </section>
+      {modal ? (
+        <div className="rk-report-modal">
+          <form
+            onSubmit={
+              modal === "period"
+                ? createDraft
+                : modal === "item"
+                  ? saveItem
+                  : modal === "action"
+                    ? saveAction
+                    : registerArtifact
+            }
+          >
+            <header>
+              <h2>
+                {modal === "period"
+                  ? "Buat report personal"
+                  : modal === "item"
+                    ? "Edit report item"
+                    : modal === "action"
+                      ? "Action item"
+                      : "Generate output"}
+              </h2>
+              <button type="button" onClick={() => setModal(null)}>
+                <FiX />
+              </button>
+            </header>
+            <div>
+              {modal === "period" ? (
+                <>
+                  <label>
+                    Tipe
+                    <select
+                      value={period.kind}
+                      onChange={(e) =>
+                        setPeriod({ ...period, kind: e.target.value })
+                      }
+                    >
+                      <option value="weekly">Weekly terakhir selesai</option>
+                      <option value="monthly">Monthly sebelumnya</option>
+                      <option value="custom">Custom date</option>
+                    </select>
+                  </label>
+                  {period.kind === "custom" ? (
+                    <>
+                      <label>
+                        Mulai
+                        <input
+                          type="date"
+                          value={period.start}
+                          onChange={(e) =>
+                            setPeriod({ ...period, start: e.target.value })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Selesai
+                        <input
+                          type="date"
+                          value={period.end}
+                          onChange={(e) =>
+                            setPeriod({ ...period, end: e.target.value })
+                          }
+                        />
+                      </label>
+                    </>
+                  ) : null}
+                </>
+              ) : modal === "item" ? (
+                <>
+                  <label>
+                    Bagian
+                    <select
+                      value={itemForm.section}
+                      onChange={(e) =>
+                        setItemForm({
+                          ...itemForm,
+                          section: e.target.value as Section,
+                        })
+                      }
+                    >
+                      {sections
+                        .filter((x) => x !== "action_item")
+                        .map((x) => (
+                          <option key={x} value={x}>
+                            {sectionLabels[x]}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label className="wide">
+                    Narasi
+                    <textarea
+                      value={itemForm.text}
+                      onChange={(e) =>
+                        setItemForm({ ...itemForm, text: e.target.value })
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="wide">
+                    Justifikasi
+                    <textarea
+                      value={itemForm.justification}
+                      onChange={(e) =>
+                        setItemForm({
+                          ...itemForm,
+                          justification: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="wide">
+                    Evidence URL
+                    <input
+                      type="url"
+                      value={itemForm.evidence_url}
+                      onChange={(e) =>
+                        setItemForm({
+                          ...itemForm,
+                          evidence_url: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                </>
+              ) : modal === "action" ? (
+                <>
+                  <label className="wide">
+                    Action item
+                    <input
+                      value={actionForm.title}
+                      onChange={(e) =>
+                        setActionForm({ ...actionForm, title: e.target.value })
+                      }
+                      required
+                    />
+                  </label>
+                  <label>
+                    PIC
+                    <select
+                      value={actionForm.pic_membership_id}
+                      onChange={(e) =>
+                        setActionForm({
+                          ...actionForm,
+                          pic_membership_id: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Saya sendiri</option>
+                      {members.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Deadline
+                    <input
+                      type="date"
+                      value={actionForm.deadline}
+                      onChange={(e) =>
+                        setActionForm({
+                          ...actionForm,
+                          deadline: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                  <label>
+                    Prioritas
+                    <select
+                      value={actionForm.priority}
+                      onChange={(e) =>
+                        setActionForm({
+                          ...actionForm,
+                          priority: e.target.value,
+                        })
+                      }
+                    >
+                      {["low", "medium", "high", "urgent"].map((x) => (
+                        <option key={x}>{x}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Status
+                    <select
+                      value={actionForm.status}
+                      onChange={(e) =>
+                        setActionForm({ ...actionForm, status: e.target.value })
+                      }
+                    >
+                      {["open", "in_progress", "done", "cancelled"].map((x) => (
+                        <option key={x}>{x}</option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              ) : (
+                <>
+                  <label>
+                    Jenis output
+                    <select
+                      value={artifactForm.kind}
+                      onChange={(e) =>
+                        setArtifactForm({
+                          ...artifactForm,
+                          kind: e.target.value,
+                          template_id: "",
+                        })
+                      }
+                    >
+                      <option value="document">Google Docs</option>
+                      <option value="presentation">Google Slides</option>
+                      <option value="pdf">PDF</option>
+                    </select>
+                  </label>
+                  <label>
+                    Template
+                    <select
+                      value={artifactForm.template_id}
+                      onChange={(e) =>
+                        setArtifactForm({
+                          ...artifactForm,
+                          template_id: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Pilih template</option>
+                          {templates
+                            .filter(
+                              (t) =>
+                                t.status === "active" &&
+                                (artifactForm.kind === "pdf" ||
+                                  t.google_file_type === artifactForm.kind),
+                            )
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name} · v{t.active_version}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <p className="wide">
+                    {workspace.ready
+                      ? `Bridge Workspace aktif${workspace.account ? ` melalui ${workspace.account}` : ""}. File akan dibuat dari snapshot dan otomatis masuk Document Center.`
+                      : "Bridge Google Workspace perlu diaktifkan satu kali oleh admin perusahaan."}
+                  </p>
+                  {!workspace.ready && workspace.canManage ? (
+                    <button
+                      className="wide"
+                      type="button"
+                      onClick={() => void activateWorkspace()}
+                    >
+                      Aktifkan Google Workspace perusahaan
+                    </button>
+                  ) : null}
+                  <label className="wide">
+                    Atau URL output yang sudah ada
+                    <input
+                      type="url"
+                      value={artifactForm.url}
+                      onChange={(e) =>
+                        setArtifactForm({
+                          ...artifactForm,
+                          url: e.target.value,
+                        })
+                      }
+                      placeholder="Opsional — untuk registrasi file existing"
+                    />
+                  </label>
+                </>
+              )}
+            </div>
+            <footer>
+              <button type="button" onClick={() => setModal(null)}>
+                Batal
+              </button>
+              <button data-primary disabled={saving}>
+                {saving
+                  ? "Memproses..."
+                  : modal === "artifact" && !artifactForm.url
+                    ? "Generate"
+                    : "Simpan"}
+              </button>
+            </footer>
+          </form>
+        </div>
+      ) : null}
+    </main>
+  );
 }

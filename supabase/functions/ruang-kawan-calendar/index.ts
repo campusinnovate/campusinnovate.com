@@ -8,7 +8,8 @@ const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CALENDAR_CLIENT_SECRET')!;
 const GOOGLE_REDIRECT_URI = Deno.env.get('GOOGLE_CALENDAR_REDIRECT_URI') ?? `${SUPABASE_URL}/functions/v1/ruang-kawan-calendar/callback`;
 const COMPANY_CALENDAR_ID = 'innovatecampus@gmail.com';
 const APP_ORIGIN = 'https://campusinnovate.com';
-const SCOPES = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/calendar.calendarlist.readonly', 'https://www.googleapis.com/auth/calendar.events'];
+const WORKSPACE_SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents', 'https://www.googleapis.com/auth/presentations'];
+const SCOPES = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/calendar.calendarlist.readonly', 'https://www.googleapis.com/auth/calendar.events', ...WORKSPACE_SCOPES];
 
 const service = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
@@ -64,6 +65,86 @@ async function googleFetch(connection: Record<string, any>, path: string, init?:
   const body = await response.json();
   if (!response.ok) throw new Error(body.error?.message || 'Google Calendar request gagal.');
   return body;
+}
+
+async function googleApi(connection: Record<string, any>, url: string, init?: RequestInit, parseJson = true) {
+  const ready = await refreshConnection(connection);
+  const response = await fetch(url, { ...init, headers: { Authorization: `Bearer ${ready.access_token}`, ...(init?.headers ?? {}) } });
+  const body = parseJson ? await response.json() : await response.arrayBuffer();
+  if (!response.ok) {
+    const message = parseJson ? (body as Record<string, any>).error?.message : '';
+    throw new Error(message || 'Google Workspace request gagal.');
+  }
+  return body;
+}
+function driveId(value: unknown) {
+  const text = String(value ?? '').trim();
+  return text.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1] ?? text.match(/[?&]id=([a-zA-Z0-9_-]+)/)?.[1] ?? (text.match(/^[a-zA-Z0-9_-]{10,}$/)?.[0] ?? '');
+}
+function readPath(source: Record<string, any>, path: string) {
+  return path.split('.').reduce<any>((value, key) => value == null ? '' : value[key], source);
+}
+function stringify(value: unknown) {
+  if (Array.isArray(value)) return value.map((item) => typeof item === 'object' ? Object.values(item as Record<string, unknown>).filter(Boolean).join(' · ') : String(item)).join('\n');
+  if (value && typeof value === 'object') return JSON.stringify(value);
+  return value == null ? '' : String(value);
+}
+function reportReplacements(context: Record<string, any>) {
+  const snapshot = context.snapshot ?? {}; const payload = snapshot.payload ?? {}; const items = payload.items ?? [];
+  const values: Record<string, unknown> = {
+    report_type: snapshot.report_type, period_start: snapshot.period_start, period_end: snapshot.period_end,
+    score: snapshot.score, owner_name: snapshot.owner_name, generated_at: new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }),
+    kpis: context.kpis,
+  };
+  for (const section of ['progress','problem','plan','priority','notes','insight']) values[section] = items.filter((item: Record<string, any>) => item.section === section).map((item: Record<string, any>) => item.text).join('\n• ');
+  const source = { ...context, ...values };
+  for (const [token, path] of Object.entries(context.template?.placeholder_map ?? {})) values[token.replace(/^\{\{|\}\}$/g, '')] = readPath(source, String(path));
+  return Object.fromEntries(Object.entries(values).map(([key, value]) => [`{{${key}}}`, stringify(value)]));
+}
+async function companyWorkspaceConnection() {
+  const { data } = await service.from('google_calendar_connections').select('*').eq('connection_type','company').eq('is_active',true).order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  return data;
+}
+function workspaceReady(connection: Record<string, any> | null) {
+  const scopes = connection?.granted_scopes ?? [];
+  return Boolean(connection && WORKSPACE_SCOPES.every((scope) => scopes.includes(scope)));
+}
+async function workspaceStatus(req: Request, origin: string | null) {
+  const auth = await authenticatedClient(req); if (!auth) return json({ error: 'Sesi tidak valid.' },401,origin);
+  const connection = await companyWorkspaceConnection();
+  return json({ connected:Boolean(connection),ready:workspaceReady(connection),account:connection?.google_account_email ?? null,canManage:await canManageCompany(auth.client) },200,origin);
+}
+async function generateWorkspaceReport(req: Request, origin: string | null) {
+  const auth = await authenticatedClient(req); if (!auth) return json({ error:'Sesi tidak valid.' },401,origin);
+  const body = await req.json().catch(() => ({}));
+  const snapshotId = String(body.snapshotId ?? ''); const templateId = String(body.templateId ?? ''); const kind = ['document','presentation','pdf'].includes(body.kind) ? body.kind : 'document';
+  if (!snapshotId || !templateId) return json({ error:'Snapshot dan template wajib dipilih.' },400,origin);
+  const { data: context, error } = await auth.client.rpc('get_report_generation_payload',{target_snapshot:snapshotId,target_template:templateId});
+  if (error) return json({ error:error.message },403,origin);
+  const connection = await companyWorkspaceConnection();
+  if (!workspaceReady(connection)) return json({ error:'Google Workspace perusahaan belum diaktifkan.',needsAuthorization:true },409,origin);
+  const templateFileId = driveId(context.template.drive_template_url); const folderId = driveId(context.template.output_folder_url);
+  if (!templateFileId) return json({ error:'Link file template Google Drive tidak valid.' },400,origin);
+  const baseTitle = `Campus Innovate - ${String(context.snapshot.report_type)} - ${context.snapshot.period_start} to ${context.snapshot.period_end}`;
+  const copyPayload:Record<string,unknown> = { name:baseTitle }; if (folderId) copyPayload.parents=[folderId];
+  const copied = await googleApi(connection!,`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(templateFileId)}/copy?fields=id,name,mimeType,webViewLink`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(copyPayload)}) as Record<string,any>;
+  const replacements = reportReplacements(context);
+  const requests = Object.entries(replacements).map(([text,replaceText]) => ({replaceAllText:{containsText:{text,matchCase:true},replaceText}}));
+  const fileType = context.template.google_file_type;
+  if (fileType === 'presentation') await googleApi(connection!,`https://slides.googleapis.com/v1/presentations/${copied.id}:batchUpdate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requests})});
+  else await googleApi(connection!,`https://docs.googleapis.com/v1/documents/${copied.id}:batchUpdate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requests})});
+  let fileId=copied.id; let url=copied.webViewLink ?? `https://drive.google.com/open?id=${copied.id}`;
+  if (kind === 'pdf') {
+    const bytes = await googleApi(connection!,`https://www.googleapis.com/drive/v3/files/${copied.id}/export?mimeType=${encodeURIComponent('application/pdf')}`,undefined,false) as ArrayBuffer;
+    const boundary=`rk_${crypto.randomUUID()}`; const metadata={name:`${baseTitle}.pdf`,mimeType:'application/pdf',...(folderId?{parents:[folderId]}:{})};
+    const prefix=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`;
+    const suffix=`\r\n--${boundary}--`; const p=new TextEncoder().encode(prefix); const s=new TextEncoder().encode(suffix); const all=new Uint8Array(p.length+bytes.byteLength+s.length); all.set(p);all.set(new Uint8Array(bytes),p.length);all.set(s,p.length+bytes.byteLength);
+    const pdf=await googleApi(connection!,`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink`,{method:'POST',headers:{'Content-Type':`multipart/related; boundary=${boundary}`},body:all}) as Record<string,any>;
+    fileId=pdf.id;url=pdf.webViewLink ?? `https://drive.google.com/open?id=${pdf.id}`;
+  }
+  const registered=await auth.client.rpc('register_generated_report_artifact',{target_snapshot:snapshotId,kind,url_value:url,drive_id:fileId,template_ver:context.template.version});
+  if (registered.error) return json({ error:`File berhasil dibuat, tetapi registrasi gagal: ${registered.error.message}`,url },500,origin);
+  return json({ ready:true,fileId,url,name:baseTitle },200,origin);
 }
 
 async function authorize(req: Request, origin: string | null) {
@@ -154,6 +235,8 @@ Deno.serve(async (req) => {
     if (path === '/callback' && req.method === 'GET') return await callback(req);
     if (path === '/calendars' && req.method === 'GET') return await listCalendars(req, origin);
     if (path === '/events' && req.method === 'GET') return await listEvents(req, origin);
+    if (path === '/workspace/status' && req.method === 'GET') return await workspaceStatus(req, origin);
+    if (path === '/workspace/generate-report' && req.method === 'POST') return await generateWorkspaceReport(req, origin);
     return json({ error: 'Route tidak ditemukan.' }, 404, origin);
   } catch (error) { console.error(error); return json({ error: error instanceof Error ? error.message : 'Terjadi kesalahan pada layanan Calendar.' }, 500, origin); }
 });
