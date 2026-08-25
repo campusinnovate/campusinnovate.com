@@ -6809,8 +6809,15 @@ img {
 .rk-feed-panel { margin-top: 14px; padding: 25px; }
 .rk-feed-heading > span { color: #718199; font-size: 9px; font-weight: 800; }
 .rk-feed-list { display: grid; margin-top: 17px; }
-.rk-feed-list article { display: grid; grid-template-columns: 5px 1fr 36px; gap: 15px; padding: 17px 0; border-top: 1px solid #e5eaf1; }
+.rk-feed-list article { display: grid; grid-template-columns: 5px 34px minmax(0, 1fr) 36px; align-items: start; gap: 13px; padding: 17px 0; border-top: 1px solid #e5eaf1; }
 .rk-feed-list article > i { width: 5px; border-radius: 999px; }
+.rk-feed-list article > .rk-activity-check { width: 26px; height: 26px; margin-top: 2px; display: grid; place-items: center; padding: 0; color: transparent; border: 2px solid #b7c3d2; border-radius: 7px; background: #fff; cursor: pointer; transition: .16s ease; }
+.rk-feed-list article > .rk-activity-check:hover:not(:disabled) { border-color: #227256; box-shadow: 0 0 0 3px rgba(34,114,86,.1); }
+.rk-feed-list article > .rk-activity-check[aria-checked="true"] { color: #fff; border-color: #227256; background: #227256; }
+.rk-feed-list article > .rk-activity-check:disabled { opacity: .42; cursor: not-allowed; }
+.rk-feed-list article > .rk-activity-check svg { width: 16px; height: 16px; stroke-width: 3; }
+.rk-feed-list article[data-completed="true"] .rk-feed-content h3 { color: #758398; text-decoration: line-through; }
+.rk-feed-list article[data-completed="true"] .rk-feed-content > p { opacity: .7; }
 .rk-feed-content { display: grid; gap: 6px; }
 .rk-feed-content > div { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 .rk-feed-content small { color: #748399; font-size: 8px; }
@@ -6827,7 +6834,7 @@ img {
 .rk-feed-content footer { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 4px; }
 .rk-feed-content footer b, .rk-feed-content footer span, .rk-feed-content footer a { color: #4d627d; font-size: 8px; font-weight: 800; text-decoration: none; }
 .rk-feed-content footer a { display: inline-flex; align-items: center; gap: 4px; color: #1d5fc3; }
-.rk-feed-list article > button, .rk-feed-open { width: 34px; height: 34px; display: grid; place-items: center; color: #1d5fc3; border: 1px solid #dce4ef; border-radius: 10px; background: #f7f9fc; cursor: pointer; text-decoration:none; }
+.rk-feed-list article > button:not(.rk-activity-check), .rk-feed-open { width: 34px; height: 34px; display: grid; place-items: center; color: #1d5fc3; border: 1px solid #dce4ef; border-radius: 10px; background: #f7f9fc; cursor: pointer; text-decoration:none; }
 .rk-activity-empty { min-height: 180px; display: grid; place-items: center; align-content: center; gap: 7px; color: #8190a5; text-align: center; }
 .rk-activity-empty svg { font-size: 23px; }
 .rk-activity-empty strong { color: #425773; font-size: 11px; }
@@ -6868,6 +6875,7 @@ img {
   .rk-calendar-days > button > i { display: none; }
   .rk-activity-form-grid { grid-template-columns: 1fr; }
   .rk-activity-form-grid .rk-form-wide { grid-column: auto; }
+  .rk-feed-list article { grid-template-columns: 5px 30px minmax(0, 1fr) 34px; gap: 9px; }
 }
 
 /* Ruang Kawan — Work Management Core */

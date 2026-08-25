@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   FiActivity, FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight, FiClock,
-  FiEdit3, FiExternalLink, FiPlus, FiRefreshCw, FiX,
+  FiCheck, FiEdit3, FiExternalLink, FiPlus, FiRefreshCw, FiX,
 } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
@@ -119,6 +119,7 @@ export default function MyActivityPage() {
   const [form, setForm] = useState<ActivityForm>(emptyForm());
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [checkingId, setCheckingId] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -215,6 +216,29 @@ export default function MyActivityPage() {
     return activity.feed_kind === 'manual'
       && activity.owner_membership_id === membershipId
       && permissions.includes('activity.manage_self');
+  }
+
+  function canToggleCompletion(activity: Activity) {
+    return activity.owner_membership_id === membershipId;
+  }
+
+  async function toggleCompletion(activity: Activity) {
+    if (!canToggleCompletion(activity) || checkingId) return;
+    const completed = activity.status !== 'done';
+    setCheckingId(activity.id); setError(''); setMessage('');
+    const { error: completionError } = await createClient().rpc('set_activity_completion', {
+      target_activity: activity.id,
+      completed,
+    });
+    setCheckingId('');
+    if (completionError) {
+      setError(completionError.message || 'Status aktivitas belum berhasil diperbarui.');
+      return;
+    }
+    setActivities((current) => current.map((item) => item.id === activity.id
+      ? { ...item, status: completed ? 'done' : 'in_progress', progress: completed ? 100 : 0 }
+      : item));
+    setMessage(completed ? 'Aktivitas ditandai selesai.' : 'Aktivitas dibuka kembali.');
   }
 
   async function saveActivity(event: FormEvent<HTMLFormElement>) {
@@ -325,7 +349,7 @@ export default function MyActivityPage() {
 
         <section className="rk-feed-panel">
           <div className="rk-feed-heading"><div><small>Feed terpadu</small><h2>Pekerjaan yang terkait dengan saya</h2></div><span>{filteredActivities.length} aktivitas</span></div>
-          <div className="rk-feed-list">{filteredActivities.length ? filteredActivities.map((activity) => <article key={activity.id} data-feed-kind={activity.feed_kind}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><div className="rk-feed-content"><div><small>{new Date(`${activity.activity_date}T12:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} · {activity.work_sources?.name}</small><span data-feed-kind={activity.feed_kind}>{feedKindLabels[activity.feed_kind]}</span><span data-relationship={activity.relationship}>{relationshipLabels[activity.relationship]}</span><span data-priority={activity.priority}>{priorityLabels[activity.priority]}</span></div><h3>{activity.title}</h3>{activity.detail ? <p>{activity.detail}</p> : null}<footer><em data-status={activity.status}>{statusLabels[activity.status]}</em><b>{activity.progress}%</b>{activity.feed_kind === 'assignment' ? <Link href="/ruang-kawan/assignments/" data-review={activity.review_status}>{reviewLabels[activity.review_status]}</Link> : null}{activity.feed_kind === 'assignment' ? <span>PIC · {activity.owner_name}</span> : null}{activity.output ? <span>{activity.feed_kind === 'pipeline' ? 'Stage' : activity.feed_kind === 'content_plan' ? 'Format' : 'Output'} · {activity.output}</span> : null}{activity.next_action ? <span>Berikutnya · {activity.next_action}</span> : null}{activity.linked_kpi ? <span>KPI · {activity.linked_kpi}</span> : null}{activity.evidence_url ? <a href={activity.evidence_url} target="_blank" rel="noreferrer"><FiExternalLink /> Bukti</a> : null}</footer></div>{canEditDirectly(activity) ? <button type="button" aria-label={`Ubah ${activity.title}`} onClick={() => startEdit(activity)}><FiEdit3 /></button> : <Link className="rk-feed-open" href={activity.module_route ?? '/ruang-kawan/assignments/'} aria-label={`Buka ${feedKindLabels[activity.feed_kind]}`}><FiExternalLink /></Link>}</article>) : <div className="rk-activity-empty"><FiClock /><strong>Feed masih kosong</strong><p>Aktivitas manual, assignment, Content Plan, dan Pipeline BD akan muncul di sini.</p></div>}</div>
+          <div className="rk-feed-list">{filteredActivities.length ? filteredActivities.map((activity) => <article key={activity.id} data-feed-kind={activity.feed_kind} data-completed={activity.status === 'done'}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><button className="rk-activity-check" type="button" role="checkbox" aria-checked={activity.status === 'done'} aria-label={`${activity.status === 'done' ? 'Buka kembali' : 'Tandai selesai'} ${activity.title}`} title={canToggleCompletion(activity) ? (activity.status === 'done' ? 'Buka kembali aktivitas' : 'Tandai aktivitas selesai') : `Hanya ${activity.owner_name} sebagai PIC yang dapat mengubah status`} disabled={!canToggleCompletion(activity) || checkingId === activity.id} onClick={() => void toggleCompletion(activity)}><FiCheck /></button><div className="rk-feed-content"><div><small>{new Date(`${activity.activity_date}T12:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} · {activity.work_sources?.name}</small><span data-feed-kind={activity.feed_kind}>{feedKindLabels[activity.feed_kind]}</span><span data-relationship={activity.relationship}>{relationshipLabels[activity.relationship]}</span><span data-priority={activity.priority}>{priorityLabels[activity.priority]}</span></div><h3>{activity.title}</h3>{activity.detail ? <p>{activity.detail}</p> : null}<footer><em data-status={activity.status}>{statusLabels[activity.status]}</em><b>{activity.progress}%</b>{activity.feed_kind === 'assignment' ? <Link href="/ruang-kawan/assignments/" data-review={activity.review_status}>{reviewLabels[activity.review_status]}</Link> : null}{activity.feed_kind === 'assignment' ? <span>PIC · {activity.owner_name}</span> : null}{activity.output ? <span>{activity.feed_kind === 'pipeline' ? 'Stage' : activity.feed_kind === 'content_plan' ? 'Format' : 'Output'} · {activity.output}</span> : null}{activity.next_action ? <span>Berikutnya · {activity.next_action}</span> : null}{activity.linked_kpi ? <span>KPI · {activity.linked_kpi}</span> : null}{activity.evidence_url ? <a href={activity.evidence_url} target="_blank" rel="noreferrer"><FiExternalLink /> Bukti</a> : null}</footer></div>{canEditDirectly(activity) ? <button type="button" aria-label={`Ubah ${activity.title}`} onClick={() => startEdit(activity)}><FiEdit3 /></button> : <Link className="rk-feed-open" href={activity.module_route ?? '/ruang-kawan/assignments/'} aria-label={`Buka ${feedKindLabels[activity.feed_kind]}`}><FiExternalLink /></Link>}</article>) : <div className="rk-activity-empty"><FiClock /><strong>Feed masih kosong</strong><p>Aktivitas manual, assignment, Content Plan, dan Pipeline BD akan muncul di sini.</p></div>}</div>
         </section>
       </section>
 
