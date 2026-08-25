@@ -39,12 +39,8 @@ where
  or (pos.key in ('ceo','coo') and (perm.key like 'marketing.%' or perm.key like 'vendors.%' or perm.key like 'content_plan.%' or perm.key like 'pipeline.%'))
 on conflict do nothing;
 
--- Content and Pipeline visibility is job-position specific. Remove the broad
--- legacy grants from generic employment roles; member overrides still win.
-delete from public.role_permissions rp using public.roles r,public.permissions p
-where rp.role_id=r.id and rp.permission_id=p.id
-  and r.key in ('staff','freelancer','project_lead','people_hr_manager','finance_manager')
-  and (p.key like 'content_plan.%' or p.key like 'pipeline.%');
+-- Broad legacy grants remain available for flexible cross-functional work.
+-- Work-source position restrictions and member overrides remain the data gate.
 
 create or replace function public.current_user_has_permission(permission_key text)
 returns boolean language sql stable security definer set search_path=public as $$
