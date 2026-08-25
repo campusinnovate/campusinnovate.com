@@ -85,7 +85,7 @@ export const serviceDetails = [
     ],
     approach: ['Shape the purpose', 'Design the journey', 'Deliver the experience'],
     projects: [
-      { client: 'WUNPROQ', title: 'World University Network for Productive Waqf', service: 'Full Event Management + Social Media & Branding', image: '/assets/site-2026/hero-team.jpg', logo: '/assets/site-2026/logos/wunproq.png' },
+      { client: 'WUNPROQ', title: 'World University Network for Productive Waqf', service: 'Full Event Management + Social Media & Branding', image: '/images/workfolio/wunproq/gallery-01.webp', logo: '/assets/site-2026/logos/normalized/wunproq.png' },
     ],
   },
   {
@@ -115,8 +115,8 @@ export const serviceDetails = [
     title: 'Digital System Development',
     headline: 'Systems that make ideas work.',
     description: 'Beyond websites, Campus Innovate builds digital systems and products that help programs and organizations operate with clearer access, workflows, administration, and participant experiences.',
-    image: '/assets/site-2026/mentoring-workshop.jpg',
-    imageAlt: 'Campus Innovate collaborative digital development activity',
+    image: '/images/workfolio/dpma-ipb/gallery-02.webp',
+    imageAlt: 'Digital management system developed by Campus Innovate',
     variant: 'technology',
     capabilities: [
       { title: 'Digital Experience', items: ['Corporate & event websites', 'Landing pages', 'Registration & booking experiences'] },
@@ -136,8 +136,8 @@ export const serviceDetails = [
     title: 'Training & Development',
     headline: 'Developing people beyond the classroom.',
     description: 'Training is designed as a capability-development solution: aligned with the audience, competency needs, organization objectives, format, duration, and expected outcomes.',
-    image: '/assets/site-2026/klhk-capacity-building.jpg',
-    imageAlt: 'Campus Innovate training and capacity building activity',
+    image: '/images/workfolio/public-speaking/gallery-04.webp',
+    imageAlt: 'Campus Innovate public speaking training session',
     variant: 'learning',
     capabilities: [
       { title: 'Leadership', items: ['Leadership', 'Team leadership', 'Organizational leadership'] },
@@ -148,7 +148,7 @@ export const serviceDetails = [
     ],
     approach: ['Clarify the capability', 'Design the learning', 'Strengthen practical growth'],
     projects: [
-      { client: 'Kementerian Lingkungan Hidup dan Kehutanan', title: 'Public Speaking Training', service: 'Training & Development', image: '/assets/site-2026/klhk-capacity-building.jpg', logo: '/assets/logos/logo-klhk.png' },
+      { client: 'Universitas Bina Niaga', title: 'Public Speaking Training', service: 'Training & Development', image: '/images/workfolio/public-speaking/gallery-04.webp', logo: '/assets/site-2026/logos/normalized/unbin.png' },
     ],
   },
   {
@@ -169,7 +169,7 @@ export const serviceDetails = [
     ],
     approach: ['Define the identity', 'Create the communication', 'Amplify the idea'],
     projects: [
-      { client: 'WUNPROQ', title: 'World University Network for Productive Waqf', service: 'Social Media & Branding', image: '/assets/site-2026/hero-team.jpg', logo: '/assets/site-2026/logos/wunproq.png' },
+      { client: 'WUNPROQ', title: 'World University Network for Productive Waqf', service: 'Social Media & Branding', image: '/images/workfolio/wunproq/gallery-06.webp', logo: '/assets/site-2026/logos/normalized/wunproq.png' },
     ],
   },
 ] as const;

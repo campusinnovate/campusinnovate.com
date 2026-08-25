@@ -52,6 +52,12 @@ const emptyForm: FormState = {
 
 const statusLabels: Record<string, string> = { invited: 'Terdaftar', active: 'Aktif', suspended: 'Ditangguhkan', inactive: 'Nonaktif' };
 const engagementLabels: Record<string, string> = { employee: 'Karyawan', freelance: 'Freelance', contractor: 'Kontraktor', intern: 'Magang' };
+const permissionModuleLabels: Record<string, string> = {
+  access: 'Akses & Administrasi', activity: 'My Activity & Assignment', assignments: 'Assignment', calendar: 'Calendar',
+  content_plan: 'Content Plan', documents: 'Document Center', employee_profile: 'Profil Pegawai', finance: 'Finance', kpi: 'KPI', marketing: 'Marketing',
+  mood: 'Mood Check-in', notes: 'Coret-coret', notifications: 'Notifikasi', people: 'People & HR', performance: 'Performance',
+  pipeline: 'Pipeline BD', profile: 'Profil Pegawai', projects: 'Project', report: 'Report & Analysis', reports: 'Report & Analysis', vendors: 'Vendor', work_sources: 'Sumber Kerja',
+};
 
 export default function RuangKawanAdminPage() {
   const [reference, setReference] = useState<AccessReference | null>(null);
@@ -103,6 +109,15 @@ export default function RuangKawanAdminPage() {
     () => reference?.positions.find((position) => position.id === form.positionId),
     [reference, form.positionId],
   );
+  const permissionGroups = useMemo(() => {
+    const groups = new Map<string, ReferenceItem[]>();
+    for (const permission of reference?.permissions ?? []) {
+      const moduleKey = permission.key.split('.')[0];
+      const label = permissionModuleLabels[moduleKey] ?? 'Lainnya';
+      groups.set(label, [...(groups.get(label) ?? []), permission]);
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b, 'id'));
+  }, [reference]);
 
   function startCreate() {
     setForm(emptyForm);
@@ -204,7 +219,7 @@ export default function RuangKawanAdminPage() {
 
             <fieldset><legend>Peran</legend><div className="rk-role-options">{reference?.roles.map((role) => <label key={role.key}><input type="checkbox" checked={form.roleKeys.includes(role.key)} onChange={() => toggleRole(role.key)} /><span><strong>{role.name}</strong><small>{role.description}</small></span></label>)}</div></fieldset>
 
-            <fieldset><legend>Izin khusus</legend><p className="rk-field-hint">Gunakan “Ikuti peran” untuk aturan normal. Pilih Izinkan atau Tolak hanya sebagai pengecualian.</p><div className="rk-permission-options">{reference?.permissions.map((permission) => <label key={permission.key}><span>{permission.name}</span><select value={form.overrides[permission.key] ?? ''} onChange={(event) => setForm({ ...form, overrides: { ...form.overrides, [permission.key]: event.target.value as '' | 'allow' | 'deny' } })}><option value="">Ikuti peran</option><option value="allow">Izinkan</option><option value="deny">Tolak</option></select></label>)}</div></fieldset>
+            <fieldset><legend>Izin khusus</legend><p className="rk-field-hint">Gunakan “Ikuti peran” untuk aturan normal. Pilih Izinkan atau Tolak hanya sebagai pengecualian.</p><div className="rk-permission-groups">{permissionGroups.map(([moduleName, permissions]) => <section key={moduleName}><h3>{moduleName}<span>{permissions.length} izin</span></h3><div className="rk-permission-options">{permissions.map((permission) => <label key={permission.key}><span>{permission.name}<small>{permission.description}</small></span><select value={form.overrides[permission.key] ?? ''} onChange={(event) => setForm({ ...form, overrides: { ...form.overrides, [permission.key]: event.target.value as '' | 'allow' | 'deny' } })}><option value="">Ikuti peran</option><option value="allow">Izinkan</option><option value="deny">Tolak</option></select></label>)}</div></section>)}</div></fieldset>
 
             <label className="rk-reason-field">Catatan perubahan<textarea value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="Contoh: COO juga menangani HR dan Finance" /></label>
             {error ? <p className="rk-password-error" role="alert">{error}</p> : null}
