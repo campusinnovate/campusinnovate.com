@@ -13,6 +13,8 @@ import {
   FiDownload,
   FiEdit3,
   FiFileText,
+  FiGrid,
+  FiList,
   FiPlus,
   FiPrinter,
   FiSettings,
@@ -563,6 +565,7 @@ export default function FinanceWorkspace() {
   const [query, setQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
   const [eventFilter, setEventFilter] = useState("");
+  const [journalView, setJournalView] = useState<"card" | "table">("table");
 
   async function load() {
     setError("");
@@ -1656,6 +1659,8 @@ export default function FinanceWorkspace() {
               canManage={canManage}
               add={openTransaction}
               correct={correctTransaction}
+              view={journalView}
+              setView={setJournalView}
             />
           ) : null}
           {section === "transactions" && tab === "receivables" ? (
@@ -2416,6 +2421,8 @@ function Journal(p: {
   canManage: boolean;
   add: () => void;
   correct: (x: Tx) => void;
+  view: "card" | "table";
+  setView: (value: "card" | "table") => void;
 }) {
   return (
     <section className="rk-finance-table">
@@ -2428,11 +2435,7 @@ function Journal(p: {
             otomatis.
           </p>
         </div>
-        {p.canManage ? (
-          <button onClick={p.add}>
-            <FiPlus /> Tambah
-          </button>
-        ) : null}
+        <div className="rk-finance-view-actions"><span><button data-active={p.view === "card"} onClick={() => p.setView("card")}><FiGrid /> Card</button><button data-active={p.view === "table"} onClick={() => p.setView("table")}><FiList /> Tabel</button></span>{p.canManage ? <button onClick={p.add}><FiPlus /> Tambah</button> : null}</div>
       </header>
       <div className="rk-finance-filter">
         <select
@@ -2459,7 +2462,7 @@ function Journal(p: {
           placeholder="Cari keterangan, referensi, pihak terkait..."
         />
       </div>
-      <div className="rk-table-scroll">
+      {p.view === "card" ? <div className="rk-journal-cards">{p.rows.map((x) => <article key={x.id}><header><div><small>{dateLabel(x.transaction_date)} · {x.transaction_number}</small><h3>{x.description}</h3></div><b data-flow={x.flow}>{x.flow === "in" ? "+" : x.flow === "out" ? "-" : ""}{money(x.amount)}</b></header><dl><dt>Proyek</dt><dd>{x.project_name || "-"}</dd><dt>Jenis</dt><dd>{x.transaction_event || x.event_type}</dd><dt>Akun</dt><dd>{x.coa_code || "-"} · {x.account_name || x.category}</dd><dt>Pihak terkait</dt><dd>{x.counterparty || x.bank_account || "-"}</dd><dt>Referensi</dt><dd>{x.reference_number || "-"}</dd></dl><footer><span data-status={x.auto_status || x.status}>{x.auto_status || x.status}</span>{p.canManage && x.status === "posted" && !x.reversal_of_id && x.transaction_event !== "Saldo Aktual Bank" ? <button title="Koreksi transaksi" onClick={() => p.correct(x)}><FiEdit3 /> Koreksi</button> : null}</footer></article>)}</div> : <div className="rk-table-scroll">
         <table className="rk-journal-table">
           <thead>
             <tr>
@@ -2523,7 +2526,7 @@ function Journal(p: {
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
     </section>
   );
 }

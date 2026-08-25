@@ -116,6 +116,7 @@ export default function MyActivityPage() {
   const [selectedDate, setSelectedDate] = useState(today());
   const [sourceFilter, setSourceFilter] = useState('all');
   const [kindFilter, setKindFilter] = useState<'all' | Activity['feed_kind']>('all');
+  const [focusFilter, setFocusFilter] = useState('');
   const [form, setForm] = useState<ActivityForm>(emptyForm());
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -167,6 +168,7 @@ export default function MyActivityPage() {
   }
 
   useEffect(() => { void loadData(); }, []);
+  useEffect(() => { const value = new URLSearchParams(window.location.search).get('focus') ?? ''; setFocusFilter(value); if (value === 'today') setSelectedDate(today()); }, []);
 
   const selectedSource = useMemo(() => sources.find((source) => source.id === form.sourceId), [sources, form.sourceId]);
   const manualSources = useMemo(() => sources.filter((source) => source.module_type === 'activity'), [sources]);
@@ -191,7 +193,11 @@ export default function MyActivityPage() {
   const filteredActivities = useMemo(() => activities.filter((activity) =>
     (sourceFilter === 'all' || activity.source_id === sourceFilter)
     && (kindFilter === 'all' || activity.feed_kind === kindFilter)
-  ), [activities, kindFilter, sourceFilter]);
+    && (focusFilter !== 'today' || activity.activity_date === today())
+    && (focusFilter !== 'overdue' || (activity.activity_date < today() && activity.status !== 'done'))
+    && (focusFilter !== 'review' || activity.relationship === 'review' || activity.review_status === 'waiting_review')
+    && (focusFilter !== 'open' || activity.status !== 'done')
+  ), [activities, focusFilter, kindFilter, sourceFilter]);
   const selectedActivities = useMemo(() => filteredActivities.filter((activity) => activity.activity_date === selectedDate), [filteredActivities, selectedDate]);
   const selectedGoogleEvents = useMemo(() => googleEvents.filter((event) => googleEventDate(event) === selectedDate), [googleEvents, selectedDate]);
   const countByDate = useMemo(() => filteredActivities.reduce<Record<string, number>>((counts, activity) => ({ ...counts, [activity.activity_date]: (counts[activity.activity_date] ?? 0) + 1 }), {}), [filteredActivities]);
@@ -330,6 +336,8 @@ export default function MyActivityPage() {
           <button type="button" data-active={kindFilter === 'all'} onClick={() => setKindFilter('all')}>Semua jenis <span>{activities.length}</span></button>
           {(Object.keys(feedKindLabels) as Activity['feed_kind'][]).map((kind) => <button type="button" key={kind} data-active={kindFilter === kind} onClick={() => setKindFilter(kind)}>{feedKindLabels[kind]} <span>{activities.filter((activity) => activity.feed_kind === kind).length}</span></button>)}
         </div>
+
+        {focusFilter ? <div className="rk-focus-filter"><span>Filter Dashboard: <strong>{focusFilter === 'today' ? 'Jatuh tempo hari ini' : focusFilter === 'overdue' ? 'Terlambat' : focusFilter === 'review' ? 'Perlu review' : 'Action item terbuka'}</strong></span><button type="button" onClick={() => { setFocusFilter(''); window.history.replaceState({}, '', '/ruang-kawan/activity/'); }}>Tampilkan semua</button></div> : null}
 
         {error ? <p className="rk-activity-alert" data-error>{error}</p> : null}
         {message ? <p className="rk-activity-alert">{message}</p> : null}
