@@ -77,6 +77,29 @@ async function googleApi(connection: Record<string, any>, url: string, init?: Re
   }
   return body;
 }
+async function activeWorkspaceEmails() {
+  const { data, error } = await service.from('memberships').select('email').in('status', ['active','invited']);
+  if (error) throw new Error(`Daftar anggota belum dapat dimuat: ${error.message}`);
+  return [...new Set((data ?? []).map((member) => String(member.email ?? '').trim().toLowerCase()).filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))];
+}
+async function shareDriveFile(connection: Record<string, any>, fileId: string, emails: string[], role: 'reader'|'writer') {
+  const ownerEmail = String(connection.google_account_email ?? '').toLowerCase();
+  const results = { shared: [] as string[], failed: [] as string[] };
+  for (const email of [...new Set(emails.map((item) => item.toLowerCase()))]) {
+    if (email === ownerEmail) { results.shared.push(email); continue; }
+    try {
+      await googleApi(connection, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/permissions?sendNotificationEmail=false&fields=id`, {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ type:'user', role, emailAddress:email }),
+      });
+      results.shared.push(email);
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      if (message.includes('already') || message.includes('permission')) results.shared.push(email);
+      else results.failed.push(email);
+    }
+  }
+  return results;
+}
 function driveId(value: unknown) {
   const text = String(value ?? '').trim();
   return text.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1] ?? text.match(/[?&]id=([a-zA-Z0-9_-]+)/)?.[1] ?? (text.match(/^[a-zA-Z0-9_-]{10,}$/)?.[0] ?? '');
@@ -156,9 +179,35 @@ async function generateWorkspaceReport(req: Request, origin: string | null) {
     const pdf=await googleApi(connection!,`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink`,{method:'POST',headers:{'Content-Type':`multipart/related; boundary=${boundary}`},body:all}) as Record<string,any>;
     fileId=pdf.id;url=pdf.webViewLink ?? `https://drive.google.com/open?id=${pdf.id}`;
   }
+  const sharing=await shareDriveFile(connection!,fileId,await activeWorkspaceEmails(),'reader');
   const registered=await auth.client.rpc('register_generated_report_artifact',{target_snapshot:snapshotId,kind,url_value:url,drive_id:fileId,template_ver:context.template.version});
   if (registered.error) return json({ error:`File berhasil dibuat, tetapi registrasi gagal: ${registered.error.message}`,url },500,origin);
-  return json({ ready:true,fileId,url,name:baseTitle },200,origin);
+  return json({ ready:true,fileId,url,name:baseTitle,sharing },200,origin);
+}
+
+async function personalSpreadsheet(req: Request, origin: string | null) {
+  const auth = await authenticatedClient(req); if (!auth) return json({ error:'Sesi tidak valid.' },401,origin);
+  const { data: membership, error: memberError } = await service.from('memberships').select('id,email,full_name,status').eq('user_id',auth.user.id).in('status',['active','invited']).maybeSingle();
+  if (memberError || !membership) return json({ error:'Keanggotaan Ruang Kawan tidak ditemukan.' },403,origin);
+  const { data: existing } = await service.from('personal_spreadsheets').select('*').eq('owner_membership_id',membership.id).maybeSingle();
+  if (existing) return json({ ready:true,sheet:existing },200,origin);
+  if (req.method !== 'POST') return json({ ready:false,sheet:null },200,origin);
+  const connection = await companyWorkspaceConnection();
+  if (!workspaceReady(connection)) return json({ error:'Google Workspace perusahaan belum diaktifkan.',needsAuthorization:true },409,origin);
+  const title=`Coret-coret Spreadsheet — ${membership.full_name || membership.email}`;
+  const created=await googleApi(connection!,`https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink`,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:title,mimeType:'application/vnd.google-apps.spreadsheet'}),
+  }) as Record<string,any>;
+  const sharing=await shareDriveFile(connection!,created.id,[String(membership.email)],'writer');
+  if (!sharing.shared.length) return json({ error:'Spreadsheet dibuat, tetapi akses akunmu belum berhasil diberikan.',url:created.webViewLink },500,origin);
+  const sheet={
+    owner_membership_id:membership.id,drive_file_id:created.id,
+    drive_file_url:created.webViewLink ?? `https://docs.google.com/spreadsheets/d/${created.id}/edit`,
+    embed_url:`https://docs.google.com/spreadsheets/d/${created.id}/edit?rm=minimal&widget=true`,status:'ready',updated_at:new Date().toISOString(),
+  };
+  const { data:saved,error:saveError }=await service.from('personal_spreadsheets').upsert(sheet,{onConflict:'owner_membership_id'}).select('*').single();
+  if (saveError) return json({ error:`Spreadsheet dibuat, tetapi registrasi gagal: ${saveError.message}`,url:sheet.drive_file_url },500,origin);
+  return json({ ready:true,sheet:saved },200,origin);
 }
 
 async function authorize(req: Request, origin: string | null) {
@@ -251,6 +300,7 @@ Deno.serve(async (req) => {
     if (path === '/events' && req.method === 'GET') return await listEvents(req, origin);
     if (path === '/workspace/status' && req.method === 'GET') return await workspaceStatus(req, origin);
     if (path === '/workspace/generate-report' && req.method === 'POST') return await generateWorkspaceReport(req, origin);
+    if (path === '/workspace/personal-spreadsheet' && ['GET','POST'].includes(req.method)) return await personalSpreadsheet(req, origin);
     return json({ error: 'Route tidak ditemukan.' }, 404, origin);
   } catch (error) { console.error(error); return json({ error: error instanceof Error ? error.message : 'Terjadi kesalahan pada layanan Calendar.' }, 500, origin); }
 });
