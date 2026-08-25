@@ -47,9 +47,9 @@ export default function NotesPage(){
     if(result.error)setError('Catatan belum berhasil dijadikan aktivitas.');else setMessage('Aktivitas dibuat. Catatan asli tetap tersimpan.');
   }
   if(state==='loading')return <main className="rk-dashboard-foundation"><section className="rk-access-denied"><p>Menyiapkan Coret-coret...</p></section></main>;
-  if(state==='denied')return <main className="rk-dashboard-foundation"><section className="rk-access-denied"><h1>Coret-coret belum tersedia</h1><Link href="/ruang-kawan/dashboard/">Kembali</Link></section></main>;
+  if(state==='denied')return <main className="rk-dashboard-foundation"><section className="rk-access-denied"><h1>Coret-coret belum tersedia</h1><Link href="/ruang-kawan/activity/">Kembali ke My Activity</Link></section></main>;
   return <main className="rk-work-foundation"><section className="rk-work-shell">
-    <nav className="rk-work-nav"><Link href="/ruang-kawan/dashboard/"><FiArrowLeft/> Dashboard</Link><button onClick={()=>setShowArchived(!showArchived)}><FiArchive/> {showArchived?'Catatan aktif':'Arsip'}</button></nav>
+    <nav className="rk-work-nav"><Link href="/ruang-kawan/activity/"><FiArrowLeft/> My Activity</Link><button onClick={()=>setShowArchived(!showArchived)}><FiArchive/> {showArchived?'Catatan aktif':'Arsip'}</button></nav>
     <header className="rk-work-heading"><div><small>Ruang pribadi</small><h1>Coret-coret</h1><p>Brainstorm, simpan ide, dan catat hal penting. Hanya kamu yang dapat melihat isinya.</p></div><button onClick={()=>edit()}><FiPlus/> Catatan baru</button></header>
     <section className="rk-note-tools"><label><FiSearch/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Cari catatan atau tag..."/></label><span>{visible.length} catatan</span></section>
     {message?<p className="rk-work-alert">{message}</p>:null}{error?<p className="rk-work-alert" data-error>{error}</p>:null}

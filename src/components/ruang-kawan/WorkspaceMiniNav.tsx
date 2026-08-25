@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import {
   FiActivity, FiBarChart2, FiBookOpen, FiBriefcase, FiDollarSign,
-  FiFileText, FiGrid, FiTrendingUp,
+  FiBell, FiFileText, FiGrid, FiTrendingUp,
 } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
@@ -20,6 +20,7 @@ const items = [
   { label: 'Documents', href: '/ruang-kawan/documents/', icon: FiBookOpen, any: ['documents.view'] },
   { label: 'Reports', href: '/ruang-kawan/reports/', icon: FiFileText, any: ['reports.view_self'] },
   { label: 'Finance', href: '/ruang-kawan/finance/', icon: FiDollarSign, any: ['finance.view'] },
+  { label: 'Notifikasi', href: '/ruang-kawan/notifications/', icon: FiBell, any: ['notifications.view_self'] },
 ];
 
 export default function WorkspaceMiniNav() {
