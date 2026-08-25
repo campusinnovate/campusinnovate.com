@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   FiActivity, FiBarChart2, FiBookOpen, FiBriefcase, FiDollarSign,
   FiBell, FiFileText, FiGrid, FiTrendingUp,
+  FiUser,
 } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
@@ -17,6 +18,7 @@ const items = [
   { label: 'Marketing', href: '/ruang-kawan/marketing/', icon: FiTrendingUp, any: ['marketing.view', 'content_plan.view', 'pipeline.view'] },
   { label: 'Project', href: '/ruang-kawan/projects/', icon: FiBriefcase, any: ['projects.view'] },
   { label: 'KPI', href: '/ruang-kawan/kpi/', icon: FiBarChart2, any: ['kpi.view_self'] },
+  { label: 'Profil', href: '/ruang-kawan/profile/', icon: FiUser, any: ['employee_profile.view_directory'] },
   { label: 'Documents', href: '/ruang-kawan/documents/', icon: FiBookOpen, any: ['documents.view'] },
   { label: 'Reports', href: '/ruang-kawan/reports/', icon: FiFileText, any: ['reports.view_self'] },
   { label: 'Finance', href: '/ruang-kawan/finance/', icon: FiDollarSign, any: ['finance.view'] },
