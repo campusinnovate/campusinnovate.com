@@ -16,7 +16,7 @@ select r.id,p.id from public.roles r cross join public.permissions p where
  (r.key in ('system_admin','executive','project_lead','finance_manager','people_hr_manager','staff','freelancer') and p.key in ('employee_profile.view_self','employee_profile.manage_self','notifications.view_self','mood.checkin'))
  or (r.key in ('system_admin','people_hr_manager','finance_manager') and p.key in ('employee_profile.view_sensitive','employee_profile.manage_sensitive'))
  or (r.key in ('system_admin','executive') and p.key in ('mood.aggregate','report.action.assign'))
- or (r.key in ('system_admin','executive','project_lead','finance_manager','people_hr_manager','staff','freelancer') and p.key in ('vendors.view','vendors.create'))
+ or (r.key in ('system_admin','executive','project_lead','finance_manager','people_hr_manager','staff','freelancer') and p.key in ('vendors.view','vendors.create','vendors.manage','vendors.manage_sensitive'))
 on conflict do nothing;
 
 create table if not exists public.notifications(
