@@ -5,7 +5,7 @@ import {
   FiArrowLeft, FiAtSign, FiBell, FiBriefcase, FiCalendar, FiCheckCircle,
   FiChevronDown, FiCornerUpLeft, FiDownload, FiEdit3, FiFile, FiHash, FiInfo, FiLink, FiLoader,
   FiMessageCircle, FiMoreVertical, FiPaperclip, FiPlus, FiSearch, FiSend,
-  FiSmile, FiStar, FiTrash2, FiUploadCloud, FiUsers, FiVideo, FiX,
+  FiSmile, FiStar, FiTrash2, FiUploadCloud, FiUsers, FiVideo, FiX, FiZap,
 } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 import { supabaseUrl } from '@/lib/supabase/config';
@@ -262,6 +262,11 @@ export default function KawanChatPage() {
     const result = await createClient().rpc('delete_chat_message', { target_message_id: item.id });
     if (result.error) setError(result.error.message); else if (selectedId) { setNotice('Pesan dihapus.'); await loadConversation(selectedId); }
   }
+  function askAiAbout(item: Message) {
+    setMenuMessageId(null);
+    window.dispatchEvent(new CustomEvent('kawan-ai-context', { detail: { entityType: 'chat_conversation', entityId: selectedId, label: detail?.conversation.name, data: { selectedMessageId: item.id } } }));
+    window.dispatchEvent(new CustomEvent('kawan-ai-open', { detail: { prompt: 'Ringkas pesan yang dipilih dan jelaskan tindak lanjut yang diperlukan.' } }));
+  }
   if (status === 'loading') return <main className="rk-chat-foundation"><section className="rk-chat-loading"><FiLoader /> Menyiapkan Kawan Chat...</section></main>;
   if (status === 'denied') return <main className="rk-chat-foundation"><section className="rk-chat-loading"><FiMessageCircle /><h1>Kawan Chat belum tersedia</h1><p>Akun ini belum memiliki keanggotaan internal aktif.</p></section></main>;
 
@@ -294,6 +299,7 @@ export default function KawanChatPage() {
                   <button onClick={() => openAction('decision', item)}><FiCheckCircle /> Simpan keputusan</button>
                   <button onClick={() => openAction('project', item)}><FiHash /> Hubungkan project</button>
                   <button onClick={() => openAction('meeting', item)}><FiVideo /> Buat Google Meet</button>
+                  <button onClick={() => askAiAbout(item)}><FiZap /> Ringkas dengan Kawan AI</button>
                   <button onClick={() => void pin(item)}><FiStar /> {item.pinned ? 'Lepas pin' : 'Sematkan pesan'}</button>
                   {!item.deleted_at ? <button onClick={() => openAction('edit', item, { body: item.body })}><FiEdit3 /> Edit pesan</button> : null}
                   {!item.deleted_at ? <button data-danger onClick={() => void removeMessage(item)}><FiTrash2 /> Hapus pesan</button> : null}

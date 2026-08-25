@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import './ruang-kawan-modules.css';
 import './ruang-kawan-chat.css';
+import './ruang-kawan-ai.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://campusinnovate.com'),
