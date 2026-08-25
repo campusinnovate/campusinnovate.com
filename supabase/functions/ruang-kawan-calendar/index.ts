@@ -89,12 +89,26 @@ function stringify(value: unknown) {
   if (value && typeof value === 'object') return JSON.stringify(value);
   return value == null ? '' : String(value);
 }
+function formatMetric(value: unknown, suffix = '') {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '-';
+  return `${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(number)}${suffix}`;
+}
+function formatKpis(value: unknown) {
+  if (!Array.isArray(value) || !value.length) return 'Belum ada KPI pada snapshot ini.';
+  return value.map((entry: Record<string, any>) => {
+    const source = entry?.source_data && typeof entry.source_data === 'object' ? entry.source_data : {};
+    const name = source.name ?? source.kpi_name ?? source.indicator_name ?? entry.category ?? 'KPI';
+    const category = entry.category && entry.category !== name ? ` · ${entry.category}` : '';
+    return `${name}${category}\nTarget ${formatMetric(entry.target)} · Aktual ${formatMetric(entry.actual)} · Capaian ${formatMetric(entry.achievement, '%')} · ${entry.status ?? 'Belum dinilai'}`;
+  }).join('\n\n');
+}
 function reportReplacements(context: Record<string, any>) {
   const snapshot = context.snapshot ?? {}; const payload = snapshot.payload ?? {}; const items = payload.items ?? [];
   const values: Record<string, unknown> = {
     report_type: snapshot.report_type, period_start: snapshot.period_start, period_end: snapshot.period_end,
     score: snapshot.score, owner_name: snapshot.owner_name, generated_at: new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }),
-    kpis: context.kpis,
+    kpis: formatKpis(context.kpis),
   };
   for (const section of ['progress','problem','plan','priority','notes','insight']) values[section] = items.filter((item: Record<string, any>) => item.section === section).map((item: Record<string, any>) => item.text).join('\n• ');
   const source = { ...context, ...values };
