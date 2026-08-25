@@ -114,7 +114,6 @@ export default function MyActivityPage() {
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const [monthCursor, setMonthCursor] = useState(() => new Date(`${today()}T12:00:00`));
   const [selectedDate, setSelectedDate] = useState(today());
-  const [sourceFilter, setSourceFilter] = useState('all');
   const [kindFilter, setKindFilter] = useState<'all' | Activity['feed_kind']>('all');
   const [focusFilter, setFocusFilter] = useState('');
   const [form, setForm] = useState<ActivityForm>(emptyForm());
@@ -172,13 +171,6 @@ export default function MyActivityPage() {
 
   const selectedSource = useMemo(() => sources.find((source) => source.id === form.sourceId), [sources, form.sourceId]);
   const manualSources = useMemo(() => sources.filter((source) => source.module_type === 'activity'), [sources]);
-  const filterSources = useMemo(() => {
-    const byId = new Map(sources.map((source) => [source.id, source]));
-    activities.forEach((activity) => {
-      if (activity.work_sources) byId.set(activity.work_sources.id, activity.work_sources);
-    });
-    return [...byId.values()];
-  }, [activities, sources]);
   const monthDays = useMemo(() => {
     const year = monthCursor.getFullYear();
     const month = monthCursor.getMonth();
@@ -191,13 +183,12 @@ export default function MyActivityPage() {
   }, [monthCursor]);
 
   const filteredActivities = useMemo(() => activities.filter((activity) =>
-    (sourceFilter === 'all' || activity.source_id === sourceFilter)
-    && (kindFilter === 'all' || activity.feed_kind === kindFilter)
+    (kindFilter === 'all' || activity.feed_kind === kindFilter)
     && (focusFilter !== 'today' || activity.activity_date === today())
     && (focusFilter !== 'overdue' || (activity.activity_date < today() && activity.status !== 'done'))
     && (focusFilter !== 'review' || activity.relationship === 'review' || activity.review_status === 'waiting_review')
     && (focusFilter !== 'open' || activity.status !== 'done')
-  ), [activities, focusFilter, kindFilter, sourceFilter]);
+  ), [activities, focusFilter, kindFilter]);
   const selectedActivities = useMemo(() => filteredActivities.filter((activity) => activity.activity_date === selectedDate), [filteredActivities, selectedDate]);
   const selectedGoogleEvents = useMemo(() => googleEvents.filter((event) => googleEventDate(event) === selectedDate), [googleEvents, selectedDate]);
   const countByDate = useMemo(() => filteredActivities.reduce<Record<string, number>>((counts, activity) => ({ ...counts, [activity.activity_date]: (counts[activity.activity_date] ?? 0) + 1 }), {}), [filteredActivities]);
@@ -326,11 +317,6 @@ export default function MyActivityPage() {
           <article><span><FiCalendar /><i>Kalender Perusahaan</i></span><strong>Campus Innovate</strong><small>{calendarStatus.company ? `Terhubung melalui ${calendarStatus.company.email}` : 'Kalender utama innovatecampus@gmail.com'}</small>{calendarStatus.company ? <b data-connected>Terhubung</b> : <button type="button" onClick={() => void connectCalendar('company')}>Hubungkan bridge</button>}</article>
           <article><span><FiCalendar /><i>Kalender Pribadi</i></span><strong>Google Calendar saya</strong><small>{calendarStatus.personal ? `Terhubung sebagai ${calendarStatus.personal.email}` : 'Tampil bersama agenda kerja kamu'}</small>{calendarStatus.personal ? <b data-connected>Terhubung</b> : <button type="button" onClick={() => void connectCalendar('personal')}>Hubungkan kalender</button>}</article>
         </section>
-
-        <div className="rk-source-filter" role="tablist" aria-label="Filter sumber kerja">
-          <button type="button" data-active={sourceFilter === 'all'} onClick={() => setSourceFilter('all')}>Semua sumber <span>{activities.length}</span></button>
-          {filterSources.map((source) => <button type="button" key={source.id} data-active={sourceFilter === source.id} onClick={() => setSourceFilter(source.id)}><i style={{ background: source.color }} />{source.name}<span>{activities.filter((activity) => activity.source_id === source.id).length}</span></button>)}
-        </div>
 
         <div className="rk-kind-filter" role="tablist" aria-label="Filter jenis aktivitas">
           <button type="button" data-active={kindFilter === 'all'} onClick={() => setKindFilter('all')}>Semua jenis <span>{activities.length}</span></button>

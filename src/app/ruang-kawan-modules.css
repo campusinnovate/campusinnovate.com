@@ -76,3 +76,37 @@ body:has(.rk-dashboard-foundation),body:has(.rk-profile-foundation),body:has(.rk
   .rk-dashboard-foundation,.rk-dashboard-shell,.rk-dashboard-columns,.rk-dashboard-columns>article{min-width:0;max-width:100%;box-sizing:border-box}
   .rk-dashboard-mood>div{width:100%;max-width:100%;min-width:0}
 }
+
+/* Kawan Inovasi identity and contrast repair. */
+.rk-mini-nav>.rk-mini-nav-inner{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;width:min(1540px,100%)!important;overflow:visible!important;box-sizing:border-box}
+.rk-mini-nav .rk-nav-modules{justify-content:flex-start;overflow:visible}
+.rk-mini-nav,.rk-mini-nav-inner,.rk-nav-account{overflow:visible}
+
+.rk-dashboard-foundation,.rk-work-foundation,.rk-profile-foundation,.rk-project-foundation,.rk-kpi-foundation,.rk-doc-foundation,.rk-report-foundation,.rk-marketing-foundation,.rk-notification-foundation,.rk-activity-foundation,.rk-content-foundation,.rk-pipeline-foundation,.rk-finance-workspace{
+  background-color:var(--rk-cream)!important;
+  background-image:linear-gradient(135deg,rgba(255,248,233,.92),rgba(255,251,241,.96)),url('/assets/brand/kawan-inovasi-reference.jpeg')!important;
+  background-position:center,center top!important;
+  background-repeat:no-repeat,repeat!important;
+  background-size:cover,760px 760px!important;
+  background-attachment:fixed,fixed!important;
+}
+
+.rk-dashboard-hero,.rk-activity-heading,.rk-marketing-heading,.rk-content-heading,.rk-pipeline-heading,.rk-project-heading,.rk-kpi-heading,.rk-doc-heading,.rk-report-heading,.rk-profile-heading,.rk-notification-shell>header,.rk-admin-heading{
+  box-shadow:0 30px 80px rgba(12,43,79,.25),0 9px 24px rgba(231,126,39,.12),inset 0 1px rgba(255,255,255,.28)!important;
+}
+.rk-glossy-card,.rk-dashboard-focus>a,.rk-dashboard-module-grid>a,.rk-dashboard-account,.rk-calendar-connections>article,.rk-calendar-panel,.rk-day-panel,.rk-feed-panel,.rk-marketing-card,.rk-marketing-panel,.rk-project-stats article,.rk-kpi-stats article,.rk-project-toolbar,.rk-kpi-toolbar,.rk-doc-toolbar,.rk-report-toolbar,.rk-notification-card,.rk-finance-content>section,.rk-finance-dashboard-grid>article,.rk-finance-metric-grid article,.rk-finance-summary-row article{
+  box-shadow:0 20px 52px rgba(17,53,91,.12),0 5px 16px rgba(235,132,44,.08),inset 0 1px rgba(255,255,255,.9)!important;
+}
+
+.rk-dashboard-mood button{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+.rk-dashboard-mood button:hover,.rk-dashboard-mood button:focus-visible{z-index:2;transform:translateY(-10px);border-color:#f0b81f;box-shadow:0 18px 30px rgba(17,53,91,.16),0 8px 18px rgba(235,132,44,.16)}
+
+.rk-activity-nav a,.rk-activity-nav button{color:var(--rk-navy)!important;border-color:rgba(16,43,78,.12)!important;background:rgba(255,255,255,.88)!important;box-shadow:0 10px 28px rgba(16,43,78,.08)}
+.rk-personal-tabs{border-color:rgba(16,43,78,.11)!important;background:rgba(255,255,255,.84)!important;box-shadow:0 14px 38px rgba(16,43,78,.09),inset 0 1px rgba(255,255,255,.9)}
+.rk-personal-tabs a{color:var(--rk-navy)!important;background:#edf4fb!important}
+.rk-personal-tabs a:hover,.rk-personal-tabs a:focus-visible{color:var(--rk-navy)!important;background:var(--rk-yellow)!important;transform:translateY(-2px)}
+.rk-calendar-connections article{color:var(--rk-ink)!important;border-color:rgba(16,43,78,.1)!important;background:rgba(255,255,255,.9)!important}
+.rk-calendar-connections article>span{color:#df7a29!important}.rk-calendar-connections article>span i,.rk-calendar-connections article small{color:var(--rk-muted)!important}.rk-calendar-connections article>b[data-connected]{color:#237353!important;border-color:#bee2cf!important;background:#e5f5eb!important}
+.rk-kind-filter{margin-top:14px}.rk-kind-filter button{color:#425b76!important;border-color:rgba(16,43,78,.1)!important;background:rgba(255,255,255,.82)!important;box-shadow:0 8px 20px rgba(16,43,78,.06)}.rk-kind-filter button[data-active=true]{color:var(--rk-navy)!important;border-color:#f2c83d!important;background:var(--rk-yellow)!important}
+
+@media(prefers-reduced-motion:reduce){.rk-dashboard-mood button{transition:none}.rk-dashboard-mood button:hover,.rk-dashboard-mood button:focus-visible{transform:none}}
