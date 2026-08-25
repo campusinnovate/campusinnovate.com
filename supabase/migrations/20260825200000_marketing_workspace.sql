@@ -33,11 +33,18 @@ insert into public.position_permissions(position_id,permission_id)
 select pos.id,perm.id from public.positions pos cross join public.permissions perm
 where
  (pos.key in ('social_media_staff','growth_marketing_staff') and perm.key in
-   ('marketing.view','marketing.overview.view','marketing.brand.view','marketing.brand.manage'))
+   ('marketing.view','marketing.overview.view','marketing.brand.view','marketing.brand.manage','content_plan.view','content_plan.manage_self'))
  or (pos.key='business_development_staff' and perm.key in
-   ('marketing.view','marketing.overview.view','marketing.catalog.view','marketing.proposal.view','marketing.proposal.manage','vendors.view','vendors.create'))
- or (pos.key in ('ceo','coo') and (perm.key like 'marketing.%' or perm.key like 'vendors.%'))
+   ('marketing.view','marketing.overview.view','marketing.catalog.view','marketing.proposal.view','marketing.proposal.manage','vendors.view','vendors.create','pipeline.view','pipeline.manage_self'))
+ or (pos.key in ('ceo','coo') and (perm.key like 'marketing.%' or perm.key like 'vendors.%' or perm.key like 'content_plan.%' or perm.key like 'pipeline.%'))
 on conflict do nothing;
+
+-- Content and Pipeline visibility is job-position specific. Remove the broad
+-- legacy grants from generic employment roles; member overrides still win.
+delete from public.role_permissions rp using public.roles r,public.permissions p
+where rp.role_id=r.id and rp.permission_id=p.id
+  and r.key in ('staff','freelancer','project_lead','people_hr_manager','finance_manager')
+  and (p.key like 'content_plan.%' or p.key like 'pipeline.%');
 
 create or replace function public.current_user_has_permission(permission_key text)
 returns boolean language sql stable security definer set search_path=public as $$

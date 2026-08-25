@@ -19,13 +19,15 @@ select r.id,p.id from public.roles r cross join public.permissions p where
  or (r.key in ('system_admin','executive','project_lead','finance_manager','people_hr_manager','staff','freelancer') and p.key in ('vendors.view','vendors.create'))
 on conflict do nothing;
 
-create table public.notifications(
+create table if not exists public.notifications(
  id uuid primary key default extensions.gen_random_uuid(),recipient_membership_id uuid not null references public.memberships(id) on delete cascade,
- event_key text not null,title text not null,message text,source_module text,source_id text,route text,
- priority text not null default 'normal' check(priority in ('low','normal','high','urgent')),
- read_at timestamptz,dismissed_at timestamptz,dedupe_key text,created_at timestamptz not null default now(),
- unique(recipient_membership_id,dedupe_key)
+ actor_membership_id uuid references public.memberships(id),notification_type text not null,title text not null,message text,
+ entity_type text,entity_id text,action_url text,read_at timestamptz,created_at timestamptz not null default now()
 );
+alter table public.notifications add column if not exists priority text not null default 'normal' check(priority in ('low','normal','high','urgent'));
+alter table public.notifications add column if not exists dismissed_at timestamptz;
+alter table public.notifications add column if not exists dedupe_key text;
+create unique index if not exists notifications_recipient_dedupe_unique on public.notifications(recipient_membership_id,dedupe_key) where dedupe_key is not null;
 create index notifications_recipient_unread_idx on public.notifications(recipient_membership_id,created_at desc) where read_at is null and dismissed_at is null;
 
 create table public.mood_checkins(
@@ -73,7 +75,7 @@ returns jsonb language plpgsql stable security definer set search_path=public as
  if actor is null then raise exception 'Login diperlukan.' using errcode='42501';end if;
  return jsonb_build_object(
   'mood',(select to_jsonb(m) from public.mood_checkins m where m.membership_id=actor and m.checkin_date=today_jkt),
-  'notifications',coalesce((select jsonb_agg(to_jsonb(n) order by n.created_at desc) from public.notifications n where n.recipient_membership_id=actor and n.dismissed_at is null limit 20),'[]'::jsonb),
+   'notifications',coalesce((select jsonb_agg(to_jsonb(q) order by q.created_at desc) from (select n.* from public.notifications n where n.recipient_membership_id=actor and n.dismissed_at is null order by n.created_at desc limit 20) q),'[]'::jsonb),
   'work',jsonb_build_object(
    'overdue',(select count(*) from public.activities a where a.owner_membership_id=actor and a.activity_date<today_jkt and a.status not in ('done')),
    'due_today',(select count(*) from public.activities a where a.owner_membership_id=actor and a.activity_date=today_jkt and a.status not in ('done')),
@@ -113,7 +115,7 @@ create or replace function public.save_report_action_item(target uuid,payload js
 returns uuid language plpgsql security definer set search_path=public as $$declare actor uuid:=public.current_membership_id();saved uuid;pic uuid:=coalesce(nullif(payload->>'pic_membership_id','')::uuid,actor);begin
  if actor is null or (pic<>actor and not public.current_user_has_permission('report.action.assign')) then raise exception 'Tidak dapat memberikan action item.' using errcode='42501';end if;
  if target is null then insert into public.report_action_items(report_id,report_item_id,pic_membership_id,title,deadline,priority,status,source_module,source_id,created_by_membership_id) values((payload->>'report_id')::uuid,nullif(payload->>'report_item_id','')::uuid,pic,trim(payload->>'title'),nullif(payload->>'deadline','')::date,coalesce(nullif(payload->>'priority',''),'medium'),coalesce(nullif(payload->>'status',''),'open'),nullif(payload->>'source_module',''),nullif(payload->>'source_id',''),actor) returning id into saved;else update public.report_action_items set title=trim(payload->>'title'),deadline=nullif(payload->>'deadline','')::date,priority=payload->>'priority',status=payload->>'status',updated_at=now() where id=target and (pic_membership_id=actor or created_by_membership_id=actor) returning id into saved;end if;
- if pic<>actor then insert into public.notifications(recipient_membership_id,event_key,title,message,source_module,source_id,route,priority,dedupe_key) values(pic,'report.action.assigned','Action item baru',payload->>'title','reports',saved::text,'/ruang-kawan/activity/',case when payload->>'priority'='urgent' then 'urgent' else 'normal' end,'report-action:'||saved::text) on conflict(recipient_membership_id,dedupe_key) do update set message=excluded.message,read_at=null,dismissed_at=null,created_at=now();end if;return saved;end;$$;
+ if pic<>actor then insert into public.notifications(recipient_membership_id,actor_membership_id,notification_type,title,message,entity_type,entity_id,action_url,priority,dedupe_key) values(pic,actor,'report.action.assigned','Action item baru',payload->>'title','reports',saved::text,'/ruang-kawan/activity/',case when payload->>'priority'='urgent' then 'urgent' else 'normal' end,'report-action:'||saved::text) on conflict(recipient_membership_id,dedupe_key) where dedupe_key is not null do update set message=excluded.message,read_at=null,dismissed_at=null,created_at=now();end if;return saved;end;$$;
 
 alter table public.notifications enable row level security;alter table public.mood_checkins enable row level security;alter table public.employee_private_profiles enable row level security;alter table public.vendors enable row level security;alter table public.vendor_evaluations enable row level security;alter table public.vendor_events enable row level security;alter table public.report_action_items enable row level security;
 revoke all on public.notifications,public.mood_checkins,public.employee_private_profiles,public.vendors,public.vendor_evaluations,public.vendor_events,public.report_action_items from anon,authenticated;

@@ -22,7 +22,7 @@ type DashboardState =
 
 type DashboardWorkspace = {
   mood: { score: number } | null;
-  notifications: { id: string; title: string; message: string | null; route: string | null; read_at: string | null }[];
+  notifications: { id: string; title: string; message: string | null; action_url: string | null; read_at: string | null }[];
   work: { overdue: number; due_today: number; reviews: number; open_actions: number };
   kpi: { score: number | null; status: string | null; period: string } | null;
 };
@@ -147,7 +147,7 @@ export default function RuangKawanDashboardPage() {
             <p>Opsional, tidak memengaruhi KPI, dan tren perusahaan hanya anonim.</p>
           </article>
           <article className="rk-performance-card"><small>Status kinerja</small><h2 data-status={performanceLabel}>{performanceLabel}</h2><div><span><b>{workspace?.work.due_today ?? 0}</b> hari ini</span><span><b>{workspace?.work.overdue ?? 0}</b> terlambat</span><span><b>{workspace?.work.reviews ?? 0}</b> review</span><span><b>{workspace?.work.open_actions ?? 0}</b> action item</span></div><p>{workspace?.kpi ? `${workspace.kpi.period} · KPI ${workspace.kpi.score?.toFixed(1) ?? '—'}%` : 'Ringkasan KPI akan muncul setelah assignment aktif.'}</p></article>
-          <article className="rk-notification-card"><small>Notifikasi</small><h2>{workspace?.notifications.filter(item=>!item.read_at).length ?? 0} belum dibaca</h2>{workspace?.notifications.slice(0,3).map(item => item.route ? <Link key={item.id} href={item.route}><strong>{item.title}</strong><span>{item.message}</span></Link> : <div key={item.id}><strong>{item.title}</strong><span>{item.message}</span></div>)}{!workspace?.notifications.length?<p>Belum ada notifikasi baru.</p>:null}</article>
+          <article className="rk-notification-card"><small>Notifikasi</small><h2>{workspace?.notifications.filter(item=>!item.read_at).length ?? 0} belum dibaca</h2>{workspace?.notifications.slice(0,3).map(item => item.action_url ? <Link key={item.id} href={item.action_url}><strong>{item.title}</strong><span>{item.message}</span></Link> : <div key={item.id}><strong>{item.title}</strong><span>{item.message}</span></div>)}{!workspace?.notifications.length?<p>Belum ada notifikasi baru.</p>:null}</article>
         </section>
 
         <div className="rk-dashboard-module-grid">
