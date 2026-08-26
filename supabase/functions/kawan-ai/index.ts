@@ -14,13 +14,13 @@ function json(value: unknown, status: number, origin: string | null) {
   return new Response(JSON.stringify(value), { status, headers: { ...cors(origin), 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 function clean(value: unknown, max: number) { return typeof value === 'string' ? value.trim().slice(0, max) : ''; }
-function boundedContext(value: Record<string, unknown>, maxChars = 26000) {
+function boundedContext(value: Record<string, unknown>, maxChars = 12000) {
   const serialized = JSON.stringify(value);
   if (serialized.length <= maxChars) return serialized;
   return JSON.stringify({
     route: value.route, entity_type: value.entity_type, entity_id: value.entity_id,
     actor: value.actor, context_truncated: true,
-    module_context_excerpt: JSON.stringify(value.module_context ?? {}).slice(0, maxChars - 3000),
+    module_context_excerpt: JSON.stringify(value.module_context ?? {}).slice(0, maxChars - 2000),
   });
 }
 const responseSchema = {
