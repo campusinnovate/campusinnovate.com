@@ -9,7 +9,8 @@ const GOOGLE_REDIRECT_URI = Deno.env.get('GOOGLE_CALENDAR_REDIRECT_URI') ?? `${S
 const COMPANY_CALENDAR_ID = 'innovatecampus@gmail.com';
 const APP_ORIGIN = 'https://campusinnovate.com';
 const WORKSPACE_SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents', 'https://www.googleapis.com/auth/presentations'];
-const SCOPES = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/calendar.calendarlist.readonly', 'https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/gmail.send', ...WORKSPACE_SCOPES];
+const GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
+const SCOPES = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/calendar.calendarlist.readonly', 'https://www.googleapis.com/auth/calendar.events', GMAIL_SEND_SCOPE, ...WORKSPACE_SCOPES];
 
 const service = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
@@ -366,7 +367,11 @@ async function emailChatMessage(req:Request,origin:string|null){
   if(messageError||!message)return json({error:'Pesan tidak ditemukan.'},404,origin);
   const {data:allowed}=await auth.client.rpc('is_chat_member',{target_conversation_id:message.conversation_id});if(!allowed)return json({error:'Percakapan tidak dapat diakses.'},403,origin);
   const {data:actor}=await service.from('memberships').select('id,full_name,email').eq('user_id',auth.user.id).eq('status','active').single();if(!actor)return json({error:'Keanggotaan tidak ditemukan.'},403,origin);
-  const {data:personal}=await service.from('google_calendar_connections').select('*').eq('owner_user_id',auth.user.id).eq('connection_type','personal').eq('is_active',true).maybeSingle();const connection=personal??await companyWorkspaceConnection();
+  const {data:personal}=await service.from('google_calendar_connections').select('*').eq('owner_user_id',auth.user.id).eq('connection_type','personal').eq('is_active',true).maybeSingle();
+  const personalCanSend=Boolean(personal&&(personal.granted_scopes??[]).includes(GMAIL_SEND_SCOPE));
+  const company=personalCanSend?null:await companyWorkspaceConnection();
+  const companyCanSend=Boolean(company&&(company.granted_scopes??[]).includes(GMAIL_SEND_SCOPE));
+  const connection=personalCanSend?personal:companyCanSend?company:null;
   if(!connection)return json({error:'Google Workspace belum dihubungkan.',needsAuthorization:true},409,origin);
   const {data:rows}=await service.from('chat_conversation_members').select('membership_id,memberships!inner(email,full_name)').eq('conversation_id',message.conversation_id).is('left_at',null).neq('membership_id',actor.id);
   const recipients=(rows??[]).map((row:any)=>({id:String(row.membership_id),email:String(row.memberships?.email??''),name:String(row.memberships?.full_name??row.memberships?.email??'Kawan')})).filter(item=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.email));
