@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
   const groq = await fetch('https://api.groq.com/openai/v1/responses', { method: 'POST', headers: { Authorization: `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({
     model: GROQ_MODEL, max_output_tokens: 1800, instructions,
     input: `Pertanyaan pengguna:\n${prompt}\n\nKonteks terotorisasi (JSON):\n${JSON.stringify(context)}`,
-    text: { verbosity: 'low', format: { type: 'json_schema', name: 'kawan_ai_response', strict: true, schema: responseSchema } },
+    text: { format: { type: 'json_schema', name: 'kawan_ai_response', strict: true, schema: responseSchema } },
   }) });
   const response = await groq.json().catch(() => ({}));
   if (!groq.ok) {
