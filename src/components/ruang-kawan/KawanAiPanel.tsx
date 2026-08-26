@@ -12,7 +12,28 @@ type AiReply = { id: string; role: 'user' | 'assistant'; text: string; actions?:
 type Access = { membership_status?: string; permissions?: string[] };
 
 const routeLabels: Record<string, string> = {
-  activity: 'My Activity', chat: 'Kawan Chat', projects: 'Project', kpi: 'KPI', marketing: 'Marketing', documents: 'Document Center', reports: 'Report & Analysis', finance: 'Finance',
+  dashboard: 'Dashboard', activity: 'My Activity', notes: 'Coret-coret', assignments: 'Assignment', chat: 'Kawan Chat',
+  'content-plan': 'Content Plan', pipeline: 'Pipeline BD', projects: 'Project', kpi: 'KPI', marketing: 'Marketing',
+  documents: 'Document Center', reports: 'Report & Analysis', finance: 'Finance', notifications: 'Notifikasi', profile: 'Profil Pegawai', admin: 'Admin',
+};
+
+const routeSuggestions: Record<string, string[]> = {
+  dashboard: ['Ringkas kondisi kerja saya hari ini', 'Apa yang perlu segera saya tindak lanjuti?'],
+  activity: ['Prioritas apa yang harus saya kerjakan?', 'Ringkas pekerjaan terbuka saya'],
+  notes: ['Ringkas catatan penting saya', 'Kelompokkan ide dan tindak lanjut dari catatan saya'],
+  assignments: ['Assignment mana yang paling mendesak?', 'Ringkas pekerjaan yang perlu direview'],
+  chat: ['Ringkas percakapan ini', 'Apa keputusan dan tindak lanjutnya?', 'Buat draft assignment dari pembahasan'],
+  'content-plan': ['Konten apa yang perlu diprioritaskan?', 'Ringkas status Content Plan'],
+  pipeline: ['Lead mana yang perlu segera ditindaklanjuti?', 'Ringkas risiko dan peluang pipeline'],
+  projects: ['Ringkas status project yang dapat saya akses', 'Apa blocker dan tindak lanjut project?'],
+  kpi: ['Ringkas progres KPI saya', 'Apa KPI yang masih perlu diperbarui?'],
+  marketing: ['Ringkas pekerjaan Marketing aktif', 'Apa proposal atau brand task yang perlu ditindaklanjuti?'],
+  finance: ['Ringkas kondisi Finance terbaru', 'Apa transaksi atau dokumen yang perlu diperhatikan?'],
+  documents: ['Dokumen apa yang perlu direview?', 'Ringkas status Document Center'],
+  reports: ['Ringkas report dan action item saya', 'Apa laporan yang belum selesai?'],
+  notifications: ['Ringkas notifikasi penting saya', 'Apa yang perlu saya tindaklanjuti dari notifikasi?'],
+  profile: ['Ringkas profil kerja saya', 'Data profil apa yang belum lengkap?'],
+  admin: ['Ringkas kondisi akses dan anggota aktif', 'Apa konfigurasi yang perlu diperiksa?'],
 };
 
 export default function KawanAiPanel() {
@@ -62,11 +83,8 @@ export default function KawanAiPanel() {
     return context.label || routeLabels[segment] || 'Ruang Kawan';
   }, [pathname, context.label]);
 
-  const suggestions = pathname.startsWith('/ruang-kawan/chat')
-    ? ['Ringkas percakapan ini', 'Apa keputusan dan tindak lanjutnya?', 'Buat draft assignment dari pembahasan']
-    : pathname.startsWith('/ruang-kawan/activity')
-      ? ['Prioritas apa yang harus saya kerjakan?', 'Ringkas pekerjaan terbuka saya']
-      : ['Apa yang perlu saya perhatikan di halaman ini?', 'Bantu susun langkah kerja berikutnya'];
+  const activeSegment = pathname.split('/').filter(Boolean)[1] ?? '';
+  const suggestions = routeSuggestions[activeSegment] ?? ['Apa yang perlu saya perhatikan di halaman ini?', 'Bantu susun langkah kerja berikutnya'];
 
   async function ask(event: FormEvent) {
     event.preventDefault();

@@ -14,6 +14,15 @@ function json(value: unknown, status: number, origin: string | null) {
   return new Response(JSON.stringify(value), { status, headers: { ...cors(origin), 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 function clean(value: unknown, max: number) { return typeof value === 'string' ? value.trim().slice(0, max) : ''; }
+function boundedContext(value: Record<string, unknown>, maxChars = 26000) {
+  const serialized = JSON.stringify(value);
+  if (serialized.length <= maxChars) return serialized;
+  return JSON.stringify({
+    route: value.route, entity_type: value.entity_type, entity_id: value.entity_id,
+    actor: value.actor, context_truncated: true,
+    module_context_excerpt: JSON.stringify(value.module_context ?? {}).slice(0, maxChars - 3000),
+  });
+}
 const responseSchema = {
   type: 'object', additionalProperties: false, required: ['answer', 'actions'], properties: {
     answer: { type: 'string', minLength: 1, maxLength: 6000 },
@@ -47,7 +56,7 @@ Deno.serve(async (req) => {
   const instructions = `Kamu adalah Kawan AI, asisten kerja internal Campus Innovate. Jawab dalam Bahasa Indonesia yang ringkas, konkret, ramah, dan berbasis konteks yang diberikan. Jangan mengarang data, anggota, tanggal, keputusan, atau status. Jika data kurang, nyatakan kekurangannya. Jangan pernah mengungkap daftar permission mentah. proposed actions hanyalah draft dan wajib dikonfirmasi pengguna. Hanya usulkan action ketika konteks aktif adalah Kawan Chat dengan conversation_id yang sah. Payload action harus berupa JSON string yang sesuai: create_assignment dapat berisi title, detail, due_date, priority, owner_membership_id, reviewer_membership_id; save_decision dapat berisi title dan detail; create_meeting dapat berisi title, agenda, startsAt, endsAt, timezone, attendeeMembershipIds; link_project dapat berisi project_id dan title.`;
   const groq = await fetch('https://api.groq.com/openai/v1/responses', { method: 'POST', headers: { Authorization: `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({
     model: GROQ_MODEL, max_output_tokens: 1800, instructions,
-    input: `Pertanyaan pengguna:\n${prompt}\n\nKonteks terotorisasi (JSON):\n${JSON.stringify(context)}`,
+    input: `Pertanyaan pengguna:\n${prompt}\n\nKonteks terotorisasi (JSON):\n${boundedContext(context)}`,
     text: { format: { type: 'json_schema', name: 'kawan_ai_response', strict: true, schema: responseSchema } },
   }) });
   const response = await groq.json().catch(() => ({}));
