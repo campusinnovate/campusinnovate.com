@@ -115,7 +115,11 @@ export default function KawanChatPage() {
     setBackendPending(false);
     setStatus('ready');
     if (!requestedConversation.current) requestedConversation.current = new URLSearchParams(window.location.search).get('conversation');
-    if (!selectedId) setSelectedId(requestedConversation.current ?? payload.conversations[0]?.id ?? null);
+    if (!selectedId) {
+      const initialConversationId = requestedConversation.current ?? payload.conversations[0]?.id ?? null;
+      setSelectedId(initialConversationId);
+      if (initialConversationId && window.innerWidth <= 900) setSidebarOpen(false);
+    }
   }
 
   async function loadConversation(id: string, markRead = true) {
