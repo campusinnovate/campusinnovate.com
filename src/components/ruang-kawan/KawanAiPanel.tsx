@@ -116,7 +116,7 @@ export default function KawanAiPanel() {
 
   if (!allowed || pathname === '/ruang-kawan' || pathname.startsWith('/ruang-kawan/callback')) return null;
   return <aside className="rk-ai" data-open={open} aria-label="Kawan AI">
-    <button className="rk-ai-launcher" onClick={() => setOpen(true)} aria-label="Buka Kawan AI"><FiZap /><span>Kawan AI</span></button>
+    <button className="rk-ai-launcher" data-meeting={Boolean(context.data?.hasMeeting)} onClick={() => setOpen(true)} aria-label={`Buka Kawan AI${context.data?.hasMeeting?' · meeting tersedia':''}`}><FiZap /><span>Kawan AI</span>{context.data?.hasMeeting?<i aria-hidden="true"/>:null}</button>
     {open ? <section className="rk-ai-panel">
       <header><div><span><FiZap /></span><div><small>Asisten kerja kontekstual</small><strong>Kawan AI</strong></div></div><button onClick={() => setOpen(false)} aria-label="Tutup Kawan AI"><FiX /></button></header>
       <div className="rk-ai-context"><span>Konteks aktif</span><strong>{moduleName}</strong><small>Kawan AI hanya membaca data yang memang boleh kamu akses.</small></div>

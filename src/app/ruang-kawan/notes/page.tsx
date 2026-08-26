@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 
 type Note = { id:string; owner_membership_id:string; title:string|null; content:string; tags:string[]; color:'yellow'|'blue'|'green'|'pink'|'plain'; is_pinned:boolean; archived_at:string|null; created_at:string; updated_at:string };
 type NoteForm = { id:string|null; title:string; content:string; tags:string; color:Note['color']; isPinned:boolean };
-type PersonalSpreadsheet = { id:string; drive_file_id:string; drive_file_url:string; embed_url:string; status:'ready'|'error' };
+type PersonalSpreadsheet = { id:string; name:string; drive_file_id:string; drive_file_url:string; embed_url:string; status:'ready'|'error' };
 const emptyForm = ():NoteForm => ({ id:null,title:'',content:'',tags:'',color:'yellow',isPinned:false });
 
 export default function NotesPage(){
@@ -23,6 +23,7 @@ export default function NotesPage(){
   const [error,setError]=useState('');
   const [sheet,setSheet]=useState<PersonalSpreadsheet|null>(null);
   const [sheetLoading,setSheetLoading]=useState(false);
+  const [sheetName,setSheetName]=useState('');
 
   async function loadSpreadsheet(create=false){
     setSheetLoading(true); const supabase=createClient();
@@ -32,7 +33,7 @@ export default function NotesPage(){
       const response=await fetch('https://lxwqhtuhlddgwfxjtlas.supabase.co/functions/v1/ruang-kawan-calendar/workspace/personal-spreadsheet',{method:create?'POST':'GET',headers:{Authorization:`Bearer ${session.access_token}`}});
       const result=await response.json();
       if(!response.ok)throw new Error(result.error??'Spreadsheet belum dapat dimuat.');
-      setSheet(result.sheet??null);
+      setSheet(result.sheet??null);setSheetName(result.sheet?.name??'Coret-coret Pribadi');
     }catch(sheetError){setError(sheetError instanceof Error?sheetError.message:'Spreadsheet belum dapat dimuat.');}
     finally{setSheetLoading(false);}
   }
@@ -62,6 +63,7 @@ export default function NotesPage(){
     const result=await createClient().from('activities').insert({owner_membership_id:membershipId,source_id:source.data.id,title:note.title||note.content.slice(0,80)||'Catatan baru',activity_date:new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'}),detail:note.content||null,priority:'medium',status:'not_started',progress:0});
     if(result.error)setError('Catatan belum berhasil dijadikan aktivitas.');else setMessage('Aktivitas dibuat. Catatan asli tetap tersimpan.');
   }
+  async function renameSpreadsheet(event:FormEvent){event.preventDefault();if(!sheet||!sheetName.trim())return;setSheetLoading(true);const result=await createClient().rpc('rename_personal_spreadsheet',{sheet_name:sheetName.trim()});setSheetLoading(false);if(result.error){setError(result.error.message);return;}setSheet({...sheet,name:sheetName.trim()});setMessage('Nama spreadsheet pribadi diperbarui.');}
   if(state==='loading')return <main className="rk-dashboard-foundation"><section className="rk-access-denied"><p>Menyiapkan Coret-coret...</p></section></main>;
   if(state==='denied')return <main className="rk-dashboard-foundation"><section className="rk-access-denied"><h1>Coret-coret belum tersedia</h1><Link href="/ruang-kawan/activity/">Kembali ke My Activity</Link></section></main>;
   return <main className="rk-work-foundation"><section className="rk-work-shell">
@@ -70,6 +72,6 @@ export default function NotesPage(){
     <section className="rk-note-tools"><label><FiSearch/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Cari catatan atau tag..."/></label><span>{visible.length} catatan</span></section>
     {message?<p className="rk-work-alert">{message}</p>:null}{error?<p className="rk-work-alert" data-error>{error}</p>:null}
     <section className="rk-notes-grid">{visible.map(note=><article key={note.id} data-color={note.color}><header><button aria-label="Pin" onClick={()=>void updateNote(note.id,{is_pinned:!note.is_pinned})} data-active={note.is_pinned}><FiStar/></button><small>{new Date(note.updated_at).toLocaleDateString('id-ID',{day:'numeric',month:'short'})}</small></header><button className="rk-note-body" onClick={()=>edit(note)}><h2>{note.title||'Tanpa judul'}</h2><p>{note.content||'Catatan kosong'}</p></button><footer><span>{note.tags.slice(0,3).map(tag=><i key={tag}>#{tag}</i>)}</span><div><button title="Jadikan aktivitas" onClick={()=>void convertToActivity(note)}><FiCheck/></button><button title={note.archived_at?'Aktifkan':'Arsipkan'} onClick={()=>void updateNote(note.id,{archived_at:note.archived_at?null:new Date().toISOString()})}><FiArchive/></button><button title="Ubah" onClick={()=>edit(note)}><FiEdit3/></button></div></footer></article>)}{!visible.length?<div className="rk-work-empty"><FiEdit3/><strong>{showArchived?'Belum ada arsip':'Mulai dari satu ide'}</strong><p>Catatan tersimpan privat dan dapat dijadikan aktivitas saat siap dikerjakan.</p></div>:null}</section>
-    <section className="rk-sheet-widget"><header><div><small>Spreadsheet pribadi</small><h2><FiGrid/> Lembar kerja Coret-coret</h2><p>Hitung, susun tabel, dan brainstorm langsung di halaman ini. Hanya akunmu yang mendapat akses edit.</p></div>{sheet?<button onClick={()=>void loadSpreadsheet(false)} disabled={sheetLoading}><FiRefreshCw/> Muat ulang</button>:<button onClick={()=>void loadSpreadsheet(true)} disabled={sheetLoading}><FiPlus/> {sheetLoading?'Menyiapkan...':'Buat spreadsheet'}</button>}</header>{sheet?<iframe title="Spreadsheet pribadi Coret-coret" src={sheet.embed_url} allow="clipboard-read; clipboard-write"/>:<div><FiGrid/><strong>Belum ada spreadsheet pribadi</strong><p>Buat satu kali; berikutnya lembar kerja akan langsung tampil di bawah catatan.</p></div>}</section>
+    <section className="rk-sheet-widget"><header><div><small>Spreadsheet pribadi</small><h2><FiGrid/> {sheet?.name||'Lembar kerja Coret-coret'}</h2><p>Hitung, susun tabel, dan brainstorm langsung di halaman ini. Hanya akunmu yang mendapat akses edit.</p></div>{sheet?<button onClick={()=>void loadSpreadsheet(false)} disabled={sheetLoading}><FiRefreshCw/> Muat ulang</button>:<button onClick={()=>void loadSpreadsheet(true)} disabled={sheetLoading}><FiPlus/> {sheetLoading?'Menyiapkan...':'Buat spreadsheet'}</button>}</header>{sheet?<><form className="rk-sheet-name" onSubmit={renameSpreadsheet}><label>Nama spreadsheet<input value={sheetName} onChange={event=>setSheetName(event.target.value)} maxLength={120}/></label><button disabled={sheetLoading||!sheetName.trim()}>Simpan nama</button></form><iframe title={sheet.name||'Spreadsheet pribadi Coret-coret'} src={sheet.embed_url} allow="clipboard-read; clipboard-write"/></>:<div><FiGrid/><strong>Belum ada spreadsheet pribadi</strong><p>Buat satu kali; berikutnya lembar kerja akan langsung tampil di bawah catatan.</p></div>}</section>
   </section>{open?<div className="rk-work-modal" role="dialog" aria-modal="true"><form onSubmit={save}><header><div><small>Catatan pribadi</small><h2>{form.id?'Ubah coretan':'Coretan baru'}</h2></div><button type="button" onClick={()=>setOpen(false)}><FiX/></button></header><div className="rk-work-form"><label>Judul<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} maxLength={180}/></label><label>Isi<textarea value={form.content} onChange={e=>setForm({...form,content:e.target.value})} autoFocus rows={12}/></label><label>Tag, pisahkan dengan koma<input value={form.tags} onChange={e=>setForm({...form,tags:e.target.value})}/></label><div className="rk-note-options"><label>Warna<select value={form.color} onChange={e=>setForm({...form,color:e.target.value as Note['color']})}><option value="yellow">Kuning</option><option value="blue">Biru</option><option value="green">Hijau</option><option value="pink">Merah muda</option><option value="plain">Putih</option></select></label><label data-check><input type="checkbox" checked={form.isPinned} onChange={e=>setForm({...form,isPinned:e.target.checked})}/> Pin catatan</label></div></div><footer>{form.id?<button type="button" data-danger onClick={()=>void remove()}><FiTrash2/> Hapus</button>:<span/>}<div><button type="button" onClick={()=>setOpen(false)}>Batal</button><button data-primary disabled={saving}>{saving?'Menyimpan...':'Simpan'}</button></div></footer></form></div>:null}</main>;
 }

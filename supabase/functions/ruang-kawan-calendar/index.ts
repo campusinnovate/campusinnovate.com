@@ -9,7 +9,7 @@ const GOOGLE_REDIRECT_URI = Deno.env.get('GOOGLE_CALENDAR_REDIRECT_URI') ?? `${S
 const COMPANY_CALENDAR_ID = 'innovatecampus@gmail.com';
 const APP_ORIGIN = 'https://campusinnovate.com';
 const WORKSPACE_SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents', 'https://www.googleapis.com/auth/presentations'];
-const SCOPES = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/calendar.calendarlist.readonly', 'https://www.googleapis.com/auth/calendar.events', ...WORKSPACE_SCOPES];
+const SCOPES = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/calendar.calendarlist.readonly', 'https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/gmail.send', ...WORKSPACE_SCOPES];
 
 const service = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
@@ -201,7 +201,7 @@ async function personalSpreadsheet(req: Request, origin: string | null) {
   const sharing=await shareDriveFile(connection!,created.id,[String(membership.email)],'writer');
   if (!sharing.shared.length) return json({ error:'Spreadsheet dibuat, tetapi akses akunmu belum berhasil diberikan.',url:created.webViewLink },500,origin);
   const sheet={
-    owner_membership_id:membership.id,drive_file_id:created.id,
+    owner_membership_id:membership.id,name:title,drive_file_id:created.id,
     drive_file_url:created.webViewLink ?? `https://docs.google.com/spreadsheets/d/${created.id}/edit`,
     embed_url:`https://docs.google.com/spreadsheets/d/${created.id}/edit?rm=minimal&widget=true`,status:'ready',updated_at:new Date().toISOString(),
   };
@@ -335,6 +335,55 @@ async function createChatMeeting(req: Request, origin: string | null) {
   return json({ ready: true, meetingId: registered.data, eventId: event.id, meetUrl, htmlLink: event.htmlLink ?? null }, 200, origin);
 }
 
+async function respondChatMeeting(req: Request, origin: string | null) {
+  const auth=await authenticatedClient(req);if(!auth)return json({error:'Sesi tidak valid.'},401,origin);
+  const body=await req.json().catch(()=>({}));const meetingId=String(body.meetingId??'');const response=String(body.response??'').toLowerCase();
+  if(!meetingId||!['yes','no','maybe'].includes(response))return json({error:'RSVP tidak valid.'},400,origin);
+  const saved=await auth.client.rpc('respond_chat_meeting',{target_meeting_id:meetingId,response_value:response,attendance_note_value:String(body.attendanceNote??''),seat_note_value:String(body.seatNote??'')});
+  if(saved.error)return json({error:saved.error.message},saved.error.code==='42501'?403:400,origin);
+  const metadata=saved.data as Record<string,any>;let googleSynced=false;let googleError:string|null=null;
+  if(metadata.google_event_id&&metadata.google_calendar_id&&metadata.email){
+    try{
+      const {data:meeting}=await service.from('chat_meetings').select('created_by_membership_id,memberships!chat_meetings_created_by_membership_id_fkey(user_id)').eq('id',meetingId).single();
+      const ownerUserId=(meeting as any)?.memberships?.user_id;
+      const {data:personal}=ownerUserId?await service.from('google_calendar_connections').select('*').eq('owner_user_id',ownerUserId).eq('connection_type','personal').eq('is_active',true).maybeSingle():{data:null};
+      const connection=personal??await companyWorkspaceConnection();if(!connection)throw new Error('Koneksi Google Calendar pembuat meeting tidak tersedia.');
+      const event=await googleFetch(connection,`/calendars/${encodeURIComponent(metadata.google_calendar_id)}/events/${encodeURIComponent(metadata.google_event_id)}`);
+      const responseStatus=response==='yes'?'accepted':response==='no'?'declined':'tentative';
+      const attendees=(event.attendees??[]).map((item:Record<string,any>)=>String(item.email??'').toLowerCase()===String(metadata.email).toLowerCase()?{...item,responseStatus}:item);
+      await googleFetch(connection,`/calendars/${encodeURIComponent(metadata.google_calendar_id)}/events/${encodeURIComponent(metadata.google_event_id)}?sendUpdates=all`,{method:'PATCH',body:JSON.stringify({attendees})});googleSynced=true;
+    }catch(error){googleError=error instanceof Error?error.message:'Google Calendar belum tersinkron.';}
+  }
+  return json({ready:true,response,googleSynced,googleError},200,origin);
+}
+
+function encodeMime(value:string){return base64Url(new TextEncoder().encode(value));}
+function cleanHeader(value:string){return value.replace(/[\r\n]+/g,' ').trim();}
+async function emailChatMessage(req:Request,origin:string|null){
+  const auth=await authenticatedClient(req);if(!auth)return json({error:'Sesi tidak valid.'},401,origin);
+  const body=await req.json().catch(()=>({}));const messageId=String(body.messageId??'');if(!messageId)return json({error:'Pesan wajib dipilih.'},400,origin);
+  const {data:message,error:messageError}=await service.from('chat_messages').select('id,body,conversation_id,sender_membership_id,chat_conversations(name,kind),memberships!chat_messages_sender_membership_id_fkey(full_name,email)').eq('id',messageId).is('deleted_at',null).maybeSingle();
+  if(messageError||!message)return json({error:'Pesan tidak ditemukan.'},404,origin);
+  const {data:allowed}=await auth.client.rpc('is_chat_member',{target_conversation_id:message.conversation_id});if(!allowed)return json({error:'Percakapan tidak dapat diakses.'},403,origin);
+  const {data:actor}=await service.from('memberships').select('id,full_name,email').eq('user_id',auth.user.id).eq('status','active').single();if(!actor)return json({error:'Keanggotaan tidak ditemukan.'},403,origin);
+  const {data:personal}=await service.from('google_calendar_connections').select('*').eq('owner_user_id',auth.user.id).eq('connection_type','personal').eq('is_active',true).maybeSingle();const connection=personal??await companyWorkspaceConnection();
+  if(!connection)return json({error:'Google Workspace belum dihubungkan.',needsAuthorization:true},409,origin);
+  const {data:rows}=await service.from('chat_conversation_members').select('membership_id,memberships!inner(email,full_name)').eq('conversation_id',message.conversation_id).is('left_at',null).neq('membership_id',actor.id);
+  const recipients=(rows??[]).map((row:any)=>({id:String(row.membership_id),email:String(row.memberships?.email??''),name:String(row.memberships?.full_name??row.memberships?.email??'Kawan')})).filter(item=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.email));
+  const conversationName=cleanHeader((message.chat_conversations as any)?.name??'Kawan Chat');const senderName=cleanHeader((message.memberships as any)?.full_name??(message.memberships as any)?.email??'Kawan Inovasi');let sent=0;const failed:string[]=[];
+  for(const recipient of recipients){
+    const idempotencyKey=`chat-email:${messageId}:${recipient.id}`;const {data:existing}=await service.from('chat_email_deliveries').select('id,status').eq('idempotency_key',idempotencyKey).maybeSingle();if(existing?.status==='sent'){sent++;continue;}
+    const delivery=existing?.id?existing:(await service.from('chat_email_deliveries').insert({message_id:messageId,requested_by_membership_id:actor.id,recipient_membership_id:recipient.id,recipient_email:recipient.email,idempotency_key:idempotencyKey,status:'pending'}).select('id').single()).data;
+    try{
+      const mime=[`From: ${cleanHeader(String(connection.google_account_email??actor.email))}`,`To: ${cleanHeader(recipient.email)}`,`Subject: [Kawan Chat] ${conversationName}`,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',`Halo ${recipient.name},`,`\n${senderName} mengirim pesan di ${conversationName}:`,`\n${message.body}`,`\nBuka: ${APP_ORIGIN}/ruang-kawan/chat/?conversation=${message.conversation_id}`].join('\r\n');
+      const result=await googleApi(connection,'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({raw:encodeMime(mime)})}) as Record<string,any>;
+      await service.from('chat_email_deliveries').update({status:'sent',provider_message_id:result.id??null,error_message:null,sent_at:new Date().toISOString()}).eq('id',delivery.id);sent++;
+    }catch(error){const messageText=error instanceof Error?error.message:'Gmail gagal.';failed.push(recipient.email);await service.from('chat_email_deliveries').update({status:'failed',error_message:messageText}).eq('id',delivery.id);}
+  }
+  if(!sent&&failed.length)return json({error:'Gmail belum berhasil mengirim pesan. Hubungkan ulang Google Workspace untuk memberikan izin Gmail send.',needsAuthorization:true,failed},409,origin);
+  return json({ready:true,sent,failed},200,origin);
+}
+
 async function uploadChatAttachment(req: Request, origin: string | null) {
   const auth = await authenticatedClient(req); if (!auth) return json({ error: 'Sesi tidak valid.' }, 401, origin);
   const form = await req.formData(); const file = form.get('file'); const conversationId = String(form.get('conversationId') ?? '');
@@ -380,6 +429,8 @@ Deno.serve(async (req) => {
     if (path === '/calendars' && req.method === 'GET') return await listCalendars(req, origin);
     if (path === '/events' && req.method === 'GET') return await listEvents(req, origin);
     if (path === '/meetings' && req.method === 'POST') return await createChatMeeting(req, origin);
+    if (path === '/meetings/respond' && req.method === 'POST') return await respondChatMeeting(req, origin);
+    if (path === '/chat/email' && req.method === 'POST') return await emailChatMessage(req, origin);
     if (path === '/chat/attachments' && req.method === 'POST') return await uploadChatAttachment(req, origin);
     if (path === '/workspace/status' && req.method === 'GET') return await workspaceStatus(req, origin);
     if (path === '/workspace/generate-report' && req.method === 'POST') return await generateWorkspaceReport(req, origin);

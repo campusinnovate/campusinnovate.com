@@ -114,7 +114,6 @@ export default function MyActivityPage() {
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const [monthCursor, setMonthCursor] = useState(() => new Date(`${today()}T12:00:00`));
   const [selectedDate, setSelectedDate] = useState(today());
-  const [kindFilter, setKindFilter] = useState<'all' | Activity['feed_kind']>('all');
   const [focusFilter, setFocusFilter] = useState('');
   const [form, setForm] = useState<ActivityForm>(emptyForm());
   const [formOpen, setFormOpen] = useState(false);
@@ -183,12 +182,11 @@ export default function MyActivityPage() {
   }, [monthCursor]);
 
   const filteredActivities = useMemo(() => activities.filter((activity) =>
-    (kindFilter === 'all' || activity.feed_kind === kindFilter)
-    && (focusFilter !== 'today' || activity.activity_date === today())
+    (focusFilter !== 'today' || activity.activity_date === today())
     && (focusFilter !== 'overdue' || (activity.activity_date < today() && activity.status !== 'done'))
     && (focusFilter !== 'review' || activity.relationship === 'review' || activity.review_status === 'waiting_review')
     && (focusFilter !== 'open' || activity.status !== 'done')
-  ), [activities, focusFilter, kindFilter]);
+  ), [activities, focusFilter]);
   const selectedActivities = useMemo(() => filteredActivities.filter((activity) => activity.activity_date === selectedDate), [filteredActivities, selectedDate]);
   const selectedGoogleEvents = useMemo(() => googleEvents.filter((event) => googleEventDate(event) === selectedDate), [googleEvents, selectedDate]);
   const countByDate = useMemo(() => filteredActivities.reduce<Record<string, number>>((counts, activity) => ({ ...counts, [activity.activity_date]: (counts[activity.activity_date] ?? 0) + 1 }), {}), [filteredActivities]);
@@ -298,7 +296,7 @@ export default function MyActivityPage() {
       <section className="rk-activity-shell">
         <nav className="rk-activity-nav">
           <Link href="/ruang-kawan/dashboard/"><FiArrowLeft /> Dashboard</Link>
-          <button type="button" onClick={() => void loadData()}><FiRefreshCw /> Muat ulang</button>
+          <span><a href="#calendar-connect" aria-label="Calendar Connect" title="Calendar Connect"><FiCalendar /></a><button type="button" onClick={() => void loadData()}><FiRefreshCw /> Muat ulang</button></span>
         </nav>
 
         <header className="rk-activity-heading">
@@ -313,15 +311,10 @@ export default function MyActivityPage() {
           <a href="#calendar"><FiCalendar /> Calendar</a>
         </nav>
 
-        <section className="rk-calendar-connections" id="overview">
-          <article><span><FiCalendar /><i>Kalender Perusahaan</i></span><strong>Campus Innovate</strong><small>{calendarStatus.company ? `Terhubung melalui ${calendarStatus.company.email}` : 'Kalender utama innovatecampus@gmail.com'}</small>{calendarStatus.company ? <b data-connected>Terhubung</b> : <button type="button" onClick={() => void connectCalendar('company')}>Hubungkan bridge</button>}</article>
-          <article><span><FiCalendar /><i>Kalender Pribadi</i></span><strong>Google Calendar saya</strong><small>{calendarStatus.personal ? `Terhubung sebagai ${calendarStatus.personal.email}` : 'Tampil bersama agenda kerja kamu'}</small>{calendarStatus.personal ? <b data-connected>Terhubung</b> : <button type="button" onClick={() => void connectCalendar('personal')}>Hubungkan kalender</button>}</article>
+        <section className="rk-calendar-connections" id="calendar-connect">
+          <article><span><FiCalendar /><i>Kalender Perusahaan</i></span><strong>Campus Innovate</strong><small>{calendarStatus.company ? `Terhubung melalui ${calendarStatus.company.email}` : 'Kalender utama innovatecampus@gmail.com'}</small>{calendarStatus.company ? <div className="rk-calendar-connection-actions"><b data-connected>Terhubung</b>{permissions.includes('calendar.manage_company') ? <button type="button" onClick={() => void connectCalendar('company')}>Hubungkan ulang</button> : null}</div> : <button type="button" onClick={() => void connectCalendar('company')}>Hubungkan bridge</button>}</article>
+          <article><span><FiCalendar /><i>Kalender Pribadi</i></span><strong>Google Calendar saya</strong><small>{calendarStatus.personal ? `Terhubung sebagai ${calendarStatus.personal.email}` : 'Tampil bersama agenda kerja kamu'}</small>{calendarStatus.personal ? <div className="rk-calendar-connection-actions"><b data-connected>Terhubung</b><button type="button" onClick={() => void connectCalendar('personal')}>Hubungkan ulang</button></div> : <button type="button" onClick={() => void connectCalendar('personal')}>Hubungkan kalender</button>}</article>
         </section>
-
-        <div className="rk-kind-filter" role="tablist" aria-label="Filter jenis aktivitas">
-          <button type="button" data-active={kindFilter === 'all'} onClick={() => setKindFilter('all')}>Semua jenis <span>{activities.length}</span></button>
-          {(Object.keys(feedKindLabels) as Activity['feed_kind'][]).map((kind) => <button type="button" key={kind} data-active={kindFilter === kind} onClick={() => setKindFilter(kind)}>{feedKindLabels[kind]} <span>{activities.filter((activity) => activity.feed_kind === kind).length}</span></button>)}
-        </div>
 
         {focusFilter ? <div className="rk-focus-filter"><span>Filter Dashboard: <strong>{focusFilter === 'today' ? 'Jatuh tempo hari ini' : focusFilter === 'overdue' ? 'Terlambat' : focusFilter === 'review' ? 'Perlu review' : 'Action item terbuka'}</strong></span><button type="button" onClick={() => { setFocusFilter(''); window.history.replaceState({}, '', '/ruang-kawan/activity/'); }}>Tampilkan semua</button></div> : null}
 

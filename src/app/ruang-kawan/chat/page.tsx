@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FiArrowLeft, FiAtSign, FiBell, FiBriefcase, FiCalendar, FiCheckCircle,
   FiChevronDown, FiCornerUpLeft, FiDownload, FiEdit3, FiFile, FiHash, FiInfo, FiLink, FiLoader,
-  FiMessageCircle, FiMoreVertical, FiPaperclip, FiPlus, FiSearch, FiSend,
+  FiMail, FiMessageCircle, FiMoreVertical, FiPaperclip, FiPlus, FiSearch, FiSend,
   FiSmile, FiStar, FiTrash2, FiUploadCloud, FiUsers, FiVideo, FiX, FiZap,
 } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
@@ -28,6 +28,8 @@ type RelatedItem = { id: string; type: 'project' | 'assignment' | 'document' | '
 type Workspace = { conversations: Conversation[]; members: Member[]; unread_total: number; mentions_total?: number; me?: Member | null };
 type ConversationPayload = { conversation: Conversation; members: Member[]; messages: Message[]; related: RelatedItem[] };
 type ThreadPayload = { parent: Message; replies: Message[] };
+type MeetingResponse = { response: 'yes'|'no'|'maybe'; attendance_note?: string|null; seat_note?: string|null };
+type ChatMeeting = { id:string;title:string;agenda?:string|null;starts_at:string;ends_at:string;meet_url?:string|null;html_link?:string|null;status:string;my_response?:MeetingResponse|null };
 type SearchResult = { id: string; conversation_id: string; conversation_name: string; body: string; created_at: string; sender_name: string; parent_id?: string | null };
 type ProjectOption = { id: string; name: string; project_code?: string | null };
 type ActionKind = 'assignment' | 'decision' | 'meeting' | 'project' | 'edit' | null;
@@ -81,6 +83,11 @@ export default function KawanChatPage() {
   const [actionSeed, setActionSeed] = useState<Record<string, unknown>>({});
   const [menuMessageId, setMenuMessageId] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
+  const [canManageSelected,setCanManageSelected]=useState(false);
+  const [memberOpen,setMemberOpen]=useState(false);
+  const [threadUnread,setThreadUnread]=useState<Record<string,number>>({});
+  const [meetings,setMeetings]=useState<ChatMeeting[]>([]);
+  const [emailingId,setEmailingId]=useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -113,13 +120,17 @@ export default function KawanChatPage() {
 
   async function loadConversation(id: string, markRead = true) {
     setSelectedId(id); setError('');
-    const result = await createClient().rpc('chat_conversation', { target_conversation_id: id });
+    const supabase=createClient();
+    const [result,manageResult,unreadResult,meetingResult]=await Promise.all([
+      supabase.rpc('chat_conversation',{target_conversation_id:id}),supabase.rpc('can_manage_chat',{target_conversation_id:id}),
+      supabase.rpc('chat_thread_unread_counts',{target_conversation_id:id}),supabase.rpc('chat_meeting_workspace',{target_conversation_id:id}),
+    ]);
     if (result.error) { setError('Percakapan belum dapat dimuat.'); return; }
     const payload = result.data as ConversationPayload;
-    setDetail(payload);
+    setDetail(payload);setCanManageSelected(Boolean(manageResult.data));setThreadUnread((unreadResult.data??{}) as Record<string,number>);setMeetings((meetingResult.data??[]) as ChatMeeting[]);
     window.dispatchEvent(new CustomEvent('kawan-ai-context', { detail: {
       entityType: 'chat_conversation', entityId: id, label: payload.conversation.name,
-      data: { conversationId: id, kind: payload.conversation.kind, memberCount: payload.members.length },
+      data: { conversationId: id, kind: payload.conversation.kind, memberCount: payload.members.length,hasMeeting:Boolean((meetingResult.data as ChatMeeting[]|null)?.length) },
     } }));
     requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ block: 'end' }));
     if (markRead) {
@@ -131,8 +142,11 @@ export default function KawanChatPage() {
   async function loadThread(messageId: string) {
     const result = await createClient().rpc('chat_thread', { target_message_id: messageId });
     if (result.error) { setError('Thread belum dapat dimuat.'); return; }
-    setThread(result.data as ThreadPayload); setThreadOpen(true); setDetailOpen(true); setMenuMessageId(null);
+    await createClient().rpc('mark_chat_thread_read',{target_message_id:messageId});
+    setThread(result.data as ThreadPayload);setThreadUnread(current=>({...current,[messageId]:0}));setThreadOpen(true); setDetailOpen(true); setMenuMessageId(null);
   }
+
+  function selectConversation(id:string){setSelectedId(id);if(window.innerWidth<=900)setSidebarOpen(false);}
 
   useEffect(() => { void loadWorkspace(); }, []);
   useEffect(() => { if (selectedId) void loadConversation(selectedId); else setDetail(null); }, [selectedId]);
@@ -226,7 +240,8 @@ export default function KawanChatPage() {
   async function sendThread(event: FormEvent) {
     event.preventDefault(); const body = threadMessage.trim();
     if (!selectedId || !thread?.parent.id || !body || threadSending) return;
-    setThreadSending(true); const result = await createClient().rpc('send_chat_message', { target_conversation_id: selectedId, message_body: body, reply_to_message_id: thread.parent.id, attachment_ids: [], mention_membership_ids: [] }); setThreadSending(false);
+    const mentions=(detail?.members??[]).filter(member=>member.id!==workspace.me?.id&&body.includes(`@${member.name}`)).map(member=>member.id);
+    setThreadSending(true); const result = await createClient().rpc('send_chat_message', { target_conversation_id: selectedId, message_body: body, reply_to_message_id: thread.parent.id, attachment_ids: [], mention_membership_ids: mentions }); setThreadSending(false);
     if (result.error) { setError('Balasan belum berhasil dikirim.'); return; }
     setThreadMessage(''); await loadThread(thread.parent.id); await loadConversation(selectedId);
   }
@@ -262,6 +277,8 @@ export default function KawanChatPage() {
     const result = await createClient().rpc('delete_chat_message', { target_message_id: item.id });
     if (result.error) setError(result.error.message); else if (selectedId) { setNotice('Pesan dihapus.'); await loadConversation(selectedId); }
   }
+  async function emailMessage(item:Message){if(!selectedId||emailingId||!window.confirm('Kirim salinan pesan ini melalui Gmail kepada anggota percakapan?'))return;setMenuMessageId(null);setEmailingId(item.id);const supabase=createClient();const session=(await supabase.auth.getSession()).data.session;if(!session){setEmailingId('');setError('Sesi login berakhir.');return;}const response=await fetch(`${supabaseUrl}/functions/v1/ruang-kawan-calendar/chat/email`,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({messageId:item.id})});const payload=await response.json().catch(()=>({}));setEmailingId('');if(!response.ok){setError(payload.error??'Email belum berhasil dikirim.');return;}setNotice(`Email terkirim ke ${payload.sent??0} anggota.`);}
+  async function respondMeeting(meeting:ChatMeeting,response:'yes'|'no'|'maybe',attendanceNote:string,seatNote:string){const supabase=createClient();const session=(await supabase.auth.getSession()).data.session;if(!session)return;const request=await fetch(`${supabaseUrl}/functions/v1/ruang-kawan-calendar/meetings/respond`,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({meetingId:meeting.id,response,attendanceNote,seatNote})});const payload=await request.json().catch(()=>({}));if(!request.ok){setError(payload.error??'RSVP belum tersimpan.');return;}setNotice('RSVP meeting diperbarui.');if(selectedId)await loadConversation(selectedId,false);}
   function askAiAbout(item: Message) {
     setMenuMessageId(null);
     window.dispatchEvent(new CustomEvent('kawan-ai-context', { detail: { entityType: 'chat_conversation', entityId: selectedId, label: detail?.conversation.name, data: { selectedMessageId: item.id } } }));
@@ -278,8 +295,8 @@ export default function KawanChatPage() {
         <button className="rk-chat-new" onClick={() => setCreateOpen(true)} disabled={backendPending}><FiPlus /> Percakapan baru</button>
         <label className="rk-chat-search"><FiSearch /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari percakapan" /></label>
         <nav className="rk-chat-shortcuts"><button data-active={listMode === 'unread'} onClick={() => setListMode((value) => value === 'unread' ? 'all' : 'unread')}><FiBell /><span>Belum dibaca</span><b>{workspace.unread_total}</b></button><button data-active={listMode === 'mentions'} onClick={() => setListMode((value) => value === 'mentions' ? 'all' : 'mentions')}><FiAtSign /><span>Mention</span>{workspace.mentions_total ? <b>{workspace.mentions_total}</b> : null}</button><button data-active={listMode === 'starred'} onClick={() => setListMode((value) => value === 'starred' ? 'all' : 'starred')}><FiStar /><span>Berbintang</span></button></nav>
-        <ConversationGroup title="Pesan langsung" items={direct} selectedId={selectedId} onSelect={setSelectedId} />
-        <ConversationGroup title="Ruang" items={spaces} selectedId={selectedId} onSelect={setSelectedId} />
+        <ConversationGroup title="Pesan langsung" items={direct} selectedId={selectedId} onSelect={selectConversation} />
+        <ConversationGroup title="Ruang" items={spaces} selectedId={selectedId} onSelect={selectConversation} />
       </aside>
 
       <section className="rk-chat-main">
@@ -288,7 +305,7 @@ export default function KawanChatPage() {
             <button className="rk-chat-mobile-back" onClick={() => setSidebarOpen(true)} aria-label="Buka daftar percakapan"><FiArrowLeft /></button>
             <Avatar name={detail.conversation.name} url={detail.conversation.avatar_url} />
             <div><h1>{detail.conversation.kind !== 'direct' ? '# ' : ''}{detail.conversation.name}</h1><span><FiUsers /> {detail.members.length || detail.conversation.member_count || 0} anggota</span>{hasMeeting ? <span className="rk-chat-meeting-badge"><FiVideo /> Meeting tersedia</span> : null}</div>
-            <nav><button onClick={() => setSearchOpen(true)} aria-label="Cari pesan"><FiSearch /></button><button onClick={() => void toggleStar()} aria-label="Tandai percakapan berbintang"><FiStar /></button><button onClick={() => openAction('meeting')} aria-label="Buat Google Meet" title="Integrasi Google Meet"><FiVideo /><span>Buat Google Meet</span></button><button onClick={() => { setThreadOpen(false); setDetailOpen((value) => !value); }} aria-label="Detail percakapan"><FiInfo /></button></nav>
+            <nav><button onClick={() => setSearchOpen(true)} aria-label="Cari pesan"><FiSearch /></button><button onClick={() => void toggleStar()} aria-label="Tandai percakapan berbintang"><FiStar /></button>{canManageSelected&&detail.conversation.kind!=='direct'?<button onClick={()=>setMemberOpen(true)} aria-label="Tambah anggota" title="Tambah anggota"><FiUsers /></button>:null}<button className="rk-chat-meet-button" onClick={() => openAction('meeting')} aria-label="Buat Google Meet" title="Integrasi Google Meet"><FiVideo /><span>Buat Google Meet</span></button><button onClick={() => { setThreadOpen(false); setDetailOpen((value) => !value); }} aria-label="Detail percakapan"><FiInfo /></button></nav>
           </header>
           <section className="rk-chat-timeline">
             {detail.messages.map((item) => <article className="rk-chat-message" key={item.id} data-pinned={item.pinned}>
@@ -300,6 +317,7 @@ export default function KawanChatPage() {
                   <button onClick={() => openAction('decision', item)}><FiCheckCircle /> Simpan keputusan</button>
                   <button onClick={() => openAction('project', item)}><FiHash /> Hubungkan project</button>
                   <button onClick={() => openAction('meeting', item)}><FiVideo /> Buat Google Meet</button>
+                  <button onClick={() => void emailMessage(item)} disabled={emailingId===item.id}><FiMail /> Kirim melalui Gmail</button>
                   <button onClick={() => askAiAbout(item)}><FiZap /> Ringkas dengan Kawan AI</button>
                   <button onClick={() => void pin(item)}><FiStar /> {item.pinned ? 'Lepas pin' : 'Sematkan pesan'}</button>
                   {!item.deleted_at ? <button onClick={() => openAction('edit', item, { body: item.body })}><FiEdit3 /> Edit pesan</button> : null}
@@ -307,7 +325,7 @@ export default function KawanChatPage() {
                 </nav> : null}
                 {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : <p>{item.body}</p>}
                 {item.attachments?.map((file) => <a className="rk-chat-file" href={file.url} target="_blank" rel="noreferrer" key={file.id}><FiFile /><span><strong>{file.name}</strong><small>{file.mime_type || 'Dokumen'}{file.size_label ? ` · ${file.size_label}` : ''}</small></span><FiDownload /></a>)}
-                <footer>{item.reactions?.map((reaction) => <button data-active={reaction.reacted_by_me} onClick={() => void react(item.id, reaction.emoji)} key={reaction.emoji}>{reaction.emoji} {reaction.count}</button>)}<button onClick={() => void react(item.id, '👍')} aria-label="Beri reaksi"><FiSmile /></button><button className="rk-chat-replies" onClick={() => void loadThread(item.id)}><FiMessageCircle /> {item.reply_count ? `${item.reply_count} balasan` : 'Balas'}</button>{item.sender.id === workspace.me?.id ? <small className="rk-chat-delivery">{item.read_count ? `Dibaca ${item.read_count}` : 'Terkirim'}</small> : null}</footer>
+                <footer>{item.reactions?.map((reaction) => <button data-active={reaction.reacted_by_me} onClick={() => void react(item.id, reaction.emoji)} key={reaction.emoji}>{reaction.emoji} {reaction.count}</button>)}<button onClick={() => void react(item.id, '👍')} aria-label="Beri reaksi"><FiSmile /></button><button className="rk-chat-replies" onClick={() => void loadThread(item.id)}><FiMessageCircle /> {item.reply_count ? `${item.reply_count} balasan` : 'Balas'}{threadUnread[item.id]?<b>{threadUnread[item.id]}</b>:null}</button>{item.sender.id === workspace.me?.id ? <small className="rk-chat-delivery">{item.read_count ? `Dibaca ${item.read_count}` : 'Terkirim'}</small> : null}</footer>
               </div>
             </article>)}
             {!detail.messages.length ? <div className="rk-chat-empty"><FiMessageCircle /><strong>Mulai percakapan</strong><p>Kirim pesan pertama untuk berkoordinasi dengan ruang ini.</p></div> : null}
@@ -317,7 +335,7 @@ export default function KawanChatPage() {
           {Object.keys(typingMembers).length ? <p className="rk-chat-typing">{Object.values(typingMembers).slice(0, 2).join(' dan ')} sedang mengetik...</p> : null}
           <section className="rk-chat-compose-wrap">
             {pendingAttachments.length ? <div className="rk-chat-upload-queue">{pendingAttachments.map((file) => <span key={file.id}><FiFile /><span><strong>{file.name}</strong><small>Siap dikirim · tersimpan di Document Center bila kamu memiliki izin</small></span><button type="button" onClick={() => setPendingAttachments((items) => items.filter((item) => item.id !== file.id))} aria-label={`Hapus ${file.name} dari pesan`}><FiX /></button></span>)}</div> : null}
-            {mentionTerm !== null ? <div className="rk-chat-mention-menu">{detail.members.filter((member) => member.id !== workspace.me?.id && member.name.toLowerCase().includes(mentionTerm)).slice(0, 6).map((member) => <button type="button" key={member.id} onClick={() => selectMention(member)}><Avatar name={member.name} url={member.avatar_url} online={onlineIds.has(member.id)} /><span><strong>{member.name}</strong><small>{member.position_name || 'Anggota'}</small></span></button>)}{!detail.members.some((member) => member.id !== workspace.me?.id && member.name.toLowerCase().includes(mentionTerm)) ? <p>Tidak ada anggota yang cocok.</p> : null}</div> : null}
+            {mentionTerm !== null ? <div className="rk-chat-mention-menu">{'all'.startsWith(mentionTerm)?<button type="button" onClick={()=>{setMessage(value=>value.replace(/(?:^|\s)@([^@\n]*)$/,(match)=>`${match.startsWith(' ')?' ':''}@all `));setMentionTerm(null);}}><span className="rk-chat-atall"><FiAtSign/></span><span><strong>@all</strong><small>Sebut seluruh anggota</small></span></button>:null}{detail.members.filter((member) => member.id !== workspace.me?.id && member.name.toLowerCase().includes(mentionTerm)).slice(0, 6).map((member) => <button type="button" key={member.id} onClick={() => selectMention(member)}><Avatar name={member.name} url={member.avatar_url} online={onlineIds.has(member.id)} /><span><strong>{member.name}</strong><small>{member.position_name || 'Anggota'}</small></span></button>)}{!('all'.startsWith(mentionTerm)||detail.members.some((member) => member.id !== workspace.me?.id && member.name.toLowerCase().includes(mentionTerm))) ? <p>Tidak ada anggota yang cocok.</p> : null}</div> : null}
             <form className="rk-chat-composer" onSubmit={send}><input ref={fileInputRef} hidden type="file" multiple onChange={(event) => void uploadFiles(event.target.files)} /><button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} aria-label="Lampirkan file">{uploading ? <FiLoader /> : <FiPaperclip />}</button><input value={message} onChange={(event) => updateMessage(event.target.value)} placeholder={`Ketik pesan ke ${detail.conversation.name}`} /><button type="button" onClick={() => updateMessage(`${message} ${message.endsWith(' ') || !message ? '' : ' '}@`)} aria-label="Mention anggota"><FiAtSign /></button><button type="submit" disabled={(!message.trim() && !pendingAttachments.length) || sending || uploading} aria-label="Kirim pesan">{sending ? <FiLoader /> : <FiSend />}</button></form>
           </section>
         </> : <ChatLanding backendPending={backendPending} onCreate={() => setCreateOpen(true)} />}
@@ -330,7 +348,8 @@ export default function KawanChatPage() {
           <form className="rk-chat-thread-composer" onSubmit={sendThread}><textarea value={threadMessage} onChange={(event) => setThreadMessage(event.target.value)} placeholder="Balas di thread" /><button disabled={!threadMessage.trim() || threadSending}>{threadSending ? <FiLoader /> : <FiSend />} Kirim</button></form>
         </> : <>
           <header><strong>Terkait</strong><button onClick={() => setDetailOpen(false)} aria-label="Tutup detail"><FiX /></button></header>
-          {detail?.related.map((item) => <article key={`${item.type}-${item.id}`} data-type={item.type}><span>{item.type === 'project' ? <FiHash /> : item.type === 'meeting' ? <FiVideo /> : item.type === 'document' ? <FiFile /> : <FiMessageCircle />}</span><div><small>{item.type}</small><strong>{item.title}</strong>{item.subtitle ? <p>{item.subtitle}</p> : null}{item.url ? <a href={item.url}>Buka <FiArrowLeft /></a> : null}</div></article>)}
+          {meetings.map(meeting=><MeetingCard key={meeting.id} meeting={meeting} onRespond={respondMeeting}/>)}
+          {detail?.related.filter(item=>item.type!=='meeting').map((item) => <article key={`${item.type}-${item.id}`} data-type={item.type}><span>{item.type === 'project' ? <FiHash /> : item.type === 'document' ? <FiFile /> : <FiMessageCircle />}</span><div><small>{item.type}</small><strong>{item.title}</strong>{item.subtitle ? <p>{item.subtitle}</p> : null}{item.url ? <a href={item.url}>Buka <FiArrowLeft /></a> : null}</div></article>)}
           {!detail?.related.length ? <div className="rk-chat-detail-empty"><FiLink /><p>Belum ada project, assignment, dokumen, atau meeting yang dihubungkan.</p></div> : null}
           <section><strong>Anggota</strong><div>{detail?.members.slice(0, 8).map((member) => <span className="rk-chat-member-dot" key={member.id}><Avatar name={member.name} url={member.avatar_url} online={onlineIds.has(member.id)} /><small>{member.name}</small></span>)}</div></section>
         </>}
@@ -339,8 +358,13 @@ export default function KawanChatPage() {
     {createOpen ? <CreateConversation members={workspace.members} onClose={() => setCreateOpen(false)} onCreated={async (id) => { setCreateOpen(false); await loadWorkspace(); setSelectedId(id); }} /> : null}
     {actionKind && detail ? <WorkActionDialog kind={actionKind} conversationId={detail.conversation.id} source={actionMessage} members={detail.members} seed={actionSeed} onClose={() => setActionKind(null)} onSaved={async (text) => { setActionKind(null); setNotice(text); await loadConversation(detail.conversation.id); }} /> : null}
     {searchOpen ? <ChatSearchDialog value={searchText} results={searchResults} searching={searching} mentionsOnly={listMode === 'mentions'} onChange={setSearchText} onSearch={runSearch} onClose={() => setSearchOpen(false)} onSelect={(item) => { setSelectedId(item.conversation_id); setSearchOpen(false); }} /> : null}
+    {memberOpen&&detail?<ManageMembers conversationId={detail.conversation.id} current={detail.members} available={workspace.members} onClose={()=>setMemberOpen(false)} onSaved={async()=>{setMemberOpen(false);await loadConversation(detail.conversation.id,false);}}/>:null}
   </main>;
 }
+
+function MeetingCard({meeting,onRespond}:{meeting:ChatMeeting;onRespond:(meeting:ChatMeeting,response:'yes'|'no'|'maybe',attendanceNote:string,seatNote:string)=>Promise<void>}){const[note,setNote]=useState(meeting.my_response?.attendance_note??'');const[seat,setSeat]=useState(meeting.my_response?.seat_note??'');const[busy,setBusy]=useState(false);async function respond(value:'yes'|'no'|'maybe'){setBusy(true);await onRespond(meeting,value,note,seat);setBusy(false);}return <article className="rk-chat-meeting-card" data-type="meeting"><span><FiVideo/></span><div><small>Meeting · {new Date(meeting.starts_at).toLocaleString('id-ID')}</small><strong>{meeting.title}</strong>{meeting.agenda?<p>{meeting.agenda}</p>:null}<label>Catatan kehadiran<input value={note} onChange={event=>setNote(event.target.value)} placeholder="Opsional"/></label><label>Tempat duduk<input value={seat} onChange={event=>setSeat(event.target.value)} placeholder="Opsional"/></label><nav><button disabled={busy} data-active={meeting.my_response?.response==='yes'} onClick={()=>void respond('yes')}>Yes</button><button disabled={busy} data-active={meeting.my_response?.response==='maybe'} onClick={()=>void respond('maybe')}>Maybe</button><button disabled={busy} data-active={meeting.my_response?.response==='no'} onClick={()=>void respond('no')}>No</button></nav>{meeting.meet_url?<a href={meeting.meet_url} target="_blank" rel="noreferrer">Masuk Google Meet</a>:null}</div></article>}
+
+function ManageMembers({conversationId,current,available,onClose,onSaved}:{conversationId:string;current:Member[];available:Member[];onClose:()=>void;onSaved:()=>Promise<void>}){const[selected,setSelected]=useState<string[]>([]);const[saving,setSaving]=useState(false);const[error,setError]=useState('');const choices=available.filter(member=>!current.some(item=>item.id===member.id));async function save(event:FormEvent){event.preventDefault();setSaving(true);const result=await createClient().rpc('add_chat_members',{target_conversation_id:conversationId,member_ids:selected});setSaving(false);if(result.error){setError(result.error.message);return;}await onSaved();}return <div className="rk-chat-modal" role="dialog" aria-modal="true"><form onSubmit={save}><header><div><small>Kawan Chat</small><h2>Tambah anggota</h2></div><button type="button" onClick={onClose}><FiX/></button></header><fieldset><legend>Anggota aktif</legend>{choices.map(member=><label key={member.id}><input type="checkbox" checked={selected.includes(member.id)} onChange={()=>setSelected(items=>items.includes(member.id)?items.filter(id=>id!==member.id):[...items,member.id])}/><Avatar name={member.name} url={member.avatar_url}/><span><strong>{member.name}</strong><small>{member.position_name||member.email}</small></span></label>)}{!choices.length?<p>Semua anggota aktif sudah masuk.</p>:null}</fieldset>{error?<p className="rk-chat-modal-error">{error}</p>:null}<footer><button type="button" onClick={onClose}>Batal</button><button data-primary disabled={saving||!selected.length}>Tambah</button></footer></form></div>}
 
 function Avatar({ name, url, online }: { name: string; url: string | null; online?: boolean }) {
   return <span className="rk-chat-avatar">{url ? <img src={url} alt="" /> : <i>{initials(name)}</i>}{online ? <b /> : null}</span>;
