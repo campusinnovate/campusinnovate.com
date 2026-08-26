@@ -2,8 +2,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')!;
-const OPENAI_MODEL = Deno.env.get('OPENAI_MODEL') ?? 'gpt-5.6';
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY')!;
+const GROQ_MODEL = Deno.env.get('GROQ_MODEL') ?? 'openai/gpt-oss-20b';
 const APP_ORIGIN = Deno.env.get('APP_ORIGIN') ?? 'https://campusinnovate.com';
 
 function cors(origin: string | null) {
@@ -14,11 +14,6 @@ function json(value: unknown, status: number, origin: string | null) {
   return new Response(JSON.stringify(value), { status, headers: { ...cors(origin), 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 function clean(value: unknown, max: number) { return typeof value === 'string' ? value.trim().slice(0, max) : ''; }
-async function safetyId(value: string) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((item) => item.toString(16).padStart(2, '0')).join('').slice(0, 48);
-}
-
 const responseSchema = {
   type: 'object', additionalProperties: false, required: ['answer', 'actions'], properties: {
     answer: { type: 'string', minLength: 1, maxLength: 6000 },
@@ -35,7 +30,7 @@ Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
   if (req.method !== 'POST') return json({ error: 'Metode tidak didukung.' }, 405, origin);
-  if (!OPENAI_API_KEY) return json({ error: 'Kawan AI belum dikonfigurasi.' }, 503, origin);
+  if (!GROQ_API_KEY) return json({ error: 'Kawan AI belum dikonfigurasi.' }, 503, origin);
   const authorization = req.headers.get('Authorization');
   if (!authorization?.startsWith('Bearer ')) return json({ error: 'Sesi tidak valid.' }, 401, origin);
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false, autoRefreshToken: false } });
@@ -50,26 +45,24 @@ Deno.serve(async (req) => {
   const selectedMessageId = clean(body.contextHint?.selectedMessageId, 80) || null;
   const context = { ...contextResult.data, selected_message_id: selectedMessageId };
   const instructions = `Kamu adalah Kawan AI, asisten kerja internal Campus Innovate. Jawab dalam Bahasa Indonesia yang ringkas, konkret, ramah, dan berbasis konteks yang diberikan. Jangan mengarang data, anggota, tanggal, keputusan, atau status. Jika data kurang, nyatakan kekurangannya. Jangan pernah mengungkap daftar permission mentah. proposed actions hanyalah draft dan wajib dikonfirmasi pengguna. Hanya usulkan action ketika konteks aktif adalah Kawan Chat dengan conversation_id yang sah. Payload action harus berupa JSON string yang sesuai: create_assignment dapat berisi title, detail, due_date, priority, owner_membership_id, reviewer_membership_id; save_decision dapat berisi title dan detail; create_meeting dapat berisi title, agenda, startsAt, endsAt, timezone, attendeeMembershipIds; link_project dapat berisi project_id dan title.`;
-  const openai = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({
-    model: OPENAI_MODEL, store: false, max_output_tokens: 1800, instructions,
+  const groq = await fetch('https://api.groq.com/openai/v1/responses', { method: 'POST', headers: { Authorization: `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({
+    model: GROQ_MODEL, max_output_tokens: 1800, instructions,
     input: `Pertanyaan pengguna:\n${prompt}\n\nKonteks terotorisasi (JSON):\n${JSON.stringify(context)}`,
-    safety_identifier: await safetyId(user.id),
     text: { verbosity: 'low', format: { type: 'json_schema', name: 'kawan_ai_response', strict: true, schema: responseSchema } },
   }) });
-  const response = await openai.json().catch(() => ({}));
-  if (!openai.ok) {
+  const response = await groq.json().catch(() => ({}));
+  if (!groq.ok) {
     const errorCode = String(response?.error?.code ?? 'unknown');
-    console.error('OpenAI response error', openai.status, errorCode);
-    if (errorCode === 'insufficient_quota') return json({ error: 'Saldo API OpenAI belum aktif atau batas pengeluaran project sudah tercapai.' }, 402, origin);
+    console.error('Groq response error', groq.status, errorCode);
     if (errorCode === 'rate_limit_exceeded') return json({ error: 'Kapasitas Kawan AI sedang penuh. Coba lagi sebentar.' }, 429, origin);
-    if (errorCode === 'model_not_found') return json({ error: 'Model Kawan AI belum tersedia untuk project OpenAI ini.' }, 503, origin);
+    if (errorCode === 'model_not_found') return json({ error: 'Model Kawan AI belum tersedia pada provider saat ini.' }, 503, origin);
     return json({ error: 'Kawan AI belum dapat memproses permintaan.' }, 502, origin);
   }
   const outputText = response.output_text ?? response.output?.flatMap((item: Record<string, unknown>) => Array.isArray(item.content) ? item.content : []).find((item: Record<string, unknown>) => item.type === 'output_text')?.text;
   let result: { answer: string; actions: Array<{ id: string; type: string; title: string; payload_json: string }> };
   try { result = JSON.parse(String(outputText ?? '')); } catch { return json({ error: 'Jawaban Kawan AI tidak dapat dibaca.' }, 502, origin); }
   const actions = route.startsWith('/ruang-kawan/chat') && entityId ? result.actions : [];
-  const run = await client.rpc('register_kawan_ai_run', { context_route: route, context_entity_type: entityType, context_entity_id: entityId, intent: prompt, model_name: OPENAI_MODEL, actions });
+  const run = await client.rpc('register_kawan_ai_run', { context_route: route, context_entity_type: entityType, context_entity_id: entityId, intent: prompt, model_name: GROQ_MODEL, actions });
   if (run.error) return json({ error: 'Jawaban tersedia, tetapi pencatatan audit Kawan AI gagal.' }, 500, origin);
-  return json({ answer: result.answer, actions, runId: run.data, model: OPENAI_MODEL }, 200, origin);
+  return json({ answer: result.answer, actions, runId: run.data, model: GROQ_MODEL }, 200, origin);
 });
