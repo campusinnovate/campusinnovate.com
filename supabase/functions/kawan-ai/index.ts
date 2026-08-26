@@ -57,7 +57,14 @@ Deno.serve(async (req) => {
     text: { verbosity: 'low', format: { type: 'json_schema', name: 'kawan_ai_response', strict: true, schema: responseSchema } },
   }) });
   const response = await openai.json().catch(() => ({}));
-  if (!openai.ok) { console.error('OpenAI response error', openai.status, response?.error?.code ?? 'unknown'); return json({ error: openai.status === 429 ? 'Kapasitas Kawan AI sedang penuh. Coba lagi sebentar.' : 'Kawan AI belum dapat memproses permintaan.' }, openai.status === 429 ? 429 : 502, origin); }
+  if (!openai.ok) {
+    const errorCode = String(response?.error?.code ?? 'unknown');
+    console.error('OpenAI response error', openai.status, errorCode);
+    if (errorCode === 'insufficient_quota') return json({ error: 'Saldo API OpenAI belum aktif atau batas pengeluaran project sudah tercapai.' }, 402, origin);
+    if (errorCode === 'rate_limit_exceeded') return json({ error: 'Kapasitas Kawan AI sedang penuh. Coba lagi sebentar.' }, 429, origin);
+    if (errorCode === 'model_not_found') return json({ error: 'Model Kawan AI belum tersedia untuk project OpenAI ini.' }, 503, origin);
+    return json({ error: 'Kawan AI belum dapat memproses permintaan.' }, 502, origin);
+  }
   const outputText = response.output_text ?? response.output?.flatMap((item: Record<string, unknown>) => Array.isArray(item.content) ? item.content : []).find((item: Record<string, unknown>) => item.type === 'output_text')?.text;
   let result: { answer: string; actions: Array<{ id: string; type: string; title: string; payload_json: string }> };
   try { result = JSON.parse(String(outputText ?? '')); } catch { return json({ error: 'Jawaban Kawan AI tidak dapat dibaca.' }, 502, origin); }
