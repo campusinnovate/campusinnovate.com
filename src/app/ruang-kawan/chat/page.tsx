@@ -269,6 +269,7 @@ export default function KawanChatPage() {
   }
   if (status === 'loading') return <main className="rk-chat-foundation"><section className="rk-chat-loading"><FiLoader /> Menyiapkan Kawan Chat...</section></main>;
   if (status === 'denied') return <main className="rk-chat-foundation"><section className="rk-chat-loading"><FiMessageCircle /><h1>Kawan Chat belum tersedia</h1><p>Akun ini belum memiliki keanggotaan internal aktif.</p></section></main>;
+  const hasMeeting = Boolean(detail?.related.some((item) => item.type === 'meeting'));
 
   return <main className="rk-chat-foundation">
     <section className="rk-chat-shell" data-sidebar={sidebarOpen} data-detail={detailOpen}>
@@ -283,10 +284,10 @@ export default function KawanChatPage() {
 
       <section className="rk-chat-main">
         {detail ? <>
-          <header className="rk-chat-conversation-head">
+          <header className="rk-chat-conversation-head" data-meeting={hasMeeting}>
             <button className="rk-chat-mobile-back" onClick={() => setSidebarOpen(true)} aria-label="Buka daftar percakapan"><FiArrowLeft /></button>
             <Avatar name={detail.conversation.name} url={detail.conversation.avatar_url} />
-            <div><h1>{detail.conversation.kind !== 'direct' ? '# ' : ''}{detail.conversation.name}</h1><span><FiUsers /> {detail.members.length || detail.conversation.member_count || 0} anggota</span></div>
+            <div><h1>{detail.conversation.kind !== 'direct' ? '# ' : ''}{detail.conversation.name}</h1><span><FiUsers /> {detail.members.length || detail.conversation.member_count || 0} anggota</span>{hasMeeting ? <span className="rk-chat-meeting-badge"><FiVideo /> Meeting tersedia</span> : null}</div>
             <nav><button onClick={() => setSearchOpen(true)} aria-label="Cari pesan"><FiSearch /></button><button onClick={() => void toggleStar()} aria-label="Tandai percakapan berbintang"><FiStar /></button><button onClick={() => openAction('meeting')} aria-label="Buat Google Meet" title="Integrasi Google Meet"><FiVideo /><span>Buat Google Meet</span></button><button onClick={() => { setThreadOpen(false); setDetailOpen((value) => !value); }} aria-label="Detail percakapan"><FiInfo /></button></nav>
           </header>
           <section className="rk-chat-timeline">

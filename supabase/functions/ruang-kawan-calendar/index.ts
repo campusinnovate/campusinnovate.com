@@ -343,6 +343,9 @@ async function uploadChatAttachment(req: Request, origin: string | null) {
   if (file.size <= 0 || file.size > 25 * 1024 * 1024) return json({ error: 'Ukuran file harus antara 1 byte dan 25 MB.' }, 400, origin);
   const { data: memberAllowed } = await auth.client.rpc('is_chat_member', { target_conversation_id: conversationId });
   if (!memberAllowed) return json({ error: 'Percakapan tidak dapat diakses.' }, 403, origin);
+  const { data: accessData } = await auth.client.rpc('get_my_access');
+  const access = Array.isArray(accessData) ? accessData[0] : accessData;
+  const registersCompanyDocument = registerDocument && Boolean(access?.permissions?.includes('documents.create'));
   const company = await companyWorkspaceConnection();
   const { data: personal } = await service.from('google_calendar_connections').select('*').eq('connection_type','personal').eq('owner_user_id',auth.user.id).eq('is_active',true).maybeSingle();
   const connection = workspaceReady(company) ? company : workspaceReady(personal) ? personal : null;
@@ -354,10 +357,13 @@ async function uploadChatAttachment(req: Request, origin: string | null) {
   const suffix = new TextEncoder().encode(`\r\n--${boundary}--`); const multipart = new Uint8Array(prefix.length + bytes.length + suffix.length); multipart.set(prefix); multipart.set(bytes, prefix.length); multipart.set(suffix, prefix.length + bytes.length);
   const uploaded = await googleApi(connection!, 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink,webContentLink', { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body: multipart }) as Record<string,any>;
   const { data: conversationMembers } = await service.from('chat_conversation_members').select('memberships!inner(email)').eq('conversation_id',conversationId).is('left_at',null);
-  const emails = (conversationMembers ?? []).map((row: any) => String(row.memberships?.email ?? '')).filter((email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+  const participantEmails = (conversationMembers ?? []).map((row: any) => String(row.memberships?.email ?? '')).filter((email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+  // Document Center files are company artifacts, while conversation-only files keep participant access.
+  // Personal Coret-coret spreadsheets are created by a separate route and remain owner-only.
+  const emails = registersCompanyDocument ? await activeWorkspaceEmails() : participantEmails;
   const sharing = await shareDriveFile(connection!, String(uploaded.id), emails, 'reader');
   const fileUrl = uploaded.webViewLink ?? `https://drive.google.com/open?id=${uploaded.id}`;
-  const registered = await auth.client.rpc('register_chat_attachment', { target_conversation_id: conversationId, register_document: registerDocument, file_payload: { file_name: safeName, file_url: fileUrl, drive_file_id: uploaded.id, mime_type: uploaded.mimeType ?? metadata.mimeType, size_bytes: Number(uploaded.size ?? file.size) } });
+  const registered = await auth.client.rpc('register_chat_attachment', { target_conversation_id: conversationId, register_document: registersCompanyDocument, file_payload: { file_name: safeName, file_url: fileUrl, drive_file_id: uploaded.id, mime_type: uploaded.mimeType ?? metadata.mimeType, size_bytes: Number(uploaded.size ?? file.size) } });
   if (registered.error) {
     await googleApi(connection!, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(uploaded.id)}`, { method: 'DELETE' }, false).catch(() => null);
     return json({ error: `File dibatalkan karena registrasi Kawan Chat gagal: ${registered.error.message}` }, 500, origin);
