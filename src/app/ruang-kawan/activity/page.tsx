@@ -311,11 +311,6 @@ export default function MyActivityPage() {
           <a href="#calendar"><FiCalendar /> Calendar</a>
         </nav>
 
-        <section className="rk-calendar-connections" id="calendar-connect">
-          <article><span><FiCalendar /><i>Kalender Perusahaan</i></span><strong>Campus Innovate</strong><small>{calendarStatus.company ? `Terhubung melalui ${calendarStatus.company.email}` : 'Kalender utama innovatecampus@gmail.com'}</small>{calendarStatus.company ? <div className="rk-calendar-connection-actions"><b data-connected>Terhubung</b>{permissions.includes('calendar.manage_company') ? <button type="button" onClick={() => void connectCalendar('company')}>Hubungkan ulang</button> : null}</div> : <button type="button" onClick={() => void connectCalendar('company')}>Hubungkan bridge</button>}</article>
-          <article><span><FiCalendar /><i>Kalender Pribadi</i></span><strong>Google Calendar saya</strong><small>{calendarStatus.personal ? `Terhubung sebagai ${calendarStatus.personal.email}` : 'Tampil bersama agenda kerja kamu'}</small>{calendarStatus.personal ? <div className="rk-calendar-connection-actions"><b data-connected>Terhubung</b><button type="button" onClick={() => void connectCalendar('personal')}>Hubungkan ulang</button></div> : <button type="button" onClick={() => void connectCalendar('personal')}>Hubungkan kalender</button>}</article>
-        </section>
-
         {focusFilter ? <div className="rk-focus-filter"><span>Filter Dashboard: <strong>{focusFilter === 'today' ? 'Jatuh tempo hari ini' : focusFilter === 'overdue' ? 'Terlambat' : focusFilter === 'review' ? 'Perlu review' : 'Action item terbuka'}</strong></span><button type="button" onClick={() => { setFocusFilter(''); window.history.replaceState({}, '', '/ruang-kawan/activity/'); }}>Tampilkan semua</button></div> : null}
 
         {error ? <p className="rk-activity-alert" data-error>{error}</p> : null}
@@ -329,6 +324,13 @@ export default function MyActivityPage() {
           </div>
 
           <aside className="rk-day-panel">
+            <details className="rk-calendar-connections" id="calendar-connect" open>
+              <summary><span><FiCalendar/> Sumber kalender</span><Link href="/ruang-kawan/profile/#google-integrations">Kelola di Profil</Link></summary>
+              <div>
+                <article><span><FiCalendar /><i>Kalender Perusahaan</i></span><strong>Campus Innovate</strong><small>{calendarStatus.company ? `Terhubung melalui ${calendarStatus.company.email}` : 'Belum terhubung'}</small><b data-connected={Boolean(calendarStatus.company)}>{calendarStatus.company?'Terhubung':'Belum aktif'}</b></article>
+                <article><span><FiCalendar /><i>Kalender Pribadi</i></span><strong>Google Calendar saya</strong><small>{calendarStatus.personal ? `Terhubung sebagai ${calendarStatus.personal.email}` : 'Belum terhubung'}</small><b data-connected={Boolean(calendarStatus.personal)}>{calendarStatus.personal?'Terhubung':'Belum aktif'}</b></article>
+              </div>
+            </details>
             <div className="rk-day-heading"><div><small>Agenda harian</small><h2>{new Date(`${selectedDate}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</h2></div>{permissions.includes('activity.manage_self') && manualSources.length ? <button type="button" onClick={() => startCreate(selectedDate)}><FiPlus /></button> : null}</div>
             <div className="rk-day-list">{selectedActivities.map((activity) => canEditDirectly(activity) ? <button type="button" key={activity.id} onClick={() => startEdit(activity)}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><span><small>{activity.start_at ? timeFromIso(activity.start_at) : 'Seharian'} · {feedKindLabels[activity.feed_kind]} · {activity.work_sources?.name}</small><strong>{activity.title}</strong><em data-status={activity.status}>{statusLabels[activity.status]}</em></span></button> : <Link key={activity.id} href={activity.module_route ?? '/ruang-kawan/assignments/'} data-work-module={activity.feed_kind}><i style={{ background: activity.work_sources?.color ?? '#315c4f' }} /><span><small>{activity.start_at ? timeFromIso(activity.start_at) : 'Seharian'} · {feedKindLabels[activity.feed_kind]} · {activity.work_sources?.name}</small><strong>{activity.title}</strong><em data-status={activity.status}>{statusLabels[activity.status]}</em></span><FiExternalLink /></Link>)}{selectedGoogleEvents.map((event) => <a key={`${event.calendarType}-${event.id}`} href={event.htmlLink} target="_blank" rel="noreferrer" data-calendar={event.calendarType}><i /><span><small>{googleEventTime(event)} · Google Calendar {event.calendarType === 'company' ? 'Perusahaan' : 'Pribadi'}</small><strong>{event.title}</strong><em>{event.calendarType === 'company' ? 'Company' : 'Personal'}</em></span><FiExternalLink /></a>)}{!selectedActivities.length && !selectedGoogleEvents.length ? <div className="rk-activity-empty"><FiCalendar /><strong>Belum ada aktivitas</strong><p>Tambahkan agenda kerja untuk tanggal ini.</p></div> : null}</div>
           </aside>
