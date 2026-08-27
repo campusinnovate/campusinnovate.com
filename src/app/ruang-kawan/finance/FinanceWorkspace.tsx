@@ -60,6 +60,12 @@ type DocItem = {
   quantity: number | string;
   unit_price: number | string;
 };
+type ChargeComponent = {
+  label: string;
+  mode: "percent" | "fixed";
+  value: number | string;
+  amount?: number;
+};
 type Doc = {
   id: string;
   document_type: "quotation" | "invoice" | "receipt";
@@ -73,6 +79,14 @@ type Doc = {
   subtotal: number;
   discount: number;
   tax: number;
+  gross_total?: number;
+  management_fee?: number;
+  other_fees?: number;
+  charge_components?: ChargeComponent[];
+  installment_scheme?: "full" | "50-50" | "50-25-25" | "custom";
+  installment_number?: number;
+  installment_percentage?: number;
+  payment_schedule?: Array<{number:number;label:string;percentage:number;amount:number;due_date:string|null}>;
   total: number;
   paid: number;
   balance: number;
@@ -229,7 +243,16 @@ type DocForm = {
   project: string;
   items: DocItem[];
   discount: string;
-  tax: string;
+  taxEnabled: boolean;
+  taxMode: "percent" | "fixed";
+  taxValue: string;
+  managementEnabled: boolean;
+  managementMode: "percent" | "fixed";
+  managementValue: string;
+  otherCharges: ChargeComponent[];
+  installmentScheme: "full" | "50-50" | "50-25-25" | "custom";
+  installmentNumber: string;
+  customInstallmentPercentage: string;
   notes: string;
   invoiceId: string;
   receiptAmount: string;
@@ -352,6 +375,13 @@ const placeholderValues = (doc: Doc, template: DocumentTemplate) => ({
   subtotal: money(doc.subtotal),
   diskon: money(doc.discount),
   pajak: money(doc.tax),
+  fee_management: money(doc.management_fee),
+  biaya_lain: money(doc.other_fees),
+  total_proyek: money(doc.gross_total || doc.total),
+  termin: doc.installment_percentage && doc.installment_percentage < 100
+    ? `${doc.installment_number === 1 ? "DP" : `Termin ${doc.installment_number}`} ${n(doc.installment_percentage).toLocaleString("id-ID")}%`
+    : "Pembayaran penuh",
+  nilai_termin: money(doc.total),
   total: money(doc.total),
   catatan: doc.notes || "-",
   nama_perusahaan: template.company_name,
@@ -413,9 +443,11 @@ function documentTemplate(doc: Doc, template: DocumentTemplate) {
     ? `<section class="signature"><span>Hormat kami,</span><b>${safe(template.signature_name || template.company_name)}</b><small>${safe(template.signature_title)}</small></section>`
     : "";
   const notes = template.show_notes && doc.notes
-    ? `<section class="detail"><strong>CATATAN</strong><p>${safe(doc.notes)}</p></section>`
+    ? `<section class="summary-note"><strong>CATATAN</strong><p>${safe(doc.notes)}</p></section>`
     : "";
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${safe(doc.document_number)}</title><style>@page{size:A4;margin:18mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#17304f;margin:0;font-size:12px}header{display:flex;justify-content:space-between;gap:24px;border-bottom:4px solid ${template.accent_color};padding-bottom:18px}.brand{display:flex;align-items:center;gap:12px}.logo{max-width:80px;max-height:54px;object-fit:contain}.brand-copy{display:grid;gap:3px}h1{margin:0;color:${template.primary_color};font-size:28px}h3{margin:7px 0}.company{color:${template.primary_color};font-weight:bold}.muted,small{color:#748399}.intro{margin:20px 0;padding:12px 14px;border-left:4px solid ${template.accent_color};background:#f7f9fc;line-height:1.55}.meta{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0}.box{padding:14px;background:#f5f7fa}.box p{margin:5px 0;white-space:pre-line}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #dfe5ed;text-align:left;font-size:12px}th{color:#61738a;background:#f5f7fa}.totals{width:45%;margin:18px 0 0 auto}.totals div{display:flex;justify-content:space-between;padding:7px}.totals .grand{font-size:16px;font-weight:bold;border-top:2px solid ${template.primary_color}}.detail{margin-top:18px;padding:13px;border:1px solid #e0e6ed;background:#fafbfc}.detail strong{color:${template.primary_color};font-size:10px}.detail p{margin:7px 0 0;line-height:1.55;white-space:pre-line}.signature{width:230px;display:grid;gap:4px;margin:36px 0 0 auto;padding-top:12px}.signature b{margin-top:45px;color:${template.primary_color}}footer{margin-top:38px;padding-top:14px;border-top:1px solid #dfe5ed;color:#738195;font-size:10px;line-height:1.5}</style></head><body><header><div class="brand">${logo}<div class="brand-copy"><span class="company">${safe(template.company_name)}</span><small>${safe(template.company_tagline)}</small><small>${safe(template.company_address)}</small><small>${contacts}</small></div></div><div><h1>${safe(template.document_title)}</h1><strong>${safe(doc.document_number)}</strong><br><small>${dateLabel(doc.document_date)}</small></div></header>${intro}<section class="meta"><div class="box"><small>DITUJUKAN KEPADA</small><h3>${safe(doc.client)}</h3>${address}</div><div class="box"><small>PROYEK</small><h3>${safe(doc.project_name || "-")}</h3>${due}</div></section><table><thead><tr><th>No</th><th>Deskripsi</th><th>Qty</th><th>Harga</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table><section class="totals"><div><span>Subtotal</span><strong>${money(doc.subtotal)}</strong></div><div><span>Diskon</span><strong>${money(doc.discount)}</strong></div><div><span>Pajak</span><strong>${money(doc.tax)}</strong></div><div class="grand"><span>Total</span><strong>${money(doc.total)}</strong></div></section>${notes}${terms}${bank}${signature}<footer>${renderTemplateText(template.footer_text, doc, template)}</footer></body></html>`;
+  const charges=(doc.charge_components??[]).filter(x=>n(x.amount)>0).map(x=>`<div><span>${safe(x.label)}${x.mode==='percent'?` (${safe(x.value)}%)`:''}</span><strong>${money(x.amount)}</strong></div>`).join('');
+  const gross=n(doc.gross_total)||n(doc.total);const termPercent=n(doc.installment_percentage)||100;const termLabel=termPercent<100?`${doc.installment_number===1?'DP':`Termin ${doc.installment_number}`} ${termPercent.toLocaleString('id-ID')}%`:'Total';
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${safe(doc.document_number)}</title><style>@page{size:A4;margin:18mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#17304f;margin:0;font-size:12px}header{display:flex;justify-content:space-between;gap:24px;border-bottom:4px solid ${template.accent_color};padding-bottom:18px}.brand{display:flex;align-items:center;gap:12px}.logo{max-width:80px;max-height:54px;object-fit:contain}.brand-copy{display:grid;gap:3px}h1{margin:0;color:${template.primary_color};font-size:28px}h3{margin:7px 0}.company{color:${template.primary_color};font-weight:bold}.muted,small{color:#748399}.intro{margin:20px 0;padding:12px 14px;border-left:4px solid ${template.accent_color};background:#f7f9fc;line-height:1.55}.meta{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0}.box{padding:14px;background:#f5f7fa}.box p{margin:5px 0;white-space:pre-line}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #dfe5ed;text-align:left;font-size:12px}th{color:#61738a;background:#f5f7fa}.summary{display:grid;grid-template-columns:minmax(0,1fr) 45%;gap:24px;align-items:start;margin-top:18px}.summary-note{min-height:100%;padding:13px;border:1px solid #e0e6ed;background:#fafbfc}.summary-note strong,.detail strong{color:${template.primary_color};font-size:10px}.summary-note p,.detail p{margin:7px 0 0;line-height:1.55;white-space:pre-line}.totals div{display:flex;justify-content:space-between;padding:6px 7px}.totals .gross{font-size:14px;border-top:1px solid #dfe5ed}.totals .grand{font-size:16px;font-weight:bold;color:${template.primary_color};border-top:2px solid ${template.primary_color}}.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}.detail{padding:13px;border:1px solid #e0e6ed;background:#fafbfc}.signature{width:230px;display:grid;gap:4px;margin:30px 0 0 auto;padding-top:12px}.signature b{margin-top:45px;color:${template.primary_color}}footer{margin-top:32px;padding-top:14px;border-top:1px solid #dfe5ed;color:#738195;font-size:10px;line-height:1.5}@media print{.summary,.details-grid{break-inside:avoid}}</style></head><body><header><div class="brand">${logo}<div class="brand-copy"><span class="company">${safe(template.company_name)}</span><small>${safe(template.company_tagline)}</small><small>${safe(template.company_address)}</small><small>${contacts}</small></div></div><div><h1>${safe(template.document_title)}</h1><strong>${safe(doc.document_number)}</strong><br><small>${dateLabel(doc.document_date)}</small></div></header>${intro}<section class="meta"><div class="box"><small>DITUJUKAN KEPADA</small><h3>${safe(doc.client)}</h3>${address}</div><div class="box"><small>PROYEK</small><h3>${safe(doc.project_name || "-")}</h3>${due}</div></section><table><thead><tr><th>No</th><th>Deskripsi</th><th>Qty</th><th>Harga</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table><section class="summary"><div>${notes}</div><div class="totals"><div><span>Subtotal</span><strong>${money(doc.subtotal)}</strong></div>${n(doc.discount)>0?`<div><span>Diskon</span><strong>-${money(doc.discount)}</strong></div>`:''}${charges}<div class="gross"><span>Total proyek</span><strong>${money(gross)}</strong></div><div class="grand"><span>${safe(termLabel)}</span><strong>${money(doc.total)}</strong></div></div></section><section class="details-grid"><div>${terms}</div><div>${bank}</div></section>${signature}<footer>${renderTemplateText(template.footer_text, doc, template)}</footer></body></html>`;
 }
 const emptyTx = (): TxForm => ({
   correctionId: "",
@@ -460,7 +492,16 @@ const emptyDoc = (): DocForm => ({
   project: "",
   items: [emptyDocItem()],
   discount: "0",
-  tax: "0",
+  taxEnabled: false,
+  taxMode: "percent",
+  taxValue: "11",
+  managementEnabled: false,
+  managementMode: "percent",
+  managementValue: "10",
+  otherCharges: [],
+  installmentScheme: "full",
+  installmentNumber: "1",
+  customInstallmentPercentage: "100",
   notes: "",
   invoiceId: "",
   receiptAmount: "",
@@ -1062,19 +1103,25 @@ export default function FinanceWorkspace() {
     e.preventDefault();
     setSaving(true);
     const linked = documents.find((x) => x.id === docForm.invoiceId);
-    const r = await createClient().rpc("finance_save_document", {
+    const r = await createClient().rpc("finance_save_document_v2", {
       target_document_id: docForm.id || null,
-      doc_type: docForm.type,
-      doc_date: docForm.date,
-      doc_due_date: docForm.dueDate || null,
-      doc_client:
+      payload: {
+      type: docForm.type,
+      date: docForm.date,
+      due_date: docForm.dueDate || null,
+      client:
         docForm.type === "receipt" ? (linked?.client ?? "") : docForm.client,
-      doc_client_address: docForm.address,
-      doc_project: docForm.project,
-      doc_discount: n(docForm.discount),
-      doc_tax: n(docForm.tax),
-      doc_notes: docForm.notes,
-      doc_items:
+      address: docForm.address,
+      project: docForm.project,
+      discount: n(docForm.discount),
+      tax: {enabled:docForm.taxEnabled,mode:docForm.taxMode,value:n(docForm.taxValue)},
+      management_fee: {enabled:docForm.managementEnabled,mode:docForm.managementMode,value:n(docForm.managementValue)},
+      other_charges: docForm.otherCharges.map(x=>({...x,value:n(x.value)})),
+      installment_scheme: docForm.type==='invoice'?docForm.installmentScheme:'full',
+      installment_number: n(docForm.installmentNumber)||1,
+      installment_percentage: n(docForm.customInstallmentPercentage)||100,
+      notes: docForm.notes,
+      items:
         docForm.type === "receipt"
           ? []
           : docForm.items.map((x) => ({
@@ -1082,9 +1129,10 @@ export default function FinanceWorkspace() {
               quantity: n(x.quantity),
               unit_price: n(x.unit_price),
             })),
-      doc_linked_invoice_id: docForm.invoiceId || null,
+      invoice_id: docForm.invoiceId || null,
       receipt_amount: n(docForm.receiptAmount),
-      doc_bank: docForm.bank,
+      bank: docForm.bank,
+      },
     });
     setSaving(false);
     if (r.error) {
@@ -1144,6 +1192,9 @@ export default function FinanceWorkspace() {
     await load();
   }
   function editDocument(doc: Doc) {
+    const taxComponent=doc.charge_components?.find(x=>x.label==='Pajak');
+    const managementComponent=doc.charge_components?.find(x=>x.label==='Fee Management');
+    const otherComponents=(doc.charge_components??[]).filter(x=>!['Pajak','Fee Management'].includes(x.label));
     setDocForm({
       id: doc.id,
       type: doc.document_type,
@@ -1154,7 +1205,16 @@ export default function FinanceWorkspace() {
       project: doc.project_name ?? "",
       items: doc.items?.length ? doc.items : [emptyDocItem()],
       discount: String(doc.discount),
-      tax: String(doc.tax),
+      taxEnabled:n(doc.tax)>0,
+      taxMode:taxComponent?.mode??'fixed',
+      taxValue:String(taxComponent?.value??doc.tax),
+      managementEnabled:n(doc.management_fee)>0,
+      managementMode:managementComponent?.mode??'fixed',
+      managementValue:String(managementComponent?.value??doc.management_fee??0),
+      otherCharges:otherComponents,
+      installmentScheme:doc.installment_scheme??'full',
+      installmentNumber:String(doc.installment_number??1),
+      customInstallmentPercentage:String(doc.installment_percentage??100),
       notes: doc.notes ?? "",
       invoiceId: doc.linked_invoice_id ?? "",
       receiptAmount: String(doc.total),
@@ -3444,8 +3504,20 @@ function DocumentModal(p: {
   const updateItem = (index: number, key: keyof DocItem, value: string) => p.setForm({ ...f, items: f.items.map((item, i) => i === index ? { ...item, [key]: value } : item) });
   const addItem = () => p.setForm({ ...f, items: [...f.items, emptyDocItem()] });
   const removeItem = (index: number) => p.setForm({ ...f, items: f.items.filter((_, i) => i !== index) });
+  const updateCharge=(index:number,key:keyof ChargeComponent,value:string)=>p.setForm({...f,otherCharges:f.otherCharges.map((item,i)=>i===index?{...item,[key]:value}:item)});
+  const addCharge=()=>p.setForm({...f,otherCharges:[...f.otherCharges,{label:"",mode:"fixed",value:""}]});
+  const removeCharge=(index:number)=>p.setForm({...f,otherCharges:f.otherCharges.filter((_,i)=>i!==index)});
   const subtotal = f.items.reduce((sum, item) => sum + n(item.quantity) * n(item.unit_price), 0);
-  const total = Math.max(subtotal - n(f.discount) + n(f.tax), 0);
+  const base=Math.max(subtotal-n(f.discount),0);
+  const chargeAmount=(enabled:boolean,mode:"percent"|"fixed",value:unknown)=>enabled?(mode==='percent'?base*n(value)/100:n(value)):0;
+  const tax=chargeAmount(f.taxEnabled,f.taxMode,f.taxValue);
+  const management=chargeAmount(f.managementEnabled,f.managementMode,f.managementValue);
+  const others=f.otherCharges.reduce((sum,item)=>sum+(item.mode==='percent'?base*n(item.value)/100:n(item.value)),0);
+  const gross=Math.max(base+tax+management+others,0);
+  const schemePercentages=f.installmentScheme==='50-50'?[50,50]:f.installmentScheme==='50-25-25'?[50,25,25]:f.installmentScheme==='custom'?[Math.min(100,Math.max(.01,n(f.customInstallmentPercentage)))]:[100];
+  const installmentIndex=Math.min(schemePercentages.length,Math.max(1,n(f.installmentNumber)||1))-1;
+  const installmentPercentage=schemePercentages[installmentIndex]??100;
+  const total=f.type==='invoice'?gross*installmentPercentage/100:gross;
   const title =
     f.type === "quotation"
       ? "Quotation"
@@ -3562,15 +3634,14 @@ function DocumentModal(p: {
                   onChange={(e) => set("discount", e.target.value)}
                 />
               </Field>
-              <Field label="Pajak">
-                <input
-                  type="number"
-                  min="0"
-                  value={f.tax}
-                  onChange={(e) => set("tax", e.target.value)}
-                />
-              </Field>
-              <div className="rk-document-total wide"><span>Subtotal <strong>{money(subtotal)}</strong></span><span>Diskon <strong>{money(f.discount)}</strong></span><span>Pajak <strong>{money(f.tax)}</strong></span><span>Total <strong>{money(total)}</strong></span></div>
+              <section className="rk-document-charges wide">
+                <header><div><strong>Komponen tambahan</strong><small>Pajak, fee management, dan biaya lain dapat berupa persentase atau nominal.</small></div><button type="button" onClick={addCharge}><FiPlus/> Opsi lain</button></header>
+                <div className="rk-document-charge-row"><label><input type="checkbox" checked={f.taxEnabled} onChange={e=>p.setForm({...f,taxEnabled:e.target.checked})}/><span>Pajak</span></label><select value={f.taxMode} onChange={e=>p.setForm({...f,taxMode:e.target.value as "percent"|"fixed"})}><option value="percent">Persentase</option><option value="fixed">Nominal</option></select><input type="number" min="0" step="0.01" value={f.taxValue} onChange={e=>set("taxValue",e.target.value)}/><strong>{money(tax)}</strong></div>
+                <div className="rk-document-charge-row"><label><input type="checkbox" checked={f.managementEnabled} onChange={e=>p.setForm({...f,managementEnabled:e.target.checked})}/><span>Fee Management</span></label><select value={f.managementMode} onChange={e=>p.setForm({...f,managementMode:e.target.value as "percent"|"fixed"})}><option value="percent">Persentase</option><option value="fixed">Nominal</option></select><input type="number" min="0" step="0.01" value={f.managementValue} onChange={e=>set("managementValue",e.target.value)}/><strong>{money(management)}</strong></div>
+                {f.otherCharges.map((charge,index)=><div className="rk-document-charge-row" key={index}><input aria-label={`Nama biaya lain ${index+1}`} placeholder="Nama biaya" value={charge.label} onChange={e=>updateCharge(index,'label',e.target.value)}/><select value={charge.mode} onChange={e=>updateCharge(index,'mode',e.target.value)}><option value="percent">Persentase</option><option value="fixed">Nominal</option></select><input type="number" min="0" step="0.01" value={charge.value} onChange={e=>updateCharge(index,'value',e.target.value)}/><button type="button" title="Hapus biaya" onClick={()=>removeCharge(index)}><FiTrash2/></button></div>)}
+              </section>
+              {f.type==='invoice'?<section className="rk-document-installments wide"><header><div><strong>Termin pembayaran</strong><small>Nilai proyek tetap tampil penuh; jurnal piutang hanya mencatat termin yang ditagihkan.</small></div></header><div><Field label="Skema"><select value={f.installmentScheme} onChange={e=>p.setForm({...f,installmentScheme:e.target.value as DocForm['installmentScheme'],installmentNumber:'1'})}><option value="full">Pembayaran penuh</option><option value="50-50">DP 50% + 50%</option><option value="50-25-25">DP 50% + 25% + 25%</option><option value="custom">Persentase khusus</option></select></Field><Field label="Termin yang ditagihkan"><select value={f.installmentNumber} onChange={e=>set('installmentNumber',e.target.value)}>{schemePercentages.map((percentage,index)=><option key={index} value={index+1}>{index===0&&percentage<100?'DP':`Termin ${index+1}`} · {percentage}%</option>)}</select></Field>{f.installmentScheme==='custom'?<Field label="Persentase termin"><input type="number" min="0.01" max="100" step="0.01" value={f.customInstallmentPercentage} onChange={e=>set('customInstallmentPercentage',e.target.value)}/></Field>:null}</div></section>:null}
+              <div className="rk-document-total wide"><span>Subtotal <strong>{money(subtotal)}</strong></span>{n(f.discount)>0?<span>Diskon <strong>-{money(f.discount)}</strong></span>:null}{tax>0?<span>Pajak <strong>{money(tax)}</strong></span>:null}{management>0?<span>Fee Management <strong>{money(management)}</strong></span>:null}{others>0?<span>Biaya lain <strong>{money(others)}</strong></span>:null}<span>Total proyek <strong>{money(gross)}</strong></span><span data-grand>{f.type==='invoice'&&installmentPercentage<100?`${installmentIndex===0?'DP':`Termin ${installmentIndex+1}`} ${installmentPercentage}%`:'Total'} <strong>{money(total)}</strong></span></div>
             </>
           )}
           <Field label="Catatan" wide>
@@ -3615,9 +3686,20 @@ function TemplateModal(p: {
     subtotal: 2500000,
     discount: 100000,
     tax: 275000,
-    total: 2675000,
+    gross_total: 2925000,
+    management_fee: 250000,
+    other_fees: 0,
+    charge_components: [
+      {label:"Pajak",mode:"percent",value:11,amount:275000},
+      {label:"Fee Management",mode:"percent",value:10,amount:250000},
+    ],
+    installment_scheme: "50-50",
+    installment_number: 1,
+    installment_percentage: 50,
+    payment_schedule: [{number:1,label:"DP",percentage:50,amount:1462500,due_date:today()},{number:2,label:"Termin 2",percentage:50,amount:1462500,due_date:null}],
+    total: 1462500,
     paid: 0,
-    balance: 2675000,
+    balance: 1462500,
     linked_invoice_id: null,
     notes: "Catatan dokumen contoh.",
     items: [
@@ -3634,6 +3716,11 @@ function TemplateModal(p: {
     "{{subtotal}}",
     "{{diskon}}",
     "{{pajak}}",
+    "{{fee_management}}",
+    "{{biaya_lain}}",
+    "{{total_proyek}}",
+    "{{termin}}",
+    "{{nilai_termin}}",
     "{{total}}",
     "{{catatan}}",
     "{{nama_perusahaan}}",
