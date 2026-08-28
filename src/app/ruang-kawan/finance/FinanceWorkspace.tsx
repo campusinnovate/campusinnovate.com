@@ -3260,6 +3260,27 @@ function TransactionModal(p: {
       ) : null}
       {p.step === 2 ? (
         <div className="rk-finance-form">
+          {p.form.correctionId ? (
+            <Field label="Jenis transaksi">
+              <select
+                value={p.form.event}
+                onChange={(e) => {
+                  const event = p.catalog.find((x) => x.event_name === e.target.value);
+                  p.setForm({
+                    ...p.form,
+                    event: e.target.value,
+                    coa: event?.default_coa ?? p.form.coa,
+                  });
+                }}
+              >
+                {p.catalog.map((x) => (
+                  <option key={x.event_name} value={x.event_name}>
+                    {x.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
           <Field label="Tanggal">
             <input
               type="date"
