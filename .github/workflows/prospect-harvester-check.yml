@@ -1,6 +1,9 @@
 name: Prospect Harvester Check
 
 on:
+  push:
+    branches:
+      - codex/prospect-harvester-mvp
   pull_request:
     branches:
       - codex/web-handoff
