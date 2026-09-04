@@ -48,8 +48,20 @@ create table if not exists public.prospects (
   updated_at timestamptz not null default now()
 );
 
-alter table public.prospect_raw_items
-  add constraint prospect_raw_items_prospect_fk foreign key (prospect_id) references public.prospects(id) on delete set null;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'prospect_raw_items_prospect_fk'
+      and conrelid = 'public.prospect_raw_items'::regclass
+  ) then
+    alter table public.prospect_raw_items
+      add constraint prospect_raw_items_prospect_fk
+      foreign key (prospect_id) references public.prospects(id) on delete set null;
+  end if;
+end;
+$$;
 
 create table if not exists public.prospect_signals (
   id uuid primary key default extensions.gen_random_uuid(),
