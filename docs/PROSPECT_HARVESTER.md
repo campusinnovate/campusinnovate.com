@@ -2,6 +2,16 @@
 
 Prospect Harvester adalah discovery layer sebelum Pipeline Business Development. Data hasil Google Maps dan Threads tidak langsung masuk `pipeline_leads`. Semua kandidat melewati raw staging, deduplication, AI enrichment, human review, lalu baru dipromosikan ke pipeline existing.
 
+## Production architecture
+
+Frontend Ruang Kawan tetap mengikuti deployment existing sebagai static export di GitHub Pages. Karena GitHub Pages tidak menjalankan Next.js server routes, Prospect Harvester memakai Supabase Edge Functions untuk seluruh logic yang membutuhkan secret/API key.
+
+- UI: `/ruang-kawan/prospects/`
+- Database + RPC: Supabase PostgreSQL
+- Harvest backend: `supabase/functions/prospect-harvest`
+- AI backend: `supabase/functions/prospect-ai`
+- Production website deploy: push/merge ke `codex/web-handoff`
+
 ## Flow
 
 1. `prospect_raw_items` menyimpan respons mentah provider.
@@ -15,7 +25,6 @@ Prospect Harvester adalah discovery layer sebelum Pipeline Business Development.
 ## Phase 1 — Internal Prospect Engine
 
 Sudah diimplementasikan:
-
 - raw staging
 - prospect database
 - signal history
@@ -26,96 +35,57 @@ Sudah diimplementasikan:
 - human review
 - promote to existing Pipeline BD
 
-Run Supabase migration:
-
+Migration:
 `supabase/migrations/20260904113000_ruang_kawan_prospect_harvester.sql`
 
 ## Phase 2 — Google Maps Harvester
 
-Server endpoint:
-
-`POST /api/prospects/harvest`
+Edge Function:
+`prospect-harvest`
 
 Provider: `google_maps`.
 
-Required environment variable:
-
+Supabase secret:
 `GOOGLE_PLACES_API_KEY`
 
-Enable Google Places API (New). Text Search is called server-side and only the required fields are requested through FieldMask.
-
-Default query library includes schools, universities, corporate offices, manufacturing companies, and training centers around Bogor/Jabodetabek/Bandung. Queries are stored in `prospect_search_configs` and can be expanded later without changing the prospect schema.
+Enable Google Places API (New). Text Search dipanggil server-side dengan FieldMask agar field dan biaya tetap terkontrol.
 
 ## Phase 3 — Threads Intent Monitor
 
-The same endpoint uses provider `threads`.
+Edge Function yang sama menggunakan provider `threads`.
 
-Required environment variable:
+Supabase secrets:
+- `THREADS_ACCESS_TOKEN`
+- `THREADS_API_HOST=https://graph.threads.net`
 
-`THREADS_ACCESS_TOKEN`
+Token Meta harus memiliki permission `threads_keyword_search`.
 
-The Meta app/token must have `threads_keyword_search` permission.
-
-Default host:
-
-`THREADS_API_HOST=https://graph.threads.net`
-
-Keyword queries include EO, vendor event, company gathering, team building, capacity building, trainer, training, website, landing page, leadership camp, and school programs.
-
-Threads is treated as an intent source. Public post text becomes a `prospect_signal` and is scored higher than passive directory discovery.
+Threads diperlakukan sebagai sumber buying intent; post publik yang relevan disimpan sebagai `prospect_signal`.
 
 ## Phase 4 — AI Web Enrichment
 
-Server endpoint:
-
-`POST /api/prospects/ai`
+Edge Function:
+`prospect-ai`
 
 Mode: `enrich`.
 
-Required environment variables:
-
+Supabase secrets:
 - `OPENAI_API_KEY`
 - `OPENAI_PROSPECT_MODEL` (default `gpt-5-mini`)
 
-The server reads the prospect record plus public website HTML when a website is available, then asks the model to return:
-
-- account type
-- industry
-- city
-- public contacts if present
-- service fit
-- recommended pipeline
-- recommended business unit
-- Fit / Intent / Accessibility scores
-- AI summary
-- evidence/signals
-
-The model is instructed not to invent unavailable facts.
+Function membaca prospect + public website text yang tersedia, lalu menghasilkan account type, industry, city, public contact yang benar-benar tersedia, service fit, recommended pipeline/business unit, scores, AI summary, decision-maker role, dan evidence.
 
 ## Phase 5 — Decision-Maker Enrichment
 
-The AI enrichment identifies the most relevant role from the evidence available, e.g.:
+AI mengidentifikasi role yang relevan dari evidence tersedia, misalnya HR / People Development / L&D, Corporate Communication / Marketing / CSR, Kepala Sekolah / Wakasek Kesiswaan, Student Affairs, atau ketua organisasi.
 
-- HR / People Development / L&D
-- Corporate Communication / Marketing / CSR
-- School Principal / Vice Principal Student Affairs
-- Student Affairs / Directorate / Department
-- BEM/Himpunan/UKM leadership
-
-LinkedIn is deliberately **not scraped**. Public LinkedIn URLs may be stored in the prospect record and used as human enrichment links. Automated LinkedIn data retrieval should only be enabled when Campus Innovate has an approved official LinkedIn API integration.
-
-`LINKEDIN_ACCESS_TOKEN` is documented as a future official connector placeholder; no unofficial browser automation is implemented.
+LinkedIn tidak di-scrape. Public LinkedIn URL boleh disimpan sebagai link enrichment. Official LinkedIn connector dapat ditambahkan bila akses resmi tersedia.
 
 ## Phase 6 — Outreach Generator
 
-Endpoint:
+Edge Function `prospect-ai`, mode `outreach`.
 
-`POST /api/prospects/ai`
-
-Mode: `outreach`.
-
-Generated drafts:
-
+Draft yang dibuat:
 - Threads reply
 - Threads DM
 - WhatsApp
@@ -124,27 +94,33 @@ Generated drafts:
 - Follow-up 1
 - Follow-up 2
 
-Drafts are stored in `prospect_outreach_drafts`. Nothing is auto-sent; BD reviews/copies the draft first.
+Draft disimpan di `prospect_outreach_drafts`. Tidak ada auto-send; BD tetap review/copy dulu.
 
-## Deployment checklist
+## Deployment order
 
-1. Merge/deploy the code branch.
-2. Apply the Supabase migration.
-3. Add `GOOGLE_PLACES_API_KEY` to production environment.
-4. Create/configure Meta Threads app and add `THREADS_ACCESS_TOKEN` with keyword-search permission.
-5. Add `OPENAI_API_KEY` and optionally `OPENAI_PROSPECT_MODEL`.
-6. Open `/ruang-kawan/prospects/` while logged in with Pipeline BD permission.
-7. Test one Google Maps query.
-8. Test one Threads query.
-9. Run AI Enrich on a prospect with a website and one Threads prospect.
+1. Apply migration Supabase.
+2. Deploy Edge Functions `prospect-harvest` dan `prospect-ai`.
+3. Set Supabase secrets:
+   - `APP_ORIGIN=https://campusinnovate.com`
+   - `GOOGLE_PLACES_API_KEY`
+   - `THREADS_ACCESS_TOKEN`
+   - `THREADS_API_HOST=https://graph.threads.net`
+   - `OPENAI_API_KEY`
+   - `OPENAI_PROSPECT_MODEL=gpt-5-mini`
+4. Smoke-test kedua Edge Functions dengan akun Ruang Kawan yang punya `pipeline.manage_self`.
+5. Merge PR ke `codex/web-handoff`.
+6. GitHub Pages workflow otomatis menjalankan `npm ci` + `npm run build` + deploy.
+7. Open `/ruang-kawan/prospects/`.
+8. Test satu query Google Maps dan satu query Threads.
+9. AI Enrich satu prospect.
 10. Generate outreach.
-11. Promote one test prospect to B2B Services/COREVA.
-12. Verify the created lead appears in `/ruang-kawan/pipeline/` and its next action appears in My Activity.
+11. Promote satu test prospect ke B2B Services/COREVA.
+12. Verify lead di `/ruang-kawan/pipeline/` dan next action di My Activity.
 
 ## Operational rule
 
-Do not auto-promote harvested records to Pipeline. The default operating model is:
+Jangan auto-promote harvested records ke Pipeline. Default flow:
 
 `Harvest → Deduplicate → Score → AI Enrich → BD Review → Promote → Outreach/Follow-up → Meeting → Proposal → Won/Lost`
 
-This keeps Pipeline BD focused on accounts the team has intentionally chosen to work.
+Dengan struktur ini, Pipeline BD tetap berisi account yang benar-benar dipilih tim untuk dikerjakan.
