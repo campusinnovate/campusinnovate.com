@@ -6465,7 +6465,46 @@ img {
 }
 
 @media (max-width: 760px) {
-  .community-page-shell { width: calc(100% - 28px); }
+  /* Render one public page at a time on phones. The former 700vw composited
+     track could exhaust Safari's graphics memory and leave a blank navy page. */
+  .horizontal-track {
+    display: block;
+    width: 100% !important;
+    transform: none !important;
+    transition: none;
+    will-change: auto;
+  }
+
+  .horizontal-track>.page-slide {
+    display: none;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .horizontal-home[data-active-page="home"] #home,
+  .horizontal-home[data-active-page="about"] #about,
+  .horizontal-home[data-active-page="services"] #services,
+  .horizontal-home[data-active-page="workfolio"] #workfolio,
+  .horizontal-home[data-active-page="kawan-inovasi"] #kawan-inovasi,
+  .horizontal-home[data-active-page="community"] #community,
+  .horizontal-home[data-active-page="contact"] #contact {
+    display: block;
+  }
+
+  .hero-copy-new {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hero-copy-new h1>span {
+    white-space: normal;
+  }
+
+  .hero-actions-new {
+    flex-wrap: wrap;
+  }
+
+  .community-page-shell { width: calc(100vw - 28px); max-width: calc(100vw - 28px); min-width: 0; }
   .community-overview { min-height: auto; padding: 90px 0 76px; }
   .community-topline { display: block; }
   .community-page-heading h2,
@@ -6473,8 +6512,9 @@ img {
   .community-closing h2 { font-size: clamp(43px, 13vw, 58px); }
   .community-page-heading > p:last-child { font-size: 11px; }
   .community-stat-inline { position: static; width: fit-content; margin-top: 22px; }
-  .community-card-grid { display: flex; grid-template-columns: none; grid-template-rows: none; gap: 13px; overflow-x: auto; padding: 4px 2px 20px; scroll-snap-type: x mandatory; }
-  .community-profile { flex: 0 0 84vw; min-height: 430px; scroll-snap-align: start; }
+  .community-card-grid { width: 100%; max-width: 100%; min-width: 0; display: flex; grid-template-columns: none; grid-template-rows: none; gap: 13px; overflow-x: auto; overflow-y: hidden; padding: 4px 2px 20px; scroll-snap-type: x mandatory; overscroll-behavior-inline: contain; touch-action: pan-x; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .community-card-grid::-webkit-scrollbar { display: none; }
+  .community-profile { flex: 0 0 84vw; min-height: 430px; scroll-snap-align: start; scroll-snap-stop: always; }
   .community-profile-copy h3 { font-size: 27px; }
   .community-detail { min-height: auto; padding: 78px 0; scroll-margin-top: 58px; }
   .community-detail-grid { grid-template-columns: 1fr; }
