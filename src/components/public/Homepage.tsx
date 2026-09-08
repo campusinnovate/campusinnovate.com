@@ -127,12 +127,12 @@ function ServiceDetail({ detail, icon: Icon }: ServiceDetailProps) {
   );
 }
 
-function WorkfolioCard({ project, index, onOpen }: { project: WorkfolioProject; index: number; onOpen: () => void }) {
+function WorkfolioCard({ project, index, onOpen, preload = false }: { project: WorkfolioProject; index: number; onOpen: () => void; preload?: boolean }) {
   const preserveFrame = project.services.some((service) => service === 'Digital System' || service === 'Creative & Media');
   return (
     <article className="workfolio-card" data-project-slug={project.slug}>
       <div className={`workfolio-card-media ${preserveFrame ? 'has-contain-media' : ''}`}>
-        <Image src={project.image} alt={project.imageAlt} fill priority={index < 4} sizes="(max-width: 760px) 92vw, (max-width: 1100px) 46vw, 23vw" />
+        <Image src={project.image} alt={project.imageAlt} fill preload={preload} sizes="(max-width: 760px) 92vw, (max-width: 1100px) 46vw, 23vw" />
         <div className="workfolio-media-overlay" />
         <div className={`workfolio-logo-plate is-${project.logoSurface ?? 'light'}`}>
           {project.logo
@@ -361,6 +361,7 @@ function ContactForm() {
 export default function Homepage() {
   const [active, setActive] = useState(0);
   const [selectedWorkIndex, setSelectedWorkIndex] = useState<number | null>(null);
+  const [loadInstagram, setLoadInstagram] = useState(false);
 
   const goTo = useCallback((next: number, updateUrl = true) => {
     const safeNext = Math.max(0, Math.min(pages.length - 1, next));
@@ -408,6 +409,12 @@ export default function Homepage() {
     };
   }, [goTo]);
 
+  useEffect(() => {
+    if (active !== 0 || loadInstagram) return;
+    const timer = window.setTimeout(() => setLoadInstagram(true), 2500);
+    return () => window.clearTimeout(timer);
+  }, [active, loadInstagram]);
+
   const scrollToServiceDetail = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
     window.history.replaceState(null, '', `${window.location.pathname}#${id}`);
@@ -439,7 +446,7 @@ export default function Homepage() {
 
   return (
     <main className="horizontal-home" data-active-page={pages[active].id}>
-      <Script src="https://elfsightcdn.com/platform.js" strategy="afterInteractive" />
+      {loadInstagram && <Script src="https://elfsightcdn.com/platform.js" strategy="lazyOnload" />}
 
       <div className="horizontal-track" style={{ width: `${pages.length * 100}vw`, transform: `translate3d(-${active * 100}vw, 0, 0)` }}>
         <section className="page-slide hero-slide" id="home" aria-labelledby="hero-title">
@@ -657,7 +664,7 @@ export default function Homepage() {
               </div>
             </header>
             <div className="workfolio-grid" aria-label="Campus Innovate selected projects">
-              {workfolioProjects.map((project, index) => <WorkfolioCard key={project.slug} project={project} index={index} onOpen={() => setSelectedWorkIndex(index)} />)}
+              {workfolioProjects.map((project, index) => <WorkfolioCard key={project.slug} project={project} index={index} preload={active === 3 && index < 2} onOpen={() => setSelectedWorkIndex(index)} />)}
             </div>
           </div>
           <ExtendedBottomPanel />
@@ -679,7 +686,7 @@ export default function Homepage() {
                 <a className="gloss-button gold-button kawan-button" href="#kawan-recruitment" onClick={(event) => scrollToKawanSection(event, 'kawan-recruitment')}>View opportunities <FiArrowRight /></a>
               </div>
               <div className="kawan-hero-photos" aria-label="Kegiatan tim Campus Innovate">
-                <div className="kawan-photo kawan-photo-main"><Image src="/images/kawan-inovasi/team-hero.jpg" alt="Tim Campus Innovate bertumbuh dan bekerja bersama" fill priority sizes="(max-width: 760px) 92vw, 43vw" /></div>
+                <div className="kawan-photo kawan-photo-main"><Image src="/images/kawan-inovasi/team-hero.jpg" alt="Tim Campus Innovate bertumbuh dan bekerja bersama" fill preload={active === 4} sizes="(max-width: 760px) 92vw, 43vw" /></div>
                 <div className="kawan-photo kawan-photo-support"><Image src="/images/kawan-inovasi/team-candid.jpg" alt="Momen kebersamaan tim Campus Innovate" fill sizes="(max-width: 760px) 45vw, 19vw" /></div>
                 <div className="kawan-photo-caption"><span>People</span><span>Culture</span><span>Growth</span><span>Impact</span></div>
               </div>
