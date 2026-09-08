@@ -44,7 +44,7 @@ async function authenticatedClient(req: Request) {
   if (!userResponse.ok) throw new Error(`Sesi Supabase ditolak: ${user.message ?? 'token tidak valid'}`);
   return !user?.id ? null : { client, user };
 }
-async function canManageCompany(client: ReturnType<typeof createClient>) {
+async function canManageCompany(client: typeof service) {
   const { data } = await client.rpc('get_my_access');
   const access = Array.isArray(data) ? data[0] : data;
   return Boolean(access?.permissions?.includes('calendar.manage_company'));
@@ -333,7 +333,39 @@ async function createChatMeeting(req: Request, origin: string | null) {
     await googleFetch(connection, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(event.id)}?sendUpdates=none`, { method: 'DELETE' }).catch(() => null);
     return json({ error: `Meeting dibatalkan karena registrasi Ruang Kawan gagal: ${registered.error.message}` }, 500, origin);
   }
+  await service.from('chat_meetings').update({google_connection_id:connection.id}).eq('id',registered.data);
   return json({ ready: true, meetingId: registered.data, eventId: event.id, meetUrl, htmlLink: event.htmlLink ?? null }, 200, origin);
+}
+
+async function syncChatMeetings(req: Request, origin: string | null) {
+  const auth = await authenticatedClient(req); if (!auth) return json({error:'Sesi tidak valid.'},401,origin);
+  const body = await req.json().catch(()=>({})); const conversationId=String(body.conversationId??'');
+  const allowed=await auth.client.rpc('is_chat_member',{target_conversation_id:conversationId});
+  if(!allowed.data)return json({error:'Percakapan tidak dapat diakses.'},403,origin);
+  const rows=await service.from('chat_meetings').select('*').eq('conversation_id',conversationId).in('status',['scheduled','completed']).gte('ends_at',new Date(Date.now()-30*86400000).toISOString()).limit(100);
+  if(rows.error)return json({error:'Status meeting belum dapat dimuat.'},500,origin);
+  let updated=0,skipped=0;
+  for(const meeting of rows.data??[]){
+    if(!meeting.google_connection_id||!meeting.google_event_id){skipped++;continue;}
+    try{
+      const connection=await service.from('google_calendar_connections').select('*').eq('id',meeting.google_connection_id).eq('is_active',true).maybeSingle();
+      if(!connection.data){skipped++;continue;}
+      const ready=await refreshConnection(connection.data);
+      const response=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(meeting.google_calendar_id)}/events/${encodeURIComponent(meeting.google_event_id)}`,{headers:{Authorization:`Bearer ${ready.access_token}`}});
+      // A permission error or 404 is ambiguous; never treat it as a cancellation.
+      if(response.status===410){const result=await service.from('chat_meetings').update({status:'cancelled',meet_url:null}).eq('id',meeting.id);if(result.error)throw result.error;updated++;continue;}
+      if(!response.ok){skipped++;continue;}
+      const event=await response.json();
+      const cancelled=event.status==='cancelled';
+      const start=event.start?.dateTime;const end=event.end?.dateTime;
+      const patch:Record<string,unknown>={status:cancelled?'cancelled':end&&new Date(end).getTime()<=Date.now()?'completed':'scheduled'};
+      if(start&&end){patch.starts_at=start;patch.ends_at=end;}
+      patch.meet_url=cancelled?null:event.hangoutLink??event.conferenceData?.entryPoints?.find((p:any)=>p.entryPointType==='video')?.uri??null;
+      if(event.summary)patch.title=event.summary;
+      const saved=await service.from('chat_meetings').update(patch).eq('id',meeting.id);if(saved.error)throw saved.error;updated++;
+    }catch{skipped++;}
+  }
+  return json({updated,skipped},200,origin);
 }
 
 async function respondChatMeeting(req: Request, origin: string | null) {
@@ -379,6 +411,7 @@ async function emailChatMessage(req:Request,origin:string|null){
   for(const recipient of recipients){
     const idempotencyKey=`chat-email:${messageId}:${recipient.id}`;const {data:existing}=await service.from('chat_email_deliveries').select('id,status').eq('idempotency_key',idempotencyKey).maybeSingle();if(existing?.status==='sent'){sent++;continue;}
     const delivery=existing?.id?existing:(await service.from('chat_email_deliveries').insert({message_id:messageId,requested_by_membership_id:actor.id,recipient_membership_id:recipient.id,recipient_email:recipient.email,idempotency_key:idempotencyKey,status:'pending'}).select('id').single()).data;
+    if(!delivery){failed.push(recipient.email);continue;}
     try{
       const mime=[`From: ${cleanHeader(String(connection.google_account_email??actor.email))}`,`To: ${cleanHeader(recipient.email)}`,`Subject: [Kawan Chat] ${conversationName}`,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',`Halo ${recipient.name},`,`\n${senderName} mengirim pesan di ${conversationName}:`,`\n${message.body}`,`\nBuka: ${APP_ORIGIN}/ruang-kawan/chat/?conversation=${message.conversation_id}`].join('\r\n');
       const result=await googleApi(connection,'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({raw:encodeMime(mime)})}) as Record<string,any>;
@@ -434,6 +467,7 @@ Deno.serve(async (req) => {
     if (path === '/calendars' && req.method === 'GET') return await listCalendars(req, origin);
     if (path === '/events' && req.method === 'GET') return await listEvents(req, origin);
     if (path === '/meetings' && req.method === 'POST') return await createChatMeeting(req, origin);
+    if (path === '/meetings/sync' && req.method === 'POST') return await syncChatMeetings(req, origin);
     if (path === '/meetings/respond' && req.method === 'POST') return await respondChatMeeting(req, origin);
     if (path === '/chat/email' && req.method === 'POST') return await emailChatMessage(req, origin);
     if (path === '/chat/attachments' && req.method === 'POST') return await uploadChatAttachment(req, origin);

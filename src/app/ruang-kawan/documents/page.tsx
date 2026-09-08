@@ -364,7 +364,7 @@ export default function DocumentCenter() {
         <header className="rk-doc-heading">
           <div>
             <small>Controlled document workspace</small>
-            <h1>Document Center</h1>
+            <h1>Document Center</h1><Link href="/ruang-kawan/digital-office/">Digital Office · Tanda tangani PDF →</Link>
             <p>
               Temukan versi yang berlaku, kelola revisi, dan hubungkan dokumen
               dengan pekerjaan.

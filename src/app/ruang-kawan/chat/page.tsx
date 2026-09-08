@@ -8,6 +8,7 @@ import {
   FiMail, FiMessageCircle, FiMoreVertical, FiPaperclip, FiPlus, FiSearch, FiSend,
   FiSmile, FiStar, FiTrash2, FiUploadCloud, FiUsers, FiVideo, FiX, FiZap,
 } from 'react-icons/fi';
+import ChatArchive from '@/components/ruang-kawan/ChatArchive';
 import { AttachmentPreview, ChatDialog, LinkedText } from '@/components/ruang-kawan/ChatPreview';
 import { dayKey, dayLabel, meetingActive } from '@/lib/chat/presentation';
 import { createClient } from '@/lib/supabase/client';
@@ -91,6 +92,10 @@ export default function KawanChatPage() {
   const [memberOpen,setMemberOpen]=useState(false);
   const [threadUnread,setThreadUnread]=useState<Record<string,number>>({});
   const [meetings,setMeetings]=useState<ChatMeeting[]>([]);
+  const [relatedTab,setRelatedTab]=useState<'active'|'history'|'archive'>('active');
+  const [selectedRelation,setSelectedRelation]=useState<RelatedItem|null>(null);
+  const [syncingMeetings,setSyncingMeetings]=useState(false);
+  const conversationRequest=useRef(0);
   const [clockNow, setClockNow] = useState(Date.now());
   const [profileMember, setProfileMember] = useState<Member | null>(null);
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
@@ -177,12 +182,14 @@ export default function KawanChatPage() {
   }
 
   async function loadConversation(id: string, markRead = true) {
+    const request=++conversationRequest.current;
     setSelectedId(id); setError('');
     const supabase=createClient();
     const [result,manageResult,unreadResult,meetingResult]=await Promise.all([
       supabase.rpc('chat_conversation',{target_conversation_id:id}),supabase.rpc('can_manage_chat',{target_conversation_id:id}),
       supabase.rpc('chat_thread_unread_counts',{target_conversation_id:id}),supabase.rpc('chat_meeting_workspace',{target_conversation_id:id}),
     ]);
+    if(request!==conversationRequest.current)return;
     if (result.error) { setError('Percakapan belum dapat dimuat.'); return; }
     const payload = result.data as ConversationPayload;
     setDetail(payload);setCanManageSelected(Boolean(manageResult.data));setThreadUnread((unreadResult.data??{}) as Record<string,number>);setMeetings((meetingResult.data??[]) as ChatMeeting[]);
@@ -190,7 +197,7 @@ export default function KawanChatPage() {
       entityType: 'chat_conversation', entityId: id, label: payload.conversation.name,
       data: { conversationId: id, kind: payload.conversation.kind, memberCount: payload.members.length,hasMeeting:Boolean((meetingResult.data as ChatMeeting[]|null)?.some(item => meetingActive(item, Date.now()))) },
     } }));
-    requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ block: 'end' }));
+    if(markRead)requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ block: 'end' }));
     if (markRead) {
       await createClient().rpc('mark_chat_conversation_read', { target_conversation_id: id });
       void loadWorkspace();
@@ -207,7 +214,7 @@ export default function KawanChatPage() {
   function selectConversation(id:string){setSelectedId(id);if(window.innerWidth<=900)setSidebarOpen(false);}
 
   useEffect(() => { void loadWorkspace(); }, []);
-  useEffect(() => { if (selectedId) void loadConversation(selectedId); else setDetail(null); }, [selectedId]);
+  useEffect(() => { if (selectedId) void loadConversation(selectedId); else setDetail(null);const refresh=()=>{if(selectedId&&document.visibilityState==='visible')void loadConversation(selectedId,false);};const timer=setInterval(refresh,60000);window.addEventListener('focus',refresh);return()=>{++conversationRequest.current;clearInterval(timer);window.removeEventListener('focus',refresh);}; }, [selectedId]);
   useEffect(() => {
     if (!selectedId) return;
     const supabase = createClient();
@@ -222,7 +229,7 @@ export default function KawanChatPage() {
       event: '*', schema: 'public', table: 'chat_messages', filter: `conversation_id=eq.${selectedId}`,
     }, () => { void loadConversation(selectedId); if (thread?.parent.id) void loadThread(thread.parent.id); }).on('postgres_changes', {
       event: 'UPDATE', schema: 'public', table: 'chat_conversation_members', filter: `conversation_id=eq.${selectedId}`,
-    }, () => void loadConversation(selectedId, false)).subscribe((state) => {
+    }, () => void loadConversation(selectedId, false)).on('postgres_changes',{event:'*',schema:'public',table:'chat_meetings',filter:`conversation_id=eq.${selectedId}`},()=>void loadConversation(selectedId,false)).on('postgres_changes',{event:'*',schema:'public',table:'chat_relations',filter:`conversation_id=eq.${selectedId}`},()=>void loadConversation(selectedId,false)).subscribe((state) => {
       if (state === 'SUBSCRIBED' && workspace.me) void channel.track({ membership_id: workspace.me.id, name: workspace.me.name, online_at: new Date().toISOString() });
     });
     channelRef.current = channel;
@@ -337,6 +344,8 @@ export default function KawanChatPage() {
   }
   async function emailMessage(item:Message){if(!selectedId||emailingId||!window.confirm('Kirim salinan pesan ini melalui Gmail kepada anggota percakapan?'))return;setMenuMessageId(null);setEmailingId(item.id);const supabase=createClient();const session=(await supabase.auth.getSession()).data.session;if(!session){setEmailingId('');setError('Sesi login berakhir.');return;}const response=await fetch(`${supabaseUrl}/functions/v1/ruang-kawan-calendar/chat/email`,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({messageId:item.id})});const payload=await response.json().catch(()=>({}));setEmailingId('');if(!response.ok){setError(payload.error??'Email belum berhasil dikirim.');return;}setNotice(`Email terkirim ke ${payload.sent??0} anggota.`);}
   async function respondMeeting(meeting:ChatMeeting,response:'yes'|'no'|'maybe',attendanceNote:string,seatNote:string){const supabase=createClient();const session=(await supabase.auth.getSession()).data.session;if(!session)return;const request=await fetch(`${supabaseUrl}/functions/v1/ruang-kawan-calendar/meetings/respond`,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({meetingId:meeting.id,response,attendanceNote,seatNote})});const payload=await request.json().catch(()=>({}));if(!request.ok){setError(payload.error??'RSVP belum tersimpan.');return;}setNotice('RSVP meeting diperbarui.');if(selectedId)await loadConversation(selectedId,false);}
+  async function syncMeetings(){if(!selectedId||syncingMeetings)return;setSyncingMeetings(true);try{const session=(await createClient().auth.getSession()).data.session;if(!session)throw new Error('Sesi login berakhir.');const response=await fetch(`${supabaseUrl}/functions/v1/ruang-kawan-calendar/meetings/sync`,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({conversationId:selectedId})});const body=await response.json();if(!response.ok)throw new Error(body.error||'Sinkronisasi belum tersedia.');await loadConversation(selectedId,false);setNotice(body.skipped?'Status diperbarui. Sebagian meeting lama perlu diperiksa langsung di Google Calendar.':'Status meeting sudah diperbarui dari Google Calendar.');}catch(error){setError(error instanceof Error?error.message:'Sinkronisasi meeting gagal.');}finally{setSyncingMeetings(false);}}
+  function relatedUrl(item:RelatedItem){if(item.url&&(/^https?:\/\//i.test(item.url)||item.url.startsWith('/ruang-kawan/')))return item.url;return ({project:'/ruang-kawan/projects/',assignment:'/ruang-kawan/assignments/',document:'/ruang-kawan/documents/',content:'/ruang-kawan/content-plan/',pipeline:'/ruang-kawan/pipeline/'} as Record<string,string>)[item.type];}
   function askAiAbout(item: Message) {
     setMenuMessageId(null);
     window.dispatchEvent(new CustomEvent('kawan-ai-context', { detail: { entityType: 'chat_conversation', entityId: selectedId, label: detail?.conversation.name, data: { selectedMessageId: item.id } } }));
@@ -412,13 +421,18 @@ export default function KawanChatPage() {
           <form className="rk-chat-thread-composer" onSubmit={sendThread}><textarea value={threadMessage} onChange={(event) => setThreadMessage(event.target.value)} placeholder="Balas di thread" /><button disabled={!threadMessage.trim() || threadSending}>{threadSending ? <FiLoader /> : <FiSend />} Kirim</button></form>
         </> : <>
           <header><strong>Terkait</strong><button onClick={() => setDetailOpen(false)} aria-label="Tutup detail"><FiX /></button></header>
-          {meetings.map(meeting=><MeetingCard key={meeting.id} meeting={meeting} now={clockNow} onRespond={respondMeeting}/>)}
-          {detail?.related.filter(item=>item.type!=='meeting').map((item) => <article key={`${item.type}-${item.id}`} data-type={item.type}><span>{item.type === 'project' ? <FiHash /> : item.type === 'document' ? <FiFile /> : <FiMessageCircle />}</span><div><small>{item.type}</small><strong>{item.title}</strong>{item.subtitle ? <p>{item.subtitle}</p> : null}{item.url ? <a href={item.url}>Buka <FiArrowLeft /></a> : null}</div></article>)}
+          <nav className="rk-chat-related-tabs"><button data-active={relatedTab==='active'} onClick={()=>setRelatedTab('active')}>Aktif</button><button data-active={relatedTab==='history'} onClick={()=>setRelatedTab('history')}>Riwayat</button><button data-active={relatedTab==='archive'} onClick={()=>setRelatedTab('archive')}>File & tautan</button></nav>
+          {relatedTab==='archive'&&detail?<ChatArchive key={detail.conversation.id} conversationId={detail.conversation.id}/>:null}
+          {relatedTab!=='archive'?<><button className="rk-chat-sync" disabled={syncingMeetings} onClick={()=>void syncMeetings()}>{syncingMeetings?'Menyinkronkan…':'Sinkronkan Google Calendar'}</button>
+          {meetings.filter(meeting=>relatedTab==='active'?meetingActive(meeting,clockNow):!meetingActive(meeting,clockNow)).map(meeting=><MeetingCard key={meeting.id} meeting={meeting} now={clockNow} onRespond={respondMeeting}/>)}
+          {detail?.related.filter(item=>item.type!=='meeting').map((item) => <article key={`${item.type}-${item.id}`} data-type={item.type}><span>{item.type === 'project' ? <FiHash /> : item.type === 'document' ? <FiFile /> : <FiMessageCircle />}</span><div><small>{item.type}</small><strong>{item.title}</strong>{item.subtitle ? <p>{item.subtitle}</p> : null}{relatedUrl(item) ? <a href={relatedUrl(item)}>Buka <FiArrowLeft /></a> : <button onClick={()=>setSelectedRelation(item)}>Lihat detail</button>}</div></article>)}
           {!detail?.related.length ? <div className="rk-chat-detail-empty"><FiLink /><p>Belum ada project, assignment, dokumen, atau meeting yang dihubungkan.</p></div> : null}
+          </>:null}
           <section><strong>Anggota</strong><div>{detail?.members.slice(0, 8).map((member) => <button className="rk-chat-member-dot rk-chat-profile-trigger" onClick={() => showProfile(member)} key={member.id}><Avatar name={member.name} url={member.avatar_url} online={onlineIds.has(member.id)} /><small>{member.name}</small></button>)}</div></section>
         </>}
       </aside>
     </section>
+    {selectedRelation?<ChatDialog title={selectedRelation.title} onClose={()=>setSelectedRelation(null)}><p>{selectedRelation.subtitle||'Catatan ini tersimpan sebagai konteks percakapan.'}</p><small>{selectedRelation.type}</small></ChatDialog>:null}
     {profileMember ? <ChatDialog title="Profil kawan" onClose={() => setProfileMember(null)}><div className="rk-chat-profile-card"><Avatar name={profileMember.name} url={profileMember.avatar_url} online={onlineIds.has(profileMember.id)} /><h3>{profileMember.name}</h3><p>{profileMember.position_name || 'Anggota Kawan Inovasi'}</p>{profileMember.email ? <p>{profileMember.email}</p> : null}<small>{onlineIds.has(profileMember.id) ? 'Sedang online' : 'Tidak sedang online di ruang ini'}</small></div></ChatDialog> : null}
     {forwardMessage ? <ChatDialog title="Teruskan pesan" onClose={() => { if (!forwarding) setForwardMessage(null); }}><form className="rk-chat-forward" onSubmit={forward}><blockquote>{forwardMessage.body || 'Lampiran'}{forwardMessage.attachments?.length ? <small> · {forwardMessage.attachments.length} lampiran (izin Drive tetap berlaku)</small> : null}</blockquote><label>Percakapan tujuan<select required value={forwardTarget} onChange={event => setForwardTarget(event.target.value)}><option value="">Pilih percakapan</option>{workspace.conversations.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{forwardError ? <p role="alert">{forwardError}</p> : null}<button disabled={forwarding || !forwardTarget}>{forwarding ? 'Meneruskan…' : 'Teruskan'}</button></form></ChatDialog> : null}
     {createOpen ? <CreateConversation members={workspace.members} onClose={() => setCreateOpen(false)} onCreated={async (id) => { setCreateOpen(false); await loadWorkspace(); setSelectedId(id); }} /> : null}
@@ -428,7 +442,7 @@ export default function KawanChatPage() {
   </main>;
 }
 
-function MeetingCard({meeting,now,onRespond}:{meeting:ChatMeeting;now:number;onRespond:(meeting:ChatMeeting,response:'yes'|'no'|'maybe',attendanceNote:string,seatNote:string)=>Promise<void>}){const[note,setNote]=useState(meeting.my_response?.attendance_note??'');const[seat,setSeat]=useState(meeting.my_response?.seat_note??'');const[busy,setBusy]=useState(false);const active=meetingActive(meeting,now);async function respond(value:'yes'|'no'|'maybe'){if(!active)return;setBusy(true);try{await onRespond(meeting,value,note,seat);}finally{setBusy(false);}}return <article className="rk-chat-meeting-card" data-type="meeting"><span><FiVideo/></span><div><small>{active ? 'Meeting' : meeting.status === 'cancelled' ? 'Dibatalkan' : 'Meeting selesai'} · {new Date(meeting.starts_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB</small><strong>{meeting.title}</strong>{meeting.agenda?<p>{meeting.agenda}</p>:null}<label>Catatan kehadiran<input disabled={!active} value={note} onChange={event=>setNote(event.target.value)} placeholder="Opsional"/></label><label>Tempat duduk<input disabled={!active} value={seat} onChange={event=>setSeat(event.target.value)} placeholder="Opsional"/></label><nav><button disabled={busy || !active} data-active={active && meeting.my_response?.response==='yes'} onClick={()=>void respond('yes')}>Yes</button><button disabled={busy || !active} data-active={active && meeting.my_response?.response==='maybe'} onClick={()=>void respond('maybe')}>Maybe</button><button disabled={busy || !active} data-active={active && meeting.my_response?.response==='no'} onClick={()=>void respond('no')}>No</button></nav>{meeting.meet_url?<a href={meeting.meet_url} target="_blank" rel="noreferrer">Masuk Google Meet</a>:null}</div></article>}
+function MeetingCard({meeting,now,onRespond}:{meeting:ChatMeeting;now:number;onRespond:(meeting:ChatMeeting,response:'yes'|'no'|'maybe',attendanceNote:string,seatNote:string)=>Promise<void>}){const[note,setNote]=useState(meeting.my_response?.attendance_note??'');const[seat,setSeat]=useState(meeting.my_response?.seat_note??'');const[busy,setBusy]=useState(false);const active=meetingActive(meeting,now);async function respond(value:'yes'|'no'|'maybe'){if(!active)return;setBusy(true);try{await onRespond(meeting,value,note,seat);}finally{setBusy(false);}}return <article className="rk-chat-meeting-card" data-type="meeting" data-expired={!active}><span><FiVideo/></span><div><small>{active ? 'Meeting' : meeting.status === 'cancelled' ? 'Dibatalkan' : 'Meeting selesai'} · {new Date(meeting.starts_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB</small><strong>{meeting.title}</strong>{meeting.agenda?<p>{meeting.agenda}</p>:null}<label>Catatan kehadiran<input disabled={!active} value={note} onChange={event=>setNote(event.target.value)} placeholder="Opsional"/></label><label>Tempat duduk<input disabled={!active} value={seat} onChange={event=>setSeat(event.target.value)} placeholder="Opsional"/></label><nav><button disabled={busy || !active} data-active={active && meeting.my_response?.response==='yes'} onClick={()=>void respond('yes')}>Yes</button><button disabled={busy || !active} data-active={active && meeting.my_response?.response==='maybe'} onClick={()=>void respond('maybe')}>Maybe</button><button disabled={busy || !active} data-active={active && meeting.my_response?.response==='no'} onClick={()=>void respond('no')}>No</button></nav>{active&&meeting.meet_url?<a href={meeting.meet_url} target="_blank" rel="noreferrer">Masuk Google Meet</a>:null}</div></article>}
 
 function ManageMembers({conversationId,current,available,onClose,onSaved}:{conversationId:string;current:Member[];available:Member[];onClose:()=>void;onSaved:()=>Promise<void>}){const[selected,setSelected]=useState<string[]>([]);const[saving,setSaving]=useState(false);const[error,setError]=useState('');const choices=available.filter(member=>!current.some(item=>item.id===member.id));async function save(event:FormEvent){event.preventDefault();setSaving(true);const result=await createClient().rpc('add_chat_members',{target_conversation_id:conversationId,member_ids:selected});setSaving(false);if(result.error){setError(result.error.message);return;}await onSaved();}return <div className="rk-chat-modal" role="dialog" aria-modal="true"><form onSubmit={save}><header><div><small>Kawan Chat</small><h2>Tambah anggota</h2></div><button type="button" onClick={onClose}><FiX/></button></header><fieldset><legend>Anggota aktif</legend>{choices.map(member=><label key={member.id}><input type="checkbox" checked={selected.includes(member.id)} onChange={()=>setSelected(items=>items.includes(member.id)?items.filter(id=>id!==member.id):[...items,member.id])}/><Avatar name={member.name} url={member.avatar_url}/><span><strong>{member.name}</strong><small>{member.position_name||member.email}</small></span></label>)}{!choices.length?<p>Semua anggota aktif sudah masuk.</p>:null}</fieldset>{error?<p className="rk-chat-modal-error">{error}</p>:null}<footer><button type="button" onClick={onClose}>Batal</button><button data-primary disabled={saving||!selected.length}>Tambah</button></footer></form></div>}
 

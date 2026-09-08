@@ -3,6 +3,7 @@ import './globals.css';
 import './ruang-kawan-modules.css';
 import './ruang-kawan-chat.css';
 import './ruang-kawan-ai.css';
+import './ruang-kawan-office.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://campusinnovate.com'),
