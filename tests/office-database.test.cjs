@@ -33,7 +33,7 @@ async function fixture() {
  grant usage on schema public,auth,storage,extensions to authenticated,service_role;
  grant select,insert on storage.objects to authenticated;
  `);
- for (const file of ['20260908150000_digital_office.sql','20260908151000_kpi_self_corrections.sql']) await db.exec(fs.readFileSync(`supabase/migrations/${file}`,'utf8'));
+ for (const file of ['20260908150000_digital_office.sql','20260908151000_kpi_self_corrections.sql','20260909120000_office_direct_signing.sql']) await db.exec(fs.readFileSync(`supabase/migrations/${file}`,'utf8'));
  return db;
 }
 async function actor(db,id,role='authenticated') { await db.exec(`reset role; set test.actor='${id}'; set role ${role};`); }
@@ -111,4 +111,33 @@ test('chat archive includes historical files/links, searches file names and deni
   assert.equal((await db.query('select chat_archive($1,0,$2) value',[doc,'laporan'])).rows[0].value.messages.length,1);
   await actor(db,c);await assert.rejects(db.query('select chat_archive($1)',[doc]),/tidak dapat diakses/);
  }finally{await db.close();}
+});
+
+
+test('direct signing preserves sharing, access control and truthful approval history', async () => {
+ const db = await fixture();
+ try {
+  await signature(db,a,false); await signature(db,b,false); await actor(db,a);
+  const direct = {...payload(), approval_mode:'direct'};
+  await assert.rejects(db.query('select create_office_document($1)',[direct]),/belum membagikan/);
+  await signature(db,b,true); await actor(db,a);
+  await assert.rejects(db.query('select create_office_document($1)',[{...direct,approval_mode:'invalid'}]),/Mode/);
+  await db.query('select create_office_document($1)',[direct]);
+  const row=(await db.query('select * from office_documents')).rows[0];
+  assert.equal(row.approval_mode,'direct');
+  assert.ok((await db.query('select * from office_signers')).rows.every(s=>s.approved_at===null));
+  assert.equal((await db.query('select * from office_events')).rows[0].action,'created_direct');
+  await actor(db,b);
+  await assert.rejects(db.query('select respond_office_document($1,true)',[doc]),/tanpa approval/);
+  await actor(db,c); assert.equal((await db.query('select * from office_documents')).rows.length,0);
+  await actor(db,a);
+  await assert.rejects(db.query('select complete_office_document($1,$2,$3)',[doc,`${a}/output.pdf`,'b'.repeat(64)]),/permission denied/);
+  await actor(db,a,'service_role');
+  await db.query('select complete_office_document($1,$2,$3)',[doc,`${a}/output.pdf`,'b'.repeat(64)]);
+  await actor(db,b);
+  const verified=(await db.query('select verify_office_credential($1) result',[row.credential])).rows[0].result;
+  assert.equal(verified.document.status,'completed');
+  assert.equal(verified.document.approval_mode,'direct');
+  assert.ok(verified.signers.every(s=>s.approved_at===null));
+ } finally { await db.close(); }
 });

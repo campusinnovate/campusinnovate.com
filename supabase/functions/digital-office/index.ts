@@ -6,7 +6,7 @@ import { validPlacement } from '../../../src/lib/office/types.ts';
 const url = Deno.env.get('SUPABASE_URL')!;
 const service = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const origin = Deno.env.get('APP_ORIGIN') ?? 'https://campusinnovate.com';
-function response(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'authorization, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } }); }
+function response(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } }); }
 async function hash(bytes: Uint8Array) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new Uint8Array(bytes).buffer))).map(n => n.toString(16).padStart(2, '0')).join(''); }
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return response({});
@@ -23,7 +23,7 @@ Deno.serve(async req => {
     if (!doc || doc.creator_id !== actor.data) return response({ error: 'Hanya pembuat dokumen yang dapat melakukan finalisasi.' }, 403);
     if (doc.status !== 'pending') return response({ error: 'Dokumen tidak sedang menunggu finalisasi.' }, 409);
     const signers = await service.from('office_signers').select('*').eq('document_id', doc.id);
-    if (signers.error || !signers.data?.length || signers.data.some(s => !s.approved_at || s.rejected_at)) return response({ error: 'Persetujuan seluruh pemilik tanda tangan diperlukan.' }, 409);
+    if (signers.error || !signers.data?.length || signers.data.some(s => (doc.approval_mode !== 'direct' && !s.approved_at) || s.rejected_at)) return response({ error: 'Persetujuan seluruh pemilik tanda tangan diperlukan.' }, 409);
     const source = await service.storage.from('office-documents').download(doc.source_path); if (source.error) throw new Error('PDF sumber tidak dapat dimuat.');
     const sourceBytes = new Uint8Array(await source.data.arrayBuffer());
     if (await hash(sourceBytes) !== doc.source_hash) throw new Error('Hash PDF sumber tidak cocok.');
@@ -48,8 +48,8 @@ Deno.serve(async req => {
     credentialPage.drawText('Digital Office - Kredensial Internal', { x: 48, y: 733, size: 18, font });
     credentialPage.drawImage(qr, { x: 48, y: 500, width: 200, height: 200 });
     credentialPage.drawText(doc.credential, { x: 48, y: 466, size: 12, font });
-    credentialPage.drawText(`${signers.data.length} persetujuan pemilik tanda tangan tercatat.`, { x: 48, y: 430, size: 12, font });
-    credentialPage.drawText('Pindai QR dengan akun peserta untuk memeriksa persetujuan dan hash PDF.', { x: 48, y: 405, size: 11, font });
+    credentialPage.drawText(doc.approval_mode === 'direct' ? `${signers.data.length} tanda tangan digunakan tanpa approval per dokumen.` : `${signers.data.length} persetujuan pemilik tanda tangan tercatat.`, { x: 48, y: 430, size: 12, font });
+    credentialPage.drawText('Pindai QR dengan akun peserta untuk memeriksa penggunaan TTD dan hash PDF.', { x: 48, y: 405, size: 11, font });
     const output = await pdf.save(); const outputHash = await hash(output);
     const path = `${user.data.user.id}/${doc.id}/${crypto.randomUUID()}.pdf`;
     const upload = await service.storage.from('office-documents').upload(path, output, { contentType: 'application/pdf', upsert: false }); if (upload.error) throw new Error('PDF hasil gagal diunggah.');

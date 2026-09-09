@@ -1,0 +1,3 @@
+[functions.digital-office]
+# The handler validates the bearer token with auth.getUser() before accessing data.
+verify_jwt = false
