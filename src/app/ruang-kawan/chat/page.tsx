@@ -108,6 +108,16 @@ export default function KawanChatPage() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestedConversation = useRef<string | null>(null);
+  const hasMeeting = meetings.some(item => meetingActive(item, clockNow));
+
+  useEffect(() => {
+    if (!detail) return;
+    window.dispatchEvent(new CustomEvent('kawan-ai-context', { detail: {
+      entityType: 'chat_conversation', entityId: detail.conversation.id,
+      label: detail.conversation.name,
+      data: { conversationId: detail.conversation.id, kind: detail.conversation.kind, memberCount: detail.members.length, hasMeeting },
+    } }));
+  }, [detail, hasMeeting]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
@@ -323,6 +333,7 @@ export default function KawanChatPage() {
     const result = await createClient().rpc('toggle_chat_reaction', { target_message_id: messageId, reaction_emoji: emoji });
     if (result.error) { setError('Reaksi belum berhasil disimpan.'); return; }
     await loadConversation(selectedId);
+    if (thread) await loadThread(thread.parent.id);
   }
   async function toggleStar() {
     if (!selectedId) return; const result = await createClient().rpc('toggle_chat_star', { target_conversation_id: selectedId });
@@ -351,9 +362,25 @@ export default function KawanChatPage() {
     window.dispatchEvent(new CustomEvent('kawan-ai-context', { detail: { entityType: 'chat_conversation', entityId: selectedId, label: detail?.conversation.name, data: { selectedMessageId: item.id } } }));
     window.dispatchEvent(new CustomEvent('kawan-ai-open', { detail: { prompt: 'Ringkas pesan yang dipilih dan jelaskan tindak lanjut yang diperlukan.' } }));
   }
+  function renderMessageMenu(item: Message) {
+    return menuMessageId === item.id ? createPortal(<nav className="rk-chat-message-menu" style={{ position: 'fixed', left: menuPoint.x, top: menuPoint.y, right: 'auto', bottom: 'auto', width: 210 }} aria-label="Aksi pesan">
+                  {!item.deleted_at ? <><div className="rk-chat-emoji-picker">{['👍', '❤️', '😂', '🎉', '😮', '🙏', '😢', '🔥'].map(emoji => <button key={emoji} aria-label={`Reaksi ${emoji}`} onClick={() => { setMenuMessageId(null); void react(item.id, emoji); }}>{emoji}</button>)}</div>
+                  <button onClick={() => { setForwardMessage(item); setForwardTarget(''); setForwardError(''); setMenuMessageId(null); }}><FiSend /> Teruskan pesan</button></> : null}
+                  <button onClick={() => showProfile(item.sender)}><FiUsers /> Lihat profil pengirim</button>
+                  <button onClick={() => void loadThread(item.parent_id ?? item.id)}><FiCornerUpLeft /> Balas dalam thread</button>
+                  <button onClick={() => openAction('assignment', item)}><FiBriefcase /> Buat assignment</button>
+                  <button onClick={() => openAction('decision', item)}><FiCheckCircle /> Simpan keputusan</button>
+                  <button onClick={() => openAction('project', item)}><FiHash /> Hubungkan project</button>
+                  <button onClick={() => openAction('meeting', item)}><FiVideo /> Buat Google Meet</button>
+                  <button onClick={() => void emailMessage(item)} disabled={emailingId===item.id}><FiMail /> Kirim melalui Gmail</button>
+                  <button onClick={() => askAiAbout(item)}><FiZap /> Ringkas dengan Kawan AI</button>
+                  <button onClick={() => void pin(item)}><FiStar /> {item.pinned ? 'Lepas pin' : 'Sematkan pesan'}</button>
+                  {!item.deleted_at && item.sender.id === workspace.me?.id ? <button onClick={() => openAction('edit', item, { body: item.body })}><FiEdit3 /> Edit pesan</button> : null}
+                  {!item.deleted_at && (item.sender.id === workspace.me?.id || canManageSelected) ? <button data-danger onClick={() => void removeMessage(item)}><FiTrash2 /> Hapus pesan</button> : null}
+                </nav>, document.body) : null;
+  }
   if (status === 'loading') return <main className="rk-chat-foundation"><section className="rk-chat-loading"><FiLoader /> Menyiapkan Kawan Chat...</section></main>;
   if (status === 'denied') return <main className="rk-chat-foundation"><section className="rk-chat-loading"><FiMessageCircle /><h1>Kawan Chat belum tersedia</h1><p>Akun ini belum memiliki keanggotaan internal aktif.</p></section></main>;
-  const hasMeeting = meetings.some(item => meetingActive(item, clockNow));
 
   return <main className="rk-chat-foundation">
     <section className="rk-chat-shell" data-sidebar={sidebarOpen} data-detail={detailOpen}>
@@ -381,21 +408,7 @@ export default function KawanChatPage() {
 
               <button className="rk-chat-profile-trigger" onClick={() => showProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={onlineIds.has(item.sender.id)} /></button>
               <div><header><button className="rk-chat-sender" onClick={() => showProfile(item.sender)}>{item.sender.name}</button><time title={`${dayLabel(item.created_at)} · WIB`}>{formatTime(item.created_at)}</time>{item.edited_at ? <small>diedit</small> : null}<button onClick={event => { if (menuMessageId === item.id) setMenuMessageId(null); else { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); } }} aria-label="Aksi pesan" aria-expanded={menuMessageId === item.id}><FiMoreVertical /></button></header>
-                {menuMessageId === item.id ? createPortal(<nav className="rk-chat-message-menu" style={{ position: 'fixed', left: menuPoint.x, top: menuPoint.y, right: 'auto', bottom: 'auto', width: 210 }} aria-label="Aksi pesan">
-                  {!item.deleted_at ? <><div className="rk-chat-emoji-picker">{['👍', '❤️', '😂', '🎉', '😮', '🙏', '😢', '🔥'].map(emoji => <button key={emoji} aria-label={`Reaksi ${emoji}`} onClick={() => { setMenuMessageId(null); void react(item.id, emoji); }}>{emoji}</button>)}</div>
-                  <button onClick={() => { setForwardMessage(item); setForwardTarget(''); setForwardError(''); setMenuMessageId(null); }}><FiSend /> Teruskan pesan</button></> : null}
-                  <button onClick={() => showProfile(item.sender)}><FiUsers /> Lihat profil pengirim</button>
-                  <button onClick={() => void loadThread(item.id)}><FiCornerUpLeft /> Balas dalam thread</button>
-                  <button onClick={() => openAction('assignment', item)}><FiBriefcase /> Buat assignment</button>
-                  <button onClick={() => openAction('decision', item)}><FiCheckCircle /> Simpan keputusan</button>
-                  <button onClick={() => openAction('project', item)}><FiHash /> Hubungkan project</button>
-                  <button onClick={() => openAction('meeting', item)}><FiVideo /> Buat Google Meet</button>
-                  <button onClick={() => void emailMessage(item)} disabled={emailingId===item.id}><FiMail /> Kirim melalui Gmail</button>
-                  <button onClick={() => askAiAbout(item)}><FiZap /> Ringkas dengan Kawan AI</button>
-                  <button onClick={() => void pin(item)}><FiStar /> {item.pinned ? 'Lepas pin' : 'Sematkan pesan'}</button>
-                  {!item.deleted_at && item.sender.id === workspace.me?.id ? <button onClick={() => openAction('edit', item, { body: item.body })}><FiEdit3 /> Edit pesan</button> : null}
-                  {!item.deleted_at && (item.sender.id === workspace.me?.id || canManageSelected) ? <button data-danger onClick={() => void removeMessage(item)}><FiTrash2 /> Hapus pesan</button> : null}
-                </nav>, document.body) : null}
+                {renderMessageMenu(item)}
                 {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : <p><LinkedText body={item.body} /></p>}
                 {!item.deleted_at ? item.attachments?.map(file => <AttachmentPreview file={file} key={file.id} />) : null}
                 <footer>{item.reactions?.map((reaction) => <button data-active={reaction.reacted_by_me} onClick={() => void react(item.id, reaction.emoji)} key={reaction.emoji}>{reaction.emoji} {reaction.count}</button>)}<button disabled={Boolean(item.deleted_at)} onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); }} aria-label="Pilih reaksi"><FiSmile /></button><button className="rk-chat-replies" onClick={() => void loadThread(item.id)}><FiMessageCircle /> {item.reply_count ? `${item.reply_count} balasan` : 'Balas'}{threadUnread[item.id]?<b>{threadUnread[item.id]}</b>:null}</button>{item.sender.id === workspace.me?.id ? <small className="rk-chat-delivery">{item.read_count ? `Dibaca ${item.read_count}` : 'Terkirim'}</small> : null}</footer>
@@ -417,7 +430,7 @@ export default function KawanChatPage() {
       <aside className="rk-chat-detail">
         {threadOpen && thread ? <>
           <header><strong>Thread · {thread.replies.length} balasan</strong><button onClick={() => { setThreadOpen(false); setThread(null); }} aria-label="Tutup thread"><FiX /></button></header>
-          <section className="rk-chat-thread"><div className="rk-chat-day"><time>{dayLabel(thread.parent.created_at, clockNow)}</time></div><MessageExcerpt onProfile={showProfile} item={thread.parent} online={onlineIds.has(thread.parent.sender.id)} />{thread.replies.map((item, index) => <Fragment key={item.id}>{dayKey(item.created_at) !== dayKey((index ? thread.replies[index - 1] : thread.parent).created_at) ? <div className="rk-chat-day"><time>{dayLabel(item.created_at, clockNow)}</time></div> : null}<MessageExcerpt onProfile={showProfile} item={item} online={onlineIds.has(item.sender.id)} /></Fragment>)}{!thread.replies.length ? <div className="rk-chat-detail-empty"><FiCornerUpLeft /><p>Belum ada balasan. Jadikan percakapan panjang tetap rapi lewat thread.</p></div> : null}</section>
+          <section className="rk-chat-thread"><div className="rk-chat-day"><time>{dayLabel(thread.parent.created_at, clockNow)}</time></div><MessageExcerpt menu={renderMessageMenu} onMenu={showMenu} onReact={react} onProfile={showProfile} item={thread.parent} online={onlineIds.has(thread.parent.sender.id)} />{thread.replies.map((item, index) => <Fragment key={item.id}>{dayKey(item.created_at) !== dayKey((index ? thread.replies[index - 1] : thread.parent).created_at) ? <div className="rk-chat-day"><time>{dayLabel(item.created_at, clockNow)}</time></div> : null}<MessageExcerpt menu={renderMessageMenu} onMenu={showMenu} onReact={react} onProfile={showProfile} item={item} online={onlineIds.has(item.sender.id)} /></Fragment>)}{!thread.replies.length ? <div className="rk-chat-detail-empty"><FiCornerUpLeft /><p>Belum ada balasan. Jadikan percakapan panjang tetap rapi lewat thread.</p></div> : null}</section>
           <form className="rk-chat-thread-composer" onSubmit={sendThread}><textarea value={threadMessage} onChange={(event) => setThreadMessage(event.target.value)} placeholder="Balas di thread" /><button disabled={!threadMessage.trim() || threadSending}>{threadSending ? <FiLoader /> : <FiSend />} Kirim</button></form>
         </> : <>
           <header><strong>Terkait</strong><button onClick={() => setDetailOpen(false)} aria-label="Tutup detail"><FiX /></button></header>
@@ -449,8 +462,15 @@ function ManageMembers({conversationId,current,available,onClose,onSaved}:{conve
 function Avatar({ name, url, online }: { name: string; url: string | null; online?: boolean }) {
   return <span className="rk-chat-avatar">{url ? <img src={url} alt="" /> : <i>{initials(name)}</i>}{online ? <b /> : null}</span>;
 }
-function MessageExcerpt({ item, online, onProfile }: { item: Message; online: boolean; onProfile: (member: Member) => void }) {
-  return <article className="rk-chat-thread-message"><button className="rk-chat-profile-trigger" onClick={() => onProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={online} /></button><div><header><button className="rk-chat-sender" onClick={() => onProfile(item.sender)}>{item.sender.name}</button><time>{formatTime(item.created_at)}</time></header><p>{item.deleted_at ? <em>Pesan telah dihapus.</em> : <LinkedText body={item.body} />}</p>{!item.deleted_at ? item.attachments?.map(file => <AttachmentPreview file={file} key={file.id} />) : null}</div></article>;
+function MessageExcerpt({ item, online, onProfile, menu, onMenu, onReact }: { item: Message; online: boolean; onProfile: (member: Member) => void; menu: (item: Message) => React.ReactNode; onMenu: (id: string, x: number, y: number) => void; onReact: (id: string, emoji: string) => Promise<void> }) {
+  return <article className="rk-chat-thread-message" onContextMenu={event => { event.preventDefault(); onMenu(item.id, event.clientX, event.clientY); }}>
+    <button className="rk-chat-profile-trigger" onClick={() => onProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={online} /></button>
+    <div><header><button className="rk-chat-sender" onClick={() => onProfile(item.sender)}>{item.sender.name}</button><time>{formatTime(item.created_at)}</time><button aria-label="Aksi pesan" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); onMenu(item.id, rect.left, rect.bottom); }}><FiMoreVertical /></button></header>
+      {item.parent_id ? menu(item) : null}
+      <p>{item.deleted_at ? <em>Pesan telah dihapus.</em> : <LinkedText body={item.body} />}</p>
+      {!item.deleted_at ? <>{item.attachments?.map(file => <AttachmentPreview file={file} key={file.id} />)}<footer>{item.reactions?.map(reaction => <button key={reaction.emoji} data-active={reaction.reacted_by_me} onClick={() => void onReact(item.id, reaction.emoji)}>{reaction.emoji} {reaction.count}</button>)}</footer></> : null}
+    </div>
+  </article>;
 }
 function ChatSearchDialog({ value, results, searching, mentionsOnly, onChange, onSearch, onClose, onSelect }: { value: string; results: SearchResult[]; searching: boolean; mentionsOnly: boolean; onChange: (value: string) => void; onSearch: (event: FormEvent) => Promise<void>; onClose: () => void; onSelect: (item: SearchResult) => void }) {
   return <div className="rk-chat-modal rk-chat-search-modal" role="dialog" aria-modal="true" aria-labelledby="chat-search-title"><section><header><div><small>{mentionsOnly ? 'Pencarian mention' : 'Semua percakapan'}</small><h2 id="chat-search-title">Cari pesan</h2></div><button onClick={onClose} aria-label="Tutup pencarian"><FiX /></button></header><form onSubmit={(event) => void onSearch(event)}><FiSearch /><input autoFocus value={value} onChange={(event) => onChange(event.target.value)} placeholder="Ketik kata, keputusan, atau nama file" /><button disabled={!value.trim() || searching}>{searching ? <FiLoader /> : 'Cari'}</button></form><div className="rk-chat-search-results">{results.map((item) => <button key={item.id} onClick={() => onSelect(item)}><span><strong>{item.conversation_name}</strong><time>{new Date(item.created_at).toLocaleDateString('id-ID')}</time></span><p><LinkedText body={item.body} /></p><small>{item.sender_name}{item.parent_id ? ' · balasan thread' : ''}</small></button>)}{!results.length && value ? <p>Belum ada hasil. Jalankan pencarian untuk menemukan pesan yang dapat kamu akses.</p> : null}</div></section></div>;

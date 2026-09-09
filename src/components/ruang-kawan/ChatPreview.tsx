@@ -35,10 +35,11 @@ export function AttachmentPreview({ file }: { file: PreviewAttachment }) {
   const [failed, setFailed] = useState(false);
   const url = safeUrl(file.url);
   const driveId = driveFileId(file.url);
-  const isImage = /^image\/(png|jpeg|gif|webp|avif|bmp)$/.test(file.mime_type ?? '');
-  const preview = driveId ? `https://drive.google.com/file/d/${driveId}/preview` : file.mime_type === 'application/pdf' ? url : null;
+  const isImage = /^image\/(png|jpeg|gif|webp|avif|bmp)$/i.test(file.mime_type ?? '') || /\.(png|jpe?g|gif|webp|avif|bmp)$/i.test(file.name);
+  const preview = driveId ? `https://drive.google.com/file/d/${driveId}/preview` : file.mime_type === 'application/pdf' || /\.pdf$/i.test(file.name) ? url : null;
+  useEffect(() => { setFailed(false); }, [file.url]);
   return <div className="rk-chat-attachment"><button type="button" className="rk-chat-file" onClick={() => setOpen(true)} aria-label={`Preview ${file.name}`}>
-    {isImage && url && !failed ? <img loading="lazy" src={driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w320` : url} alt={file.name} onError={() => setFailed(true)} /> : <FiFile />}
+    {(isImage || driveId) && url && !failed ? <img loading="lazy" src={driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w320` : url} alt={file.name} onError={() => setFailed(true)} /> : <FiFile />}
     <span><strong>{file.name}</strong><small>{file.mime_type || 'Dokumen'}{file.size_label ? ` · ${file.size_label}` : ''} · Lihat preview</small></span>
   </button>{open ? <ChatDialog title={file.name} onClose={() => setOpen(false)}>
     {driveId || preview ? <iframe className="rk-chat-file-frame" src={preview!} title={`Preview ${file.name}`} allow="fullscreen" referrerPolicy="no-referrer" /> : isImage && url && !failed ? <img className="rk-chat-full-image" src={url} alt={file.name} onError={() => setFailed(true)} /> : url && file.mime_type?.startsWith('video/') ? <video controls preload="metadata" src={url} /> : url && file.mime_type?.startsWith('audio/') ? <audio controls preload="metadata" src={url} /> : <p>Preview untuk format ini belum tersedia.</p>}
