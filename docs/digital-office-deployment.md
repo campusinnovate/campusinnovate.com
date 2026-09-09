@@ -24,6 +24,23 @@ Browser dapat menampilkan `Failed to fetch` ketika preflight tersebut gagal.
    Uji dari website: unggah PDF, pilih TTD, simpan, finalisasi, unduh, dan
    periksa QR/hash. Uji mode persetujuan serta mode langsung tanpa approval.
 
+Alternatif tanpa CLI lokal: tambahkan repository secret `SUPABASE_ACCESS_TOKEN`
+(personal access token Supabase milik akun yang dapat mengakses proyek), kemudian
+jalankan workflow **Deploy Digital Office Edge Function** di GitHub Actions.
+Workflow ini hanya memasang fungsi Digital Office, lalu memeriksa preflight CORS
+dan penolakan permintaan tanpa sesi. Migrasi database tetap mengikuti langkah 1.
+Jangan masukkan token tersebut ke kode frontend atau variabel `NEXT_PUBLIC_*`.
+
+Untuk memeriksa deployment tanpa mengubah dokumen:
+
+```sh
+node scripts/check-digital-office.mjs
+```
+
+HTTP 404 `Requested function was not found` berarti fungsi belum tersedia pada
+proyek tujuan; mengubah header frontend atau menjalankan migrasi SQL saja tidak
+memperbaikinya.
+
 Mode langsung hanya menerima TTD sendiri atau TTD yang dibagikan anggota aktif.
 TTD privat tetap tidak dapat dipilih. Kolom `approved_at` tidak diisi otomatis;
 mode dan riwayat mencatat penggunaan tanpa persetujuan per dokumen. Dokumen lama

@@ -18,10 +18,12 @@ function Toast({ item, close }: { item: ToastNotice & { id: string }; close: (id
   </motion.article>;
 }
 export default function RuangKawanNotificationProvider() {
+  const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<(ToastNotice & { id: string })[]>([]);
   const dismiss = useCallback((id:string) => setItems(current => current.filter(item => item.id !== id)), []);
   const seen = useRef(new Map<string, number>());
   useEffect(() => {
+    setMounted(true);
     let connectionVersion=0;
     let active = true, channel: RealtimeChannel | null = null, polling = false;
     const supabase = createClient();
@@ -86,6 +88,7 @@ export default function RuangKawanNotificationProvider() {
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     return () => { active = false; observer.disconnect(); clearInterval(timer); auth.subscription.unsubscribe(); if (channel) void supabase.removeChannel(channel); window.removeEventListener('kawan-toast', receive); window.removeEventListener('offline', offline); window.removeEventListener('online', online); window.removeEventListener('focus', refresh); document.removeEventListener('invalid', invalid, true); };
   }, []);
-  if (typeof document === 'undefined') return null;
+  // Keep the server and first browser render identical; portals mount after hydration.
+  if (!mounted) return null;
   return createPortal(<aside className="rk-toast-stack" aria-live="polite" aria-label="Pemberitahuan Ruang Kawan"><AnimatePresence>{items.map(item => <Toast key={item.id} item={item} close={dismiss} />)}</AnimatePresence></aside>, document.body);
 }
