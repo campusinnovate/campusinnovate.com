@@ -19,11 +19,19 @@ Deno.serve(async req => {
     const actor = await caller.rpc('current_membership_id'); if (!actor.data) return response({ error: 'Keanggotaan aktif diperlukan.' }, 403);
     const body = await req.json();
     const result = await service.from('office_documents').select('*').eq('id', String(body.documentId ?? '')).single();
+    if (result.error && result.error.code !== 'PGRST116') {
+      console.error('office_documents lookup failed', result.error);
+      return response({ error: 'Database finalisasi belum dapat diakses. Pastikan migrasi Digital Office terbaru sudah dijalankan.' }, 500);
+    }
     const doc = result.data;
     if (!doc || doc.creator_id !== actor.data) return response({ error: 'Hanya pembuat dokumen yang dapat melakukan finalisasi.' }, 403);
     if (doc.status !== 'pending') return response({ error: 'Dokumen tidak sedang menunggu finalisasi.' }, 409);
     const signers = await service.from('office_signers').select('*').eq('document_id', doc.id);
-    if (signers.error || !signers.data?.length || signers.data.some(s => (doc.approval_mode !== 'direct' && !s.approved_at) || s.rejected_at)) return response({ error: 'Persetujuan seluruh pemilik tanda tangan diperlukan.' }, 409);
+    if (signers.error) {
+      console.error('office_signers lookup failed', signers.error);
+      return response({ error: 'Data penandatangan belum dapat diakses. Pastikan migrasi Digital Office terbaru sudah dijalankan.' }, 500);
+    }
+    if (!signers.data?.length || signers.data.some(s => (doc.approval_mode !== 'direct' && !s.approved_at) || s.rejected_at)) return response({ error: 'Persetujuan seluruh pemilik tanda tangan diperlukan.' }, 409);
     const source = await service.storage.from('office-documents').download(doc.source_path); if (source.error) throw new Error('PDF sumber tidak dapat dimuat.');
     const sourceBytes = new Uint8Array(await source.data.arrayBuffer());
     if (await hash(sourceBytes) !== doc.source_hash) throw new Error('Hash PDF sumber tidak cocok.');

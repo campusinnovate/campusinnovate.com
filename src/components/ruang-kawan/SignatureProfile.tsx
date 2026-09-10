@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { notify } from '@/lib/notify';
 import type { Signature } from '@/lib/office/types';
+import { officeErrorMessage } from '@/lib/office/errors';
 export default function SignatureProfile() {
   const [signature, setSignature] = useState<Signature | null>(null);
   const [preview, setPreview] = useState('');
@@ -39,14 +40,14 @@ export default function SignatureProfile() {
       if (result.error) throw result.error;
       notify({ title: 'Tanda tangan tersimpan', message: 'Tanda tangan siap digunakan di Digital Office.', kind: 'success' });
       await load();
-    } catch (error) { setError(error instanceof Error ? error.message : 'Unggah tanda tangan gagal.'); }
+    } catch (error) { setError(officeErrorMessage(error, 'Unggah tanda tangan gagal.')); }
     finally { setBusy(false); }
   }
   async function saveSharing(value: boolean) {
     if (!signature) { setShared(value); return; }
     setBusy(true); setError('');
     try { const result = await createClient().rpc('save_office_signature', { asset_path: signature.path, allow_shared: value }); if (result.error) throw result.error; setShared(value); notify({ title: value ? 'Tanda tangan tersedia bagi anggota' : 'Berbagi tanda tangan dinonaktifkan', kind: 'success' }); }
-    catch { setError('Pengaturan berbagi belum tersimpan. Coba kembali.'); }
+    catch (error) { setError(officeErrorMessage(error, 'Pengaturan berbagi belum tersimpan. Coba kembali.')); }
     finally { setBusy(false); }
   }
   return <section className="rk-office-panel"><h3>Tanda tangan Digital Office</h3><p>Unggah tanda tangan milikmu. PNG transparan memberikan hasil terbaik.</p>{preview ? <img className="rk-signature-preview" src={preview} alt="Tanda tangan saya" /> : <p>Belum ada tanda tangan.</p>}<label>Unggah PNG / JPG (maks. 1 MB)<input type="file" accept="image/png,image/jpeg" disabled={busy} onChange={event => { void upload(event.target.files?.[0]); event.target.value = ''; }} /></label><label className="rk-office-check"><input type="checkbox" checked={shared} disabled={busy} onChange={event => void saveSharing(event.target.checked)} />Izinkan anggota memilih tanda tangan saya. Anggota dapat menggunakannya langsung tanpa approval atau mengirim permintaan persetujuan per dokumen.</label>{error ? <p className="rk-office-error" role="alert">{error}</p> : null}<Link href="/ruang-kawan/digital-office/">Buka Digital Office →</Link></section>;

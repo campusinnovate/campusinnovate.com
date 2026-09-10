@@ -1,17 +1,23 @@
 # Deploy Digital Office
 
 Finalisasi PDF memerlukan Edge Function; deploy website saja tidak memasangnya.
-Pada pemeriksaan 9 September 2026, endpoint proyek `lxwqhtuhlddgwfxjtlas`
+Pada pemeriksaan ulang 10 September 2026, endpoint proyek `lxwqhtuhlddgwfxjtlas`
 mengembalikan HTTP 404 `Requested function was not found` bahkan untuk OPTIONS.
 Browser dapat menampilkan `Failed to fetch` ketika preflight tersebut gagal.
 
 1. Terapkan migrasi `20260908150000_digital_office.sql` jika belum terpasang,
-   kemudian `20260909120000_office_direct_signing.sql` melalui SQL Editor atau
-   alur migrasi Supabase yang dipakai proyek.
+   kemudian `20260909120000_office_direct_signing.sql`, lalu
+   `20260910120000_office_signing_backend_access.sql` melalui SQL Editor atau
+   alur migrasi Supabase yang dipakai proyek. Jika dua migrasi sebelumnya sudah
+   berhasil dijalankan, cukup jalankan migrasi baru yang terakhir. Jangan ulangi
+   migrasi pembentukan tabel atau penambahan kolom yang sudah terpasang.
+   Migrasi baru memberikan akses baca tabel kepada renderer backend; hak
+   finalisasi tetap hanya tersedia untuk `service_role`.
 2. Dengan Supabase CLI yang sudah login ke akun proyek, jalankan dari root repo:
 
    ```sh
-   supabase functions deploy digital-office --project-ref lxwqhtuhlddgwfxjtlas
+   npx supabase login
+   npx supabase functions deploy digital-office --project-ref lxwqhtuhlddgwfxjtlas --use-api
    ```
 
    `supabase/config.toml` menonaktifkan verifikasi JWT gateway untuk fungsi ini.

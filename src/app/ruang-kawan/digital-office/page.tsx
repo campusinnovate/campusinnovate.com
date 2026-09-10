@@ -7,6 +7,7 @@ import { notify } from '@/lib/notify';
 import { OfficeDocument, Placement, Signature, sha256, validPlacement } from '@/lib/office/types';
 import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js';
 import OfficePdfCanvas from '@/components/ruang-kawan/OfficePdfCanvas';
+import { officeErrorMessage } from '@/lib/office/errors';
 
 export default function DigitalOffice() {
   const [documents, setDocuments] = useState<OfficeDocument[]>([]), [signatures, setSignatures] = useState<Signature[]>([]), [me, setMe] = useState('');
@@ -74,14 +75,14 @@ export default function DigitalOffice() {
       const result = await client.rpc('create_office_document', { payload: { id, title: title.trim(), source_path: path, source_hash: await sha256(bytes), page_count: pages, signers: placements, approval_mode: approvalMode } }); if (result.error) throw result.error;
       const docs = await load(); const doc = docs?.find(item => item.id === id); if (doc) { setSelected(doc); setPlacements(doc.signers); setDraft(false); }
       notify({ title: approvalMode === 'direct' ? 'Dokumen siap difinalisasi' : 'Permintaan tanda tangan terkirim', message: approvalMode === 'direct' ? 'TTD digunakan tanpa approval per dokumen dan tercatat dalam riwayat.' : 'Setiap pemilik harus menyetujui lokasi dan dokumen, termasuk tanda tangan milik sendiri.', kind: 'success' });
-    } catch (error) { setError(error instanceof Error ? error.message : 'Permintaan belum tersimpan.'); }
+    } catch (error) { setError(officeErrorMessage(error, 'Permintaan belum tersimpan.')); }
     finally { setBusy(false); }
   }
   async function respond(approve: boolean) {
     if (!selected || busy) return;
     setBusy(true); setError('');
     try { const result = await createClient().rpc('respond_office_document', { target: selected.id, approve }); if (result.error) throw result.error; const docs = await load(); setSelected(docs?.find(d => d.id === selected.id) ?? selected); notify({ title: approve ? 'Persetujuan tersimpan' : 'Permintaan ditolak', kind: 'success' }); }
-    catch (error) { setError(error instanceof Error ? error.message : 'Respons gagal disimpan.'); }
+    catch (error) { setError(officeErrorMessage(error, 'Respons gagal disimpan.')); }
     finally { setBusy(false); }
   }
   async function finalize() {
@@ -97,6 +98,9 @@ export default function DigitalOffice() {
       if (requestError instanceof FunctionsFetchError) throw new Error('Layanan finalisasi tidak dapat dihubungi. Periksa koneksi dan pastikan Edge Function digital-office sudah dideploy dengan konfigurasi CORS terbaru.');
       if (requestError instanceof FunctionsHttpError) {
         const detail = await requestError.context.json().catch(() => null);
+        if (requestError.context.status === 404 && detail?.code === 'NOT_FOUND') {
+          throw new Error('Edge Function digital-office belum dideploy di Supabase. Jalankan deploy fungsi digital-office; migrasi SQL saja belum cukup.');
+        }
         throw new Error(detail?.error || detail?.message || `Finalisasi gagal (HTTP ${requestError.context.status}).`);
       }
       if (requestError) throw requestError;

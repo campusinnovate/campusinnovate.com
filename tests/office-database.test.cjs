@@ -8,7 +8,7 @@ const assignment='00000000-0000-4000-8000-000000000020', resultId='00000000-0000
 async function fixture() {
  const db = new PGlite();
  await db.exec(`
- create role anon; create role authenticated; create role service_role;
+ create role anon; create role authenticated; create role service_role bypassrls;
  create schema auth; create schema storage; create schema extensions;
  create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('test.actor',true),'')::uuid $$;
  create function extensions.gen_random_uuid() returns uuid language sql as $$ select gen_random_uuid() $$;
@@ -33,7 +33,7 @@ async function fixture() {
  grant usage on schema public,auth,storage,extensions to authenticated,service_role;
  grant select,insert on storage.objects to authenticated;
  `);
- for (const file of ['20260908150000_digital_office.sql','20260908151000_kpi_self_corrections.sql','20260909120000_office_direct_signing.sql']) await db.exec(fs.readFileSync(`supabase/migrations/${file}`,'utf8'));
+ for (const file of ['20260908150000_digital_office.sql','20260908151000_kpi_self_corrections.sql','20260909120000_office_direct_signing.sql','20260910120000_office_signing_backend_access.sql']) await db.exec(fs.readFileSync(`supabase/migrations/${file}`,'utf8'));
  return db;
 }
 async function actor(db,id,role='authenticated') { await db.exec(`reset role; set test.actor='${id}'; set role ${role};`); }
@@ -133,6 +133,8 @@ test('direct signing preserves sharing, access control and truthful approval his
   await actor(db,a);
   await assert.rejects(db.query('select complete_office_document($1,$2,$3)',[doc,`${a}/output.pdf`,'b'.repeat(64)]),/permission denied/);
   await actor(db,a,'service_role');
+  assert.equal((await db.query('select * from office_documents where id=$1',[doc])).rows.length,1);
+  assert.equal((await db.query('select * from office_signers where document_id=$1',[doc])).rows.length,2);
   await db.query('select complete_office_document($1,$2,$3)',[doc,`${a}/output.pdf`,'b'.repeat(64)]);
   await actor(db,b);
   const verified=(await db.query('select verify_office_credential($1) result',[row.credential])).rows[0].result;
