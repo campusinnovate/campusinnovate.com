@@ -138,3 +138,37 @@ Referensi API resmi: [OAuth](https://developers.google.com/identity/protocols/oa
 [Search Console](https://developers.google.com/webmaster-tools/v1/searchanalytics/query),
 [Analytics](https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runReport),
 [Cloud projects](https://docs.cloud.google.com/resource-manager/reference/rest/v3/projects/search).
+
+## Perbaikan 404/CORS dan Places 503
+
+Pemeriksaan endpoint pada 11 September 2026 menunjukkan `prospect-google` merespons
+OPTIONS dengan 404 `NOT_FOUND`, sedangkan preflight `prospect-harvest` sudah 204
+dengan origin `https://campusinnovate.com`. Pesan CORS pertama disebabkan function
+belum tersedia, bukan pengaturan browser. Error `GOOGLE_PLACES_API_KEY belum
+dikonfigurasi` adalah masalah secret backend yang terpisah.
+
+Untuk deployment dari Codespace/terminal:
+
+```sh
+npx supabase login
+npx supabase functions deploy prospect-google --project-ref lxwqhtuhlddgwfxjtlas --use-api
+npx supabase functions deploy prospect-harvest --project-ref lxwqhtuhlddgwfxjtlas --use-api
+node scripts/check-prospect-google.mjs
+```
+
+Alternatif: setelah file workflow tersedia di GitHub, jalankan Actions →
+**Deploy Prospect Edge Functions** → Run workflow pada branch yang memuat kode
+Prospects terbaru. Workflow menggunakan repository secret `SUPABASE_ACCESS_TOKEN`.
+Workflow website GitHub Pages hanya menerbitkan frontend, bukan Edge Functions.
+
+Untuk error Places 503, buka Supabase project → Edge Functions → Secrets dan
+simpan `GOOGLE_PLACES_API_KEY` dengan key dari project Google Cloud yang telah
+mengaktifkan **Places API (New)** dan billing. Batasi key ke API tersebut. Key
+dipakai server Supabase, sehingga jangan menggunakan pembatasan HTTP referrer
+website pada key server ini. Jangan memasukkan nilainya ke source code, chat,
+atau `NEXT_PUBLIC_*`. Konfigurasi OAuth `GOOGLE_PROSPECT_*` tidak menggantikan key
+Places; keduanya perlu diatur sesuai fitur yang dipakai.
+
+Setelah key tersimpan, coba query Maps sekali lagi. Pemeriksaan endpoint hanya
+memeriksa transport/CORS dan penolakan request tanpa login; uji pencarian setelah
+login tetap diperlukan untuk memvalidasi key, billing, dan kuota Google.
