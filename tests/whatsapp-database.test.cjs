@@ -1,0 +1,48 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const { PGlite } = require('@electric-sql/pglite');
+const member = '00000000-0000-4000-8000-000000000001';
+test('WhatsApp: idempotent capture, receipt ordering, per-member unread and RLS', async () => {
+ const db = new PGlite();
+ try {
+ await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
+ create table memberships(id uuid primary key); insert into memberships values('${member}');
+ create function current_membership_id() returns uuid language sql as $$select '${member}'::uuid$$;
+ create function current_user_has_permission(text) returns boolean language sql as $$select coalesce(current_setting('test.allowed',true),'false')='true'$$;
+ grant usage on schema public to authenticated,anon,service_role;
+ `);
+ await db.exec(fs.readFileSync('supabase/migrations/20260911120000_whatsapp_inbox.sql','utf8'));
+ const receive = (id, date) => db.query(`select whatsapp_receive('123','628123456789','Budi',$1,'text','Hello',$2)`, [id,date]);
+ await receive('wamid.1','2026-09-11T01:00:00Z');
+ const cid=(await db.query('select id from whatsapp_conversations')).rows[0].id;
+ await receive('wamid.1','2026-09-11T01:00:00Z');
+ assert.equal((await db.query('select * from whatsapp_messages')).rows.length,1);
+ await db.exec("set role authenticated; set test.allowed='true'");
+ assert.equal((await db.query('select whatsapp_unread_total() n')).rows[0].n,1);
+ const time=(await db.query('select created_at from whatsapp_messages')).rows[0].created_at;
+ await db.query('select whatsapp_mark_read($1,$2)',[cid,time]);
+ assert.equal((await db.query('select whatsapp_unread_total() n')).rows[0].n,0);
+ await assert.rejects(db.query("select whatsapp_receive('123','628123456789','','x','text','bad',now())"), /permission denied/);
+ await assert.rejects(db.query("update whatsapp_messages set content='tampered'"),/permission denied/);
+ await db.exec('reset role');
+ await receive('wamid.2','2026-09-10T01:00:00Z');
+ await db.exec("set role authenticated; set test.allowed='true'");
+ assert.equal((await db.query('select whatsapp_unread_total() n')).rows[0].n,1,'late old messages remain unread');
+ await db.exec("set test.allowed='false'");
+ assert.equal((await db.query('select * from whatsapp_inbox()')).rows.length,0);
+ await assert.rejects(db.query('select whatsapp_mark_read($1,now())',[cid]),/ditolak/);
+ await db.exec('reset role');
+ await db.query("select whatsapp_status('out.1','read',now(),null)");
+ await db.query("select whatsapp_status('out.1','sent',now(),null)");
+ await db.query("insert into whatsapp_messages(conversation_id,direction,message_type,content,delivery_status,sent_at,request_id) values($1,'outgoing','text','reply','sending',now(),$2)",[cid,member]);
+ await db.query("update whatsapp_messages set whatsapp_message_id='out.1',delivery_status='sent' where direction='outgoing'");
+ assert.equal((await db.query("select delivery_status from whatsapp_messages where direction='outgoing'")).rows[0].delivery_status,'read');
+ await db.query("select whatsapp_status('out.1','failed',now(),'131047')");
+ assert.equal((await db.query("select delivery_status from whatsapp_messages where direction='outgoing'")).rows[0].delivery_status,'read');
+ await assert.rejects(db.query("insert into whatsapp_messages(conversation_id,direction,message_type,content,delivery_status,sent_at,request_id) values($1,'outgoing','text','duplicate','sending',now(),$2)",[cid,member]),/unique constraint/);
+ await db.exec('set role anon');
+ await assert.rejects(db.query('select * from whatsapp_messages'),/permission denied/);
+ await assert.rejects(db.query('select whatsapp_inbox()'),/permission denied/);
+ } finally { await db.close(); }
+});

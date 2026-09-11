@@ -1,3 +1,18 @@
 [functions.digital-office]
 # The handler validates the bearer token with auth.getUser() before accessing data.
 verify_jwt = false
+
+[functions.prospect-google]
+# OAuth callback has no Supabase JWT; all other actions validate getUser and Pipeline permissions.
+verify_jwt = false
+
+[functions.prospect-harvest]
+verify_jwt = false
+
+[functions.whatsapp-webhook]
+# Meta GET challenge / POST HMAC verification happens in the handler.
+verify_jwt = false
+
+[functions.whatsapp-send]
+# Handler validates getUser(), active membership and existing Pipeline permissions.
+verify_jwt = false
