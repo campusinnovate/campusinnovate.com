@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react';
+import { CSSProperties, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FiArrowLeft, FiBriefcase, FiCalendar, FiCheckCircle, FiColumns, FiDollarSign,
-  FiEdit3, FiExternalLink, FiList, FiPlus, FiRefreshCw, FiSearch, FiTrendingUp, FiX,
+  FiEdit3, FiExternalLink, FiList, FiMessageCircle, FiPlus, FiRefreshCw, FiSearch, FiTrendingUp, FiX,
 } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 import PipelineConfigurationPanel from './PipelineConfigurationPanel';
@@ -18,6 +18,7 @@ type SourceConfig = {
 };
 type Source = { id:string;key:string;name:string;color:string;module_type:string;module_config:SourceConfig;field_schema:DynamicField[] };
 type Member = { id:string;name:string;position:string|null };
+type LinkedConversation = { id:string;pipeline_lead_id:string };
 type Lead = {
   id:string;activity_id:string;source_id:string;lead_code:string;date_added:string;business_unit:string|null;
   account_name:string;account_type:string|null;contact_name:string|null;contact_role:string|null;contact_details:string|null;
@@ -57,6 +58,8 @@ export default function PipelinePage(){
   const [sources,setSources]=useState<Source[]>([]);
   const [members,setMembers]=useState<Member[]>([]);
   const [leads,setLeads]=useState<Lead[]>([]);
+  const [conversationsByLead,setConversationsByLead]=useState<Record<string,string>>({});
+  const [linkedLeadFilter,setLinkedLeadFilter]=useState('');
   const [sourceFilter,setSourceFilter]=useState('');
   const [stageFilter,setStageFilter]=useState('all');
   const [priorityFilter,setPriorityFilter]=useState('all');
@@ -67,32 +70,55 @@ export default function PipelinePage(){
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState('');
   const [message,setMessage]=useState('');
+  const requestedLeadId=useRef<string|null>(null);
+  const requestedLeadHandled=useRef(false);
 
   async function load(){
     setError('');
     const supabase=createClient();
     const {data:{session}}=await supabase.auth.getSession();
     if(!session){window.location.replace('/ruang-kawan/');return;}
-    const [accessR,memberR,sourcesR,membersR,leadsR]=await Promise.all([
+    const [accessR,memberR,sourcesR,membersR,leadsR,conversationsR]=await Promise.all([
       supabase.rpc('get_my_access'),supabase.rpc('current_membership_id'),supabase.rpc('list_my_work_sources'),
       supabase.rpc('list_pipeline_members'),supabase.rpc('list_pipeline_leads'),
+      supabase.rpc('whatsapp_pipeline_conversations'),
     ]);
     const access=Array.isArray(accessR.data)?accessR.data[0]:accessR.data;
     if(!access?.permissions?.includes('pipeline.view')){setState('denied');return;}
     if(memberR.error||sourcesR.error||leadsR.error){setError('Pipeline BD belum dapat dimuat. Silakan muat ulang.');setState('ready');return;}
     const pipelineSources=((sourcesR.data??[]) as Source[]).filter(source=>source.module_type==='pipeline');
+    const pipelineLeads=(leadsR.data??[]) as Lead[];
     setMembershipId(memberR.data as string);setPermissions(access.permissions??[]);setSources(pipelineSources);
-    setMembers((membersR.data??[]) as Member[]);setLeads((leadsR.data??[]) as Lead[]);
-    setSourceFilter(current=>current&&pipelineSources.some(source=>source.id===current)?current:(pipelineSources[0]?.id??''));setState('ready');
+    setMembers((membersR.data??[]) as Member[]);setLeads(pipelineLeads);
+    const links:Record<string,string>={};
+    for(const conversation of (conversationsR.data??[]) as LinkedConversation[]){
+      if(!links[conversation.pipeline_lead_id])links[conversation.pipeline_lead_id]=conversation.id;
+    }
+    setConversationsByLead(links);
+    setSourceFilter(current=>current&&pipelineSources.some(source=>source.id===current)?current:(pipelineSources[0]?.id??''));
+    if(!requestedLeadHandled.current){
+      requestedLeadHandled.current=true;
+      if(requestedLeadId.current){
+        const lead=pipelineLeads.find(item=>item.id===requestedLeadId.current);
+        if(lead){
+          setSourceFilter(lead.source_id);setStageFilter('all');setPriorityFilter('all');setQuery('');
+          const rights=access.permissions as string[];
+          const canEdit=lead.owner_membership_id===memberR.data?rights.includes('pipeline.manage_self'):rights.includes('pipeline.manage_team')||rights.includes('activity.assign_team');
+          if(canEdit)startEdit(lead);
+          else{setLinkedLeadFilter(lead.id);setView('list');}
+        }else setMessage('Lead dari tautan ini tidak tersedia atau tidak dapat Anda akses.');
+      }
+    }
+    setState('ready');
   }
-  useEffect(()=>{void load();},[]);
+  useEffect(()=>{requestedLeadId.current=new URLSearchParams(window.location.search).get('lead')?.toLowerCase()??null;void load();},[]);
 
   const selectedFilterSource=useMemo(()=>sources.find(source=>source.id===sourceFilter),[sources,sourceFilter]);
   const selectedFormSource=useMemo(()=>sources.find(source=>source.id===form.sourceId),[sources,form.sourceId]);
   const visible=useMemo(()=>leads.filter(lead=>{
     const term=query.trim().toLowerCase();
-    return (!sourceFilter||lead.source_id===sourceFilter)&&(stageFilter==='all'||lead.stage===stageFilter)&&(priorityFilter==='all'||lead.priority.toLowerCase()===priorityFilter.toLowerCase())&&(!term||[lead.account_name,lead.contact_name,lead.lead_code,lead.business_unit,lead.next_action].some(value=>value?.toLowerCase().includes(term)));
-  }),[leads,sourceFilter,stageFilter,priorityFilter,query]);
+    return (!linkedLeadFilter||lead.id===linkedLeadFilter)&&(!sourceFilter||lead.source_id===sourceFilter)&&(stageFilter==='all'||lead.stage===stageFilter)&&(priorityFilter==='all'||lead.priority.toLowerCase()===priorityFilter.toLowerCase())&&(!term||[lead.account_name,lead.contact_name,lead.lead_code,lead.business_unit,lead.next_action].some(value=>value?.toLowerCase().includes(term)));
+  }),[leads,linkedLeadFilter,sourceFilter,stageFilter,priorityFilter,query]);
   const stages=selectedFilterSource?.module_config.stages??[];
   const priorities=useMemo(()=>{
     const configured=selectedFilterSource?.module_config.priorities??[];
@@ -101,6 +127,7 @@ export default function PipelinePage(){
   },[selectedFilterSource,leads,sourceFilter]);
   const canManage=permissions.includes('pipeline.manage_self');
   const canManageTeam=permissions.includes('pipeline.manage_team')||permissions.includes('activity.assign_team');
+  const canEditLead=(lead:Lead)=>lead.owner_membership_id===membershipId?canManage:canManageTeam;
   const sourceLeads=leads.filter(lead=>!sourceFilter||lead.source_id===sourceFilter);
   const stats={
     total:sourceLeads.length,
@@ -132,11 +159,12 @@ export default function PipelinePage(){
   if(state==='denied')return <main className="rk-dashboard-foundation"><section className="rk-access-denied"><h1>Pipeline BD belum tersedia</h1><p>Hubungi administrator untuk mengaktifkan akses.</p><Link href="/ruang-kawan/marketing/">Kembali ke Marketing</Link></section></main>;
   return <main className="rk-pipeline-foundation"><section className="rk-pipeline-shell">
     <nav className="rk-pipeline-nav"><Link href="/ruang-kawan/marketing/"><FiArrowLeft/> Marketing</Link><button onClick={()=>void load()}><FiRefreshCw/> Muat ulang</button></nav>
-    <header className="rk-pipeline-heading"><div><small>Revenue workspace</small><h1>Pipeline Business Development</h1><p>Kelola lead, next action, follow-up, meeting, proposal, dan closing dalam satu funnel.</p></div><span>{permissions.includes('pipeline.propose_config')?<PipelineConfigurationPanel onChanged={load}/>:null}{canManage?<button onClick={startCreate}><FiPlus/> Tambah lead</button>:null}</span></header>
+    <header className="rk-pipeline-heading"><div><small>Revenue workspace</small><h1>Pipeline Business Development</h1><p>Kelola lead, next action, follow-up, meeting, proposal, dan closing dalam satu funnel.</p></div><span><Link className="rk-pipeline-inbox-link" href="/ruang-kawan/inbox/"><FiMessageCircle/> Inbox WhatsApp</Link>{permissions.includes('pipeline.propose_config')?<PipelineConfigurationPanel onChanged={load}/>:null}{canManage?<button onClick={startCreate}><FiPlus/> Tambah lead</button>:null}</span></header>
     <section className="rk-pipeline-stats"><article><FiBriefcase/><span><strong>{stats.total}</strong><small>Total lead</small></span></article><article data-alert={stats.overdue>0}><FiCalendar/><span><strong>{stats.overdue}</strong><small>Next action terlambat</small></span></article><article><FiDollarSign/><span><strong>{money(stats.weighted)}</strong><small>Weighted pipeline</small></span></article><article><FiCheckCircle/><span><strong>{stats.won}</strong><small>Won / booked</small></span></article></section>
-    <section className="rk-pipeline-toolbar"><div className="rk-pipeline-sources">{sources.map(source=><button key={source.id} data-active={sourceFilter===source.id} onClick={()=>{setSourceFilter(source.id);setStageFilter('all');setPriorityFilter('all');}}><i style={{background:source.color}}/>{source.name}<span>{leads.filter(lead=>lead.source_id===source.id).length}</span></button>)}</div><div className="rk-pipeline-controls"><label><FiSearch/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Cari lead, PIC, next action..."/></label><select value={stageFilter} onChange={event=>setStageFilter(event.target.value)}><option value="all">Semua stage</option>{stages.map(stage=><option key={stage}>{stage}</option>)}</select><select value={priorityFilter} onChange={event=>setPriorityFilter(event.target.value)} aria-label="Filter priority"><option value="all">Semua Priority</option>{priorities.map(priority=><option key={priority} value={priority}>{priority}</option>)}</select><span><button data-active={view==='board'} onClick={()=>setView('board')} aria-label="Board"><FiColumns/></button><button data-active={view==='list'} onClick={()=>setView('list')} aria-label="List"><FiList/></button></span></div></section>
+    <section className="rk-pipeline-toolbar"><div className="rk-pipeline-sources">{sources.map(source=><button key={source.id} data-active={sourceFilter===source.id} onClick={()=>{setSourceFilter(source.id);setStageFilter('all');setPriorityFilter('all');setLinkedLeadFilter('');}}><i style={{background:source.color}}/>{source.name}<span>{leads.filter(lead=>lead.source_id===source.id).length}</span></button>)}</div><div className="rk-pipeline-controls"><label><FiSearch/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Cari lead, PIC, next action..."/></label><select value={stageFilter} onChange={event=>setStageFilter(event.target.value)}><option value="all">Semua stage</option>{stages.map(stage=><option key={stage}>{stage}</option>)}</select><select value={priorityFilter} onChange={event=>setPriorityFilter(event.target.value)} aria-label="Filter priority"><option value="all">Semua Priority</option>{priorities.map(priority=><option key={priority} value={priority}>{priority}</option>)}</select><span><button data-active={view==='board'} onClick={()=>setView('board')} aria-label="Board"><FiColumns/></button><button data-active={view==='list'} onClick={()=>setView('list')} aria-label="List"><FiList/></button></span></div></section>
+    {linkedLeadFilter?<div className="rk-pipeline-linked-filter"><span>Menampilkan lead dari Inbox WhatsApp.</span><button onClick={()=>setLinkedLeadFilter('')}>Tampilkan semua lead</button></div>:null}
     {message?<p className="rk-pipeline-alert">{message}</p>:null}{error?<p className="rk-pipeline-alert" data-error>{error}</p>:null}
-    {view==='board'?<section className="rk-pipeline-board">{stages.map(stage=><div key={stage} data-stage-tone={stageTone(stage,selectedFilterSource?.module_config.closed_stages)}><header><h2>{stage}</h2><span>{visible.filter(lead=>lead.stage===stage).length}</span></header><section>{visible.filter(lead=>lead.stage===stage).map(lead=><LeadCard key={lead.id} lead={lead} stages={stages} canEdit={lead.owner_membership_id===membershipId||canManageTeam} onEdit={startEdit} onUpdate={quickUpdate}/>)}</section></div>)}</section>:<section className="rk-pipeline-list"><header><span>Lead</span><span>Stage & owner</span><span>Nilai</span><span>Next action</span><span/></header>{visible.map(lead=><article key={lead.id} data-stage-tone={stageTone(lead.stage,lead.source_config?.closed_stages)}><div><strong>{lead.account_name}</strong><small>{lead.lead_code} · {lead.contact_name||'Kontak belum diisi'}</small></div><div><em>{lead.stage}</em><small>{lead.owner_name}</small></div><div><strong>{money(Number(lead.weighted_value||lead.potential_revenue||0))}</strong><small>{lead.probability!=null?`${Math.round(Number(lead.probability)*100)}% probability`:lead.payment_status||'Belum dihitung'}</small></div><div data-overdue={lead.workflow_status!=='done'&&lead.due_date<today()}><strong>{lead.next_action}</strong><small>{new Date(`${lead.due_date}T12:00:00`).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}</small></div>{lead.owner_membership_id===membershipId||canManageTeam?<button onClick={()=>startEdit(lead)}><FiEdit3/></button>:<span/>}</article>)}</section>}
+    {view==='board'?<section className="rk-pipeline-board">{stages.map(stage=><div key={stage} data-stage-tone={stageTone(stage,selectedFilterSource?.module_config.closed_stages)}><header><h2>{stage}</h2><span>{visible.filter(lead=>lead.stage===stage).length}</span></header><section>{visible.filter(lead=>lead.stage===stage).map(lead=><LeadCard key={lead.id} lead={lead} stages={stages} canEdit={canEditLead(lead)} conversationId={conversationsByLead[lead.id]} onEdit={startEdit} onUpdate={quickUpdate}/>)}</section></div>)}</section>:<section className="rk-pipeline-list"><header><span>Lead</span><span>Stage & owner</span><span>Nilai</span><span>Next action</span><span/></header>{visible.map(lead=><article key={lead.id} data-stage-tone={stageTone(lead.stage,lead.source_config?.closed_stages)}><div><strong>{lead.account_name}</strong><small>{lead.lead_code} · {lead.contact_name||'Kontak belum diisi'}</small>{conversationsByLead[lead.id]?<Link className="rk-pipeline-whatsapp-link" href={`/ruang-kawan/inbox/?conversation=${encodeURIComponent(conversationsByLead[lead.id])}`}><FiMessageCircle/> Buka WhatsApp</Link>:null}</div><div><em>{lead.stage}</em><small>{lead.owner_name}</small></div><div><strong>{money(Number(lead.weighted_value||lead.potential_revenue||0))}</strong><small>{lead.probability!=null?`${Math.round(Number(lead.probability)*100)}% probability`:lead.payment_status||'Belum dihitung'}</small></div><div data-overdue={lead.workflow_status!=='done'&&lead.due_date<today()}><strong>{lead.next_action}</strong><small>{new Date(`${lead.due_date}T12:00:00`).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}</small></div>{canEditLead(lead)?<button onClick={()=>startEdit(lead)}><FiEdit3/></button>:<span/>}</article>)}</section>}
     {!visible.length?<div className="rk-pipeline-empty"><FiTrendingUp/><strong>Belum ada lead pada pipeline ini</strong><p>Tambahkan lead baru atau ubah filter pencarian.</p></div>:null}
   </section>
   {formOpen?<div className="rk-pipeline-modal"><form onSubmit={save}><header><div><small>{form.id?'Ubah lead':'Lead baru'}</small><h2>{form.accountName||selectedFormSource?.name||'Pipeline BD'}</h2></div><button type="button" onClick={()=>setFormOpen(false)}><FiX/></button></header><div className="rk-pipeline-form">
@@ -149,7 +177,7 @@ export default function PipelinePage(){
   </main>;
 }
 
-function LeadCard({lead,stages,canEdit,onEdit,onUpdate}:{lead:Lead;stages:string[];canEdit:boolean;onEdit:(lead:Lead)=>void;onUpdate:(lead:Lead,patch:Partial<Pick<Lead,'stage'|'next_action'|'due_date'>>)=>Promise<void>}){
+function LeadCard({lead,stages,canEdit,conversationId,onEdit,onUpdate}:{lead:Lead;stages:string[];canEdit:boolean;conversationId?:string;onEdit:(lead:Lead)=>void;onUpdate:(lead:Lead,patch:Partial<Pick<Lead,'stage'|'next_action'|'due_date'>>)=>Promise<void>}){
   const overdue=lead.workflow_status!=='done'&&lead.due_date<today();
   const [nextAction,setNextAction]=useState(lead.next_action);
   useEffect(()=>setNextAction(lead.next_action),[lead.next_action]);
@@ -157,6 +185,7 @@ function LeadCard({lead,stages,canEdit,onEdit,onUpdate}:{lead:Lead;stages:string
     <header><span>{lead.lead_code}</span><em data-priority={lead.priority.toLowerCase()}>{lead.priority}</em></header><h3>{lead.account_name}</h3><p>{lead.contact_name||lead.trip_program||lead.business_unit||'Kontak belum dilengkapi'}</p>
     <div className="rk-pipeline-card-value"><strong>{money(Number(lead.weighted_value||lead.potential_revenue||0))}</strong><small>{lead.deal_value?`${Math.round(Number(lead.probability??0)*100)}% weighted`:lead.payment_status||'Potensi belum dihitung'}</small></div>
     {canEdit?<div className="rk-pipeline-quick"><select value={lead.stage} onChange={event=>void onUpdate(lead,{stage:event.target.value})}>{stages.map(stage=><option key={stage}>{stage}</option>)}</select><input value={nextAction} onChange={event=>setNextAction(event.target.value)} onBlur={()=>{if(nextAction.trim()&&nextAction!==lead.next_action)void onUpdate(lead,{next_action:nextAction});}}/><label data-overdue={overdue}><FiCalendar/><input type="date" value={lead.due_date} onChange={event=>void onUpdate(lead,{due_date:event.target.value})}/></label></div>:<div className="rk-pipeline-next" data-overdue={overdue}><small>Next action</small><strong>{lead.next_action}</strong><span>{lead.due_date}</span></div>}
+    {conversationId?<Link className="rk-pipeline-whatsapp-link" href={`/ruang-kawan/inbox/?conversation=${encodeURIComponent(conversationId)}`}><FiMessageCircle/> Buka WhatsApp</Link>:null}
     <footer><span>{lead.owner_name}</span>{lead.document_url?<a href={lead.document_url} target="_blank" rel="noreferrer"><FiExternalLink/></a>:null}{canEdit?<button onClick={()=>onEdit(lead)}><FiEdit3/></button>:null}</footer>
   </article>;
 }
