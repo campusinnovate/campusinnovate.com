@@ -32,6 +32,9 @@ export default function RuangKawanNotificationProvider() {
       const key = notice.id ?? `${notice.title}:${notice.message}`;
       if (Date.now() - (seen.current.get(key) ?? 0) < 15000) return;
       seen.current.set(key, Date.now());
+      window.dispatchEvent(new CustomEvent('ruang-kawan-desktop-notification', {
+        detail: { title: notice.title, body: notice.message ?? '' },
+      }));
       if (seen.current.size > 300) seen.current.delete(seen.current.keys().next().value!);
       setItems(current => [...current, { ...notice, id: notice.id ?? crypto.randomUUID() }].slice(-4));
     };

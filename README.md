@@ -1,5 +1,9 @@
 Campus Innovate
 
+## Aplikasi macOS Ruang Kawan
+
+Ruang Kawan dapat dikemas sebagai aplikasi macOS (`.dmg`) dan dipindahkan ke folder **Applications**. Setelah Node.js 20+ tersedia, jalankan `npm install` lalu `npm run desktop:build`. Lihat [panduan desktop](desktop/README.md) untuk menjalankan saat pengembangan dan batasan integrasi sistem yang aman.
+
 # Docs
 
 [Figma](https://www.figma.com/design/dMGbmFk8rW3fVq4V8GuEpE/Untitled?node-id=0-1&t=ncOMiRzJNqigUFjg-1)

@@ -1,11 +1,12 @@
 /** @type {import('next').NextConfig} */
 const isGitHubPages = process.env.GITHUB_ACTIONS === 'true';
+const isDesktopBuild = process.env.DESKTOP_BUILD === 'true';
 
 const nextConfig = {
   ...(isGitHubPages ? {
     output: 'export',
     trailingSlash: true,
-  } : {}),
+  } : isDesktopBuild ? { output: 'standalone' } : {}),
   images: {
     unoptimized: isGitHubPages,
     remotePatterns: [
