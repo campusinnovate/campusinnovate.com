@@ -6,209 +6,213 @@ const allowedOrigins = new Set([
   'http://localhost:2242',
 ])
 
+const rsvpSelect = [
+  'id', 'created_at', 'invited_guest_id', 'invited_guest_name', 'parent_name',
+  'whatsapp', 'email', 'adult_count', 'child_count', 'children', 'arrival_slot',
+  'attendance_confidence', 'documentation_consent', 'privacy_consent', 'status', 'source',
+].join(',')
+
 function corsHeaders(origin: string | null) {
   const allowedOrigin = origin && allowedOrigins.has(origin) ? origin : 'https://campusinnovate.com'
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Vary': 'Origin',
   }
 }
 
-function response(origin: string | null, body: Record<string, unknown>, status = 200) {
+function jsonResponse(origin: string | null, body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders(origin), 'Content-Type': 'application/json; charset=utf-8' },
   })
 }
 
-async function syncToGoogleSheets(
-  admin: ReturnType<typeof createClient>,
-  registrationId: string,
-) {
-  const spreadsheetId = '18BmluvyFClHJwjAuJRocDcj-Wdkeumd9gSBcx-nd74M'
-  const googleClientId = Deno.env.get('GOOGLE_CALENDAR_CLIENT_ID')
-  const googleClientSecret = Deno.env.get('GOOGLE_CALENDAR_CLIENT_SECRET')
+function csvCell(value: unknown) {
+  if (value === null || value === undefined) return ''
+  const text = String(value)
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+}
 
-  if (!googleClientId || !googleClientSecret) throw new Error('Konfigurasi Google Workspace belum tersedia.')
+function csvResponse(rows: unknown[][]) {
+  const body = rows.map((row) => row.map(csvCell).join(',')).join('\r\n')
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Cache-Control': 'no-store, max-age=0',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Disposition': 'inline; filename="noortura-rsvp.csv"',
+    },
+  })
+}
 
-  const { data: registration, error: registrationError } = await admin
-    .from('noortura_open_house_rsvps')
-    .select('id,created_at,invited_guest_id,invited_guest_name,parent_name,whatsapp,email,adult_count,child_count,children,arrival_slot,attendance_confidence,documentation_consent,privacy_consent,status,source')
-    .eq('id', registrationId)
-    .single()
+function jakartaTimestamp(value: string) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(new Date(value))
+  const get = (type: string) => parts.find((part) => part.type === type)?.value || ''
+  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`
+}
 
-  if (registrationError || !registration) throw registrationError || new Error('Data RSVP tidak ditemukan.')
+function rsvpStatus(status: string) {
+  return status === 'tentative' ? 'Tentatif' : status === 'cancelled' ? 'Tidak Hadir' : 'Hadir'
+}
 
-  const { data: connection, error: connectionError } = await admin
-    .from('google_calendar_connections')
-    .select('id,access_token,refresh_token,token_expires_at')
-    .eq('google_account_email', 'innovatecampus@gmail.com')
+function childDetails(children: Array<Record<string, unknown>> | null) {
+  return (children || [])
+    .map((child) => `${child.name || 'Anak'} (${child.age || '-'} tahun)`)
+    .join(', ')
+}
+
+async function sha256(value: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function adminClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const secretKeys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}')
+  const secretKey = secretKeys.default || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!supabaseUrl || !secretKey) throw new Error('Konfigurasi backend belum tersedia.')
+  return createClient(supabaseUrl, secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
+async function authorizeSheetExport(admin: ReturnType<typeof createClient>, token: string | null) {
+  if (!token || token.length !== 64) return false
+  const tokenHash = await sha256(token)
+  const { data, error } = await admin
+    .from('noortura_sheet_export_tokens')
+    .select('id')
+    .eq('token_hash', tokenHash)
     .eq('is_active', true)
-    .order('updated_at', { ascending: false })
-    .limit(1)
     .maybeSingle()
-
-  if (connectionError || !connection?.refresh_token) {
-    throw connectionError || new Error('Akun Google Campus Innovate belum terhubung.')
-  }
-
-  let accessToken = connection.access_token
-  const expiresAt = connection.token_expires_at ? new Date(connection.token_expires_at).getTime() : 0
-  if (!accessToken || expiresAt <= Date.now() + 90_000) {
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: googleClientId,
-        client_secret: googleClientSecret,
-        refresh_token: connection.refresh_token,
-        grant_type: 'refresh_token',
-      }),
-    })
-    const token = await tokenResponse.json()
-    if (!tokenResponse.ok || !token.access_token) {
-      throw new Error(token.error_description || 'Token Google tidak dapat diperbarui.')
-    }
-    accessToken = token.access_token
-    await admin.from('google_calendar_connections').update({
-      access_token: accessToken,
-      token_expires_at: new Date(Date.now() + Number(token.expires_in ?? 3600) * 1000).toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq('id', connection.id)
-  }
-
-  const sheetsRequest = async (path: string, init?: RequestInit) => {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8_000)
-    try {
-      const googleResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}${path}`, {
-        ...init,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-          ...(init?.headers || {}),
-        },
-        signal: controller.signal,
-      })
-      const result = await googleResponse.json().catch(() => ({}))
-      if (!googleResponse.ok) throw new Error(result?.error?.message || `Google Sheets merespons ${googleResponse.status}.`)
-      return result
-    } finally {
-      clearTimeout(timeout)
-    }
-  }
-
-  const timestamp = new Date(registration.created_at).getTime() / 86_400_000 + 25_569
-  const rsvpStatus = registration.status === 'tentative' ? 'Tentatif' : 'Hadir'
-
-  if (registration.invited_guest_id) {
-    const range = encodeURIComponent("'Guest List'!A5:A1000")
-    const guestIds = await sheetsRequest(`/values/${range}?majorDimension=ROWS`)
-    const index = (guestIds.values || []).findIndex((row: unknown[]) => row?.[0] === registration.invited_guest_id)
-    if (index < 0) throw new Error(`ID tamu ${registration.invited_guest_id} tidak ditemukan di Guest List.`)
-    const row = index + 5
-
-    await sheetsRequest('/values:batchUpdate', {
-      method: 'POST',
-      body: JSON.stringify({
-        valueInputOption: 'USER_ENTERED',
-        data: [
-          { range: `'Guest List'!E${row}:H${row}`, values: [[registration.whatsapp, registration.email, registration.adult_count, registration.child_count]] },
-          { range: `'Guest List'!J${row}:M${row}`, values: [[rsvpStatus, registration.arrival_slot, registration.parent_name, timestamp]] },
-        ],
-      }),
-    })
-  } else {
-    const idRange = encodeURIComponent("'RSVP Publik'!B5:B1000")
-    const publicIds = await sheetsRequest(`/values/${idRange}?majorDimension=ROWS`)
-    const index = (publicIds.values || []).findIndex((row: unknown[]) => row?.[0] === registration.id)
-    const children = (registration.children || [])
-      .map((child: Record<string, unknown>) => `${child.name} (${child.age} tahun)`)
-      .join(', ')
-    const values = [[
-      timestamp,
-      registration.id,
-      registration.parent_name,
-      registration.whatsapp,
-      registration.email,
-      registration.adult_count,
-      registration.child_count,
-      children,
-      registration.arrival_slot,
-      `${registration.attendance_confidence}%`,
-      rsvpStatus,
-      registration.documentation_consent,
-      registration.privacy_consent,
-      registration.source,
-      '',
-    ]]
-
-    if (index >= 0) {
-      const row = index + 5
-      const range = encodeURIComponent(`'RSVP Publik'!A${row}:O${row}`)
-      await sheetsRequest(`/values/${range}?valueInputOption=USER_ENTERED`, { method: 'PUT', body: JSON.stringify({ values }) })
-    } else {
-      const range = encodeURIComponent("'RSVP Publik'!A:O")
-      await sheetsRequest(`/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
-        method: 'POST',
-        body: JSON.stringify({ values }),
-      })
-    }
-  }
+  if (error || !data) return false
 
   await admin
+    .from('noortura_sheet_export_tokens')
+    .update({ last_used_at: new Date().toISOString() })
+    .eq('id', data.id)
+  return true
+}
+
+async function exportForGoogleSheet(req: Request) {
+  const url = new URL(req.url)
+  const view = url.searchParams.get('view')
+  const admin = adminClient()
+
+  if (!await authorizeSheetExport(admin, url.searchParams.get('token'))) {
+    return new Response('Akses ditolak.', {
+      status: 403,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    })
+  }
+  if (view !== 'guest' && view !== 'public') {
+    return new Response('View tidak valid.', {
+      status: 400,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    })
+  }
+
+  let query = admin
     .from('noortura_open_house_rsvps')
-    .update({ sheet_sync_status: 'synced', sheet_synced_at: new Date().toISOString(), sheet_sync_error: null })
-    .eq('id', registrationId)
-  return 'synced'
+    .select(rsvpSelect)
+    .eq('event_code', 'NOORTURA_OH_2026')
+    .order('created_at', { ascending: true })
+
+  query = view === 'guest'
+    ? query.not('invited_guest_id', 'is', null)
+    : query.is('invited_guest_id', null)
+
+  const { data, error } = await query
+  if (error) throw error
+
+  if (view === 'guest') {
+    const latestByGuest = new Map<string, Record<string, unknown>>()
+    for (const row of data || []) latestByGuest.set(String(row.invited_guest_id), row)
+    const rows: unknown[][] = [[
+      'ID Tamu', 'WhatsApp', 'Email', 'Jumlah Dewasa', 'Jumlah Anak',
+      'Status RSVP', 'Slot Kedatangan', 'Nama Pengisi RSVP', 'Waktu RSVP',
+    ]]
+    for (const row of latestByGuest.values()) {
+      rows.push([
+        row.invited_guest_id, row.whatsapp, row.email, row.adult_count, row.child_count,
+        rsvpStatus(String(row.status)), row.arrival_slot, row.parent_name,
+        jakartaTimestamp(String(row.created_at)),
+      ])
+    }
+    return csvResponse(rows)
+  }
+
+  const rows: unknown[][] = [[
+    'Waktu Daftar', 'ID RSVP', 'Nama Orang Tua / Pendamping', 'WhatsApp', 'Email',
+    'Jumlah Dewasa', 'Jumlah Anak', 'Detail Anak', 'Slot Kedatangan', 'Kepastian Hadir',
+    'Status RSVP', 'Izin Dokumentasi', 'Persetujuan Privasi', 'Sumber', 'Catatan Admin',
+  ]]
+  for (const row of data || []) {
+    rows.push([
+      jakartaTimestamp(String(row.created_at)),
+      row.id,
+      row.parent_name,
+      row.whatsapp,
+      row.email,
+      row.adult_count,
+      row.child_count,
+      childDetails(row.children as Array<Record<string, unknown>> | null),
+      row.arrival_slot,
+      `${row.attendance_confidence}%`,
+      rsvpStatus(String(row.status)),
+      row.documentation_consent,
+      row.privacy_consent,
+      row.source,
+      '',
+    ])
+  }
+  return csvResponse(rows)
 }
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin')
-
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(origin) })
-  if (req.method !== 'POST') return response(origin, { error: 'Metode tidak diizinkan.' }, 405)
-  if (origin && !allowedOrigins.has(origin)) return response(origin, { error: 'Origin tidak diizinkan.' }, 403)
 
   try {
+    if (req.method === 'GET') return await exportForGoogleSheet(req)
+    if (req.method !== 'POST') return jsonResponse(origin, { error: 'Metode tidak diizinkan.' }, 405)
+    if (origin && !allowedOrigins.has(origin)) {
+      return jsonResponse(origin, { error: 'Origin tidak diizinkan.' }, 403)
+    }
+
     const contentLength = Number(req.headers.get('content-length') || '0')
-    if (contentLength > 16_384) return response(origin, { error: 'Data terlalu besar.' }, 413)
+    if (contentLength > 16_384) return jsonResponse(origin, { error: 'Data terlalu besar.' }, 413)
 
     const payload = await req.json()
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const secretKeys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}')
-    const secretKey = secretKeys.default || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-
-    if (!supabaseUrl || !secretKey) throw new Error('Konfigurasi backend belum tersedia.')
-
-    const admin = createClient(supabaseUrl, secretKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-
+    const admin = adminClient()
     const { data, error } = await admin.rpc('register_noortura_open_house_rsvp', { payload })
     if (error) {
       const message = error.message || 'RSVP belum dapat disimpan.'
       const status = message.includes('sudah penuh') || message.includes('sudah terdaftar') ? 409 : 400
-      return response(origin, { error: message }, status)
+      return jsonResponse(origin, { error: message }, status)
     }
 
-    let sheetSync = 'failed'
-    try {
-      sheetSync = await syncToGoogleSheets(admin, data.id)
-    } catch (syncError) {
-      const syncMessage = syncError instanceof Error ? syncError.message : 'Sinkronisasi Google Sheets gagal.'
-      console.error('noortura-rsvp sheets sync', syncError)
-      await admin
-        .from('noortura_open_house_rsvps')
-        .update({ sheet_sync_status: 'failed', sheet_sync_error: syncMessage.slice(0, 500) })
-        .eq('id', data.id)
-    }
+    await admin
+      .from('noortura_open_house_rsvps')
+      .update({
+        sheet_sync_status: 'synced',
+        sheet_synced_at: new Date().toISOString(),
+        sheet_sync_error: null,
+      })
+      .eq('id', data.id)
 
-    return response(origin, { ok: true, registration: data, sheetSync }, 201)
+    return jsonResponse(origin, { ok: true, registration: data, sheetSync: 'available' }, 201)
   } catch (error) {
     console.error('noortura-rsvp', error)
-    return response(origin, { error: error instanceof Error ? error.message : 'Terjadi kendala pada server.' }, 500)
+    return jsonResponse(origin, {
+      error: error instanceof Error ? error.message : 'Terjadi kendala pada server.',
+    }, 500)
   }
 })
