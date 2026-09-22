@@ -23,6 +23,54 @@ function response(origin: string | null, body: Record<string, unknown>, status =
   })
 }
 
+async function syncToGoogleSheets(
+  admin: ReturnType<typeof createClient>,
+  registrationId: string,
+) {
+  const webhookUrl = Deno.env.get('GOOGLE_SHEETS_WEBHOOK_URL')
+  const sharedSecret = Deno.env.get('NOORTURA_SHEETS_SECRET')
+
+  if (!webhookUrl || !sharedSecret) {
+    await admin
+      .from('noortura_open_house_rsvps')
+      .update({ sheet_sync_status: 'disabled', sheet_sync_error: 'Webhook Google Sheets belum dikonfigurasi.' })
+      .eq('id', registrationId)
+    return 'disabled'
+  }
+
+  const { data: registration, error: registrationError } = await admin
+    .from('noortura_open_house_rsvps')
+    .select('id,created_at,invited_guest_id,invited_guest_name,parent_name,whatsapp,email,adult_count,child_count,children,arrival_slot,attendance_confidence,documentation_consent,privacy_consent,status,source')
+    .eq('id', registrationId)
+    .single()
+
+  if (registrationError || !registration) throw registrationError || new Error('Data RSVP tidak ditemukan.')
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 8_000)
+
+  try {
+    const sheetResponse = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: sharedSecret, registration }),
+      signal: controller.signal,
+    })
+    const result = await sheetResponse.json().catch(() => ({}))
+    if (!sheetResponse.ok || result?.ok !== true) {
+      throw new Error(result?.error || `Google Sheets merespons ${sheetResponse.status}.`)
+    }
+
+    await admin
+      .from('noortura_open_house_rsvps')
+      .update({ sheet_sync_status: 'synced', sheet_synced_at: new Date().toISOString(), sheet_sync_error: null })
+      .eq('id', registrationId)
+    return 'synced'
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin')
 
@@ -52,7 +100,19 @@ Deno.serve(async (req) => {
       return response(origin, { error: message }, status)
     }
 
-    return response(origin, { ok: true, registration: data }, 201)
+    let sheetSync = 'failed'
+    try {
+      sheetSync = await syncToGoogleSheets(admin, data.id)
+    } catch (syncError) {
+      const syncMessage = syncError instanceof Error ? syncError.message : 'Sinkronisasi Google Sheets gagal.'
+      console.error('noortura-rsvp sheets sync', syncError)
+      await admin
+        .from('noortura_open_house_rsvps')
+        .update({ sheet_sync_status: 'failed', sheet_sync_error: syncMessage.slice(0, 500) })
+        .eq('id', data.id)
+    }
+
+    return response(origin, { ok: true, registration: data, sheetSync }, 201)
   } catch (error) {
     console.error('noortura-rsvp', error)
     return response(origin, { error: error instanceof Error ? error.message : 'Terjadi kendala pada server.' }, 500)
