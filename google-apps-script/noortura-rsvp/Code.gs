@@ -95,7 +95,7 @@ function validateRegistration_(registration) {
   if (registration.whatsapp.replace(/\D/g, '').length < 8) fail_('VALIDATION_ERROR', 'Nomor WhatsApp belum valid.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registration.email)) fail_('VALIDATION_ERROR', 'Alamat email belum valid.');
   if ([1, 2].indexOf(registration.adultCount) === -1) fail_('VALIDATION_ERROR', 'Jumlah pendamping belum valid.');
-  if ([1, 2, 3].indexOf(registration.childCount) === -1) fail_('VALIDATION_ERROR', 'Jumlah anak belum valid.');
+  if ([0, 1, 2, 3].indexOf(registration.childCount) === -1) fail_('VALIDATION_ERROR', 'Jumlah anak belum valid.');
   if (registration.children.length !== registration.childCount) fail_('VALIDATION_ERROR', 'Data anak belum lengkap.');
   registration.children.forEach(function (child) {
     if (!child.name || !isFinite(child.age) || child.age < 0 || child.age > 18) {

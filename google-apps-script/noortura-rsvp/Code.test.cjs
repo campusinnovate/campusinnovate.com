@@ -63,4 +63,17 @@ assert.match(response.value, /parent\.postMessage/);
 assert.match(response.value, /request-1/);
 assert.match(response.value, /SLOT_FULL/);
 
+assert.doesNotThrow(() => context.__test.validateRegistration_({
+  parentName: 'Amilia',
+  whatsapp: '083812327019',
+  email: 'amilia@example.com',
+  adultCount: 1,
+  childCount: 0,
+  children: [],
+  slot: '08.00',
+  certainty: 100,
+  documentation: true,
+  privacy: true,
+}));
+
 console.log('Noortura Apps Script tests passed.');

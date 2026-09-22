@@ -104,7 +104,7 @@
 
     <section class="rsvp" id="rsvp">
       <div class="wrap rsvp-shell">
-        <div class="rsvp-copy"><span class="eyebrow">Dear Parents</span><h2 class="display">Let us return to our rhythm.</h2><p data-id="Pilih waktu kedatangan yang paling nyaman. Reservasi berlaku untuk tamu parents; undangan family & friends tidak perlu memilih slot." data-en="Choose the arrival time that feels most comfortable. Reservations apply to parent guests; family & friends invitations do not require a slot.">Pilih waktu kedatangan yang paling nyaman. Reservasi berlaku untuk tamu parents; undangan family & friends tidak perlu memilih slot.</p><div class="capacity"><strong data-id="20 menit" data-en="20 minutes">20 menit</strong><span data-id="per pilihan waktu kedatangan" data-en="per arrival time option">per pilihan waktu kedatangan</span></div></div>
+        <div class="rsvp-copy"><span class="eyebrow">Dear Parents</span><h2 class="display">Let us return to our rhythm.</h2><p data-id="Pilih waktu kedatangan yang paling nyaman." data-en="Choose the arrival time that feels most comfortable.">Pilih waktu kedatangan yang paling nyaman.</p><div class="capacity"><strong data-id="20 menit" data-en="20 minutes">20 menit</strong><span data-id="per pilihan waktu kedatangan" data-en="per arrival time option">per pilihan waktu kedatangan</span></div></div>
         <div class="form">
           <form id="rsvpForm">
             <div class="form-grid">
@@ -112,9 +112,9 @@
               <div class="field"><label for="whatsapp" data-id="Nomor WhatsApp" data-en="WhatsApp number">Nomor WhatsApp</label><input id="whatsapp" name="whatsapp" required inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx"></div>
               <div class="field"><label for="email">Email</label><input id="email" name="email" required type="email" autocomplete="email" placeholder="nama@email.com"></div>
               <div class="field"><label for="adultCount" data-id="Jumlah orang dewasa" data-en="Number of adults">Jumlah orang dewasa</label><select id="adultCount" name="adultCount" required><option value="" data-id="Pilih" data-en="Select">Pilih</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
-              <div class="field"><label for="childCount" data-id="Jumlah anak" data-en="Number of children">Jumlah anak</label><select id="childCount" name="childCount" required><option value="" data-id="Pilih" data-en="Select">Pilih</option><option>1</option><option>2</option><option>3</option></select></div>
-              <div class="field"><label for="child1" data-id="Nama anak 1" data-en="Child 1 name">Nama anak 1</label><input id="child1" name="child1" required></div>
-              <div class="field"><label for="age1" data-id="Usia anak 1" data-en="Child 1 age">Usia anak 1</label><input id="age1" name="age1" required inputmode="numeric" type="number" min="1" max="15" data-id-placeholder="Tahun" data-en-placeholder="Years" placeholder="Tahun"></div>
+              <div class="field"><label for="childCount" data-id="Jumlah anak" data-en="Number of children">Jumlah anak</label><select id="childCount" name="childCount" required><option value="" data-id="Pilih" data-en="Select">Pilih</option><option value="0" data-id="0 — Belum punya anak" data-en="0 — No children yet">0 — Belum punya anak</option><option>1</option><option>2</option><option>3</option></select></div>
+              <div class="field child1"><label for="child1" data-id="Nama anak 1" data-en="Child 1 name">Nama anak 1</label><input id="child1" name="child1" required></div>
+              <div class="field child1"><label for="age1" data-id="Usia anak 1" data-en="Child 1 age">Usia anak 1</label><input id="age1" name="age1" required inputmode="numeric" type="number" min="1" max="15" data-id-placeholder="Tahun" data-en-placeholder="Years" placeholder="Tahun"></div>
               <div class="field extra-child child2"><label for="child2" data-id="Nama anak 2" data-en="Child 2 name">Nama anak 2</label><input id="child2" name="child2"></div>
               <div class="field extra-child child2"><label for="age2" data-id="Usia anak 2" data-en="Child 2 age">Usia anak 2</label><input id="age2" name="age2" inputmode="numeric" type="number" min="1" max="15" data-id-placeholder="Tahun" data-en-placeholder="Years" placeholder="Tahun"></div>
               <div class="field extra-child child3"><label for="child3" data-id="Nama anak 3" data-en="Child 3 name">Nama anak 3</label><input id="child3" name="child3"></div>
@@ -160,7 +160,7 @@
     langToggle.addEventListener('click',()=>{language=language==='id'?'en':'id';applyLanguage()});
     document.querySelectorAll('.zone button').forEach(btn=>btn.addEventListener('click',()=>{const zone=btn.closest('.zone');zone.classList.toggle('open');btn.setAttribute('aria-expanded',zone.classList.contains('open'))}));
     const childCount=document.getElementById('childCount');
-    const updateChildren=()=>{const n=Number(childCount.value||1);document.querySelectorAll('.extra-child').forEach(el=>el.style.display='none');['2','3'].forEach(i=>{const visible=n>=Number(i);document.querySelectorAll('.child'+i).forEach(el=>{el.style.display=visible?'grid':'none';el.querySelectorAll('input').forEach(input=>input.required=visible)})})};
+    const updateChildren=()=>{const n=childCount.value===''?1:Number(childCount.value);['1','2','3'].forEach(i=>{const visible=n>=Number(i);document.querySelectorAll('.child'+i).forEach(el=>{el.style.display=visible?'grid':'none';el.querySelectorAll('input').forEach(input=>input.required=visible)})})};
     childCount.addEventListener('change',updateChildren);updateChildren();
     const RSVP_ENDPOINT='https://script.google.com/macros/s/AKfycbylLK7XLqMvRSZQGPrhOz2zjkzQu8zYBE73oNqXb0b7fEo3lDLv3ZTnPvMP6fKOIwHx9A/exec';
     const slotSelect=document.getElementById('slot');
