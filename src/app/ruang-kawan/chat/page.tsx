@@ -389,6 +389,7 @@ export default function KawanChatPage() {
         <button className="rk-chat-new" onClick={() => setCreateOpen(true)} disabled={backendPending}><FiPlus /> Percakapan baru</button>
         <label className="rk-chat-search"><FiSearch /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari percakapan" /></label>
         <nav className="rk-chat-shortcuts"><button data-active={listMode === 'unread'} onClick={() => setListMode((value) => value === 'unread' ? 'all' : 'unread')}><FiBell /><span>Belum dibaca</span><b>{workspace.unread_total}</b></button><button data-active={listMode === 'mentions'} onClick={() => setListMode((value) => value === 'mentions' ? 'all' : 'mentions')}><FiAtSign /><span>Mention</span>{workspace.mentions_total ? <b>{workspace.mentions_total}</b> : null}</button><button data-active={listMode === 'starred'} onClick={() => setListMode((value) => value === 'starred' ? 'all' : 'starred')}><FiStar /><span>Berbintang</span></button></nav>
+        <section className="rk-chat-group"><header><strong>Asisten</strong><FiZap /></header><a className="rk-chat-ceo-link" href="/ruang-kawan/chat/ceo/"><FiZap /><span><strong>Kawan AI — Asisten CEO</strong><small>Prioritas, deadline, approval</small></span></a></section>
         <ConversationGroup title="Pesan langsung" items={direct} selectedId={selectedId} onSelect={selectConversation} />
         <ConversationGroup title="Ruang" items={spaces} selectedId={selectedId} onSelect={selectConversation} />
       </aside>
