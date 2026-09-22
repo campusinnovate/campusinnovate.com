@@ -11,6 +11,31 @@ function json(value:unknown,status:number,origin:string|null){return new Respons
 function clean(value:unknown,max:number){return typeof value==='string'?value.trim().slice(0,max):'';}
 function sources(context:Record<string,unknown>){const seen=new Set<string>();const out:Array<{label:string;url:string}>[]=[];const visit=(value:unknown)=>{if(!value||typeof value!=='object')return;const item=value as Record<string,unknown>;const url=typeof item.module_route==='string'?item.module_route:typeof item.action_url==='string'?item.action_url:'';const title=typeof item.title==='string'?item.title:'';if(url&&title&&!seen.has(url)){seen.add(url);out.push({label:title,url});}Object.values(item).forEach(v=>Array.isArray(v)?v.forEach(visit):undefined);};visit(context);return out.slice(0,16);}
 
+
+function contextList(context:Record<string,unknown>,key:string){return Array.isArray(context[key])?context[key] as Array<Record<string,unknown>>:[];}
+function itemTitle(item:Record<string,unknown>){return clean(item.title,140)||'Aktivitas tanpa judul';}
+function itemDate(item:Record<string,unknown>){return clean(item.activity_date,32);}
+function compactList(items:Array<Record<string,unknown>>,limit=4){return items.slice(0,limit).map((item,index)=>`${index+1}. ${itemTitle(item)}${itemDate(item)?` — ${itemDate(item)}`:''}`).join('\n');}
+function fallbackAnswer(context:Record<string,unknown>,prompt:string,mode:string){
+ const today=contextList(context,'today_tasks'), overdue=contextList(context,'overdue_tasks'), upcoming=contextList(context,'upcoming_deadlines');
+ const meetings=contextList(context,'today_meetings'), approvals=contextList(context,'ceo_approvals'), pipeline=contextList(context,'pipeline_followups'), risks=contextList(context,'project_risks');
+ const q=prompt.toLowerCase();
+ const section=(title:string,items:Array<Record<string,unknown>>,empty:string)=>`**${title}**\n${items.length?compactList(items):empty}`;
+ if(q.includes('meeting')||q.includes('besok'))return section('Meeting hari ini',meetings,'Belum ada meeting internal yang tercatat untuk hari ini.');
+ if(q.includes('approval')||q.includes('setuju')||q.includes('review'))return section('Butuh approval CEO',approvals,'Belum ada approval yang terdeteksi dari status pekerjaan saat ini.');
+ if(q.includes('kelewat')||q.includes('overdue')||q.includes('terlambat'))return section('Pekerjaan terlambat',overdue,'Tidak ada pekerjaan terlambat yang tercatat.');
+ if(q.includes('pipeline')||q.includes('follow'))return section('Follow-up pipeline',pipeline,'Belum ada follow-up pipeline aktif yang tercatat.');
+ if(q.includes('risiko')||q.includes('bermasalah')||q.includes('project'))return section('Project yang perlu perhatian',risks,'Belum ada project berisiko yang terdeteksi.');
+ const headline=mode==='morning_briefing'?'Selamat pagi, Fauzan 👋\n\n':'';
+ return headline+`Berikut fokus kerja Anda berdasarkan data Ruang Kawan saat ini.\n\n`+
+   section('Kerjakan sekarang',[...overdue,...today],'Belum ada deadline hari ini atau pekerjaan terlambat.')+`\n\n`+
+   section('Agenda hari ini',meetings,'Belum ada meeting internal yang tercatat hari ini.')+`\n\n`+
+   section('Butuh keputusan CEO',approvals,'Belum ada approval yang terdeteksi.')+`\n\n`+
+   (upcoming.length?`**Deadline 7 hari ke depan**\n${compactList(upcoming)}\n\n`:'')+
+   (pipeline.length?`**Follow-up pipeline**\n${compactList(pipeline)}\n\n`:'')+
+   'Mau saya rinci salah satu prioritas di atas?';
+}
+
 Deno.serve(async req=>{
  const origin=req.headers.get('Origin');
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors(origin)});
@@ -41,9 +66,12 @@ Deno.serve(async req=>{
    : prompt;
  const response=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${GROQ_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,max_completion_tokens:1800,messages:[{role:'system',content:instruction},{role:'user',content:`Pertanyaan: ${input}\n\nKonteks terotorisasi: ${JSON.stringify(context).slice(0,26000)}`}],response_format:{type:'json_object'}})});
  const raw=await response.json().catch(()=>({}));
- if(!response.ok){console.error('Groq chat completion failed',response.status,raw);return json({error:'Kawan AI belum dapat memproses permintaan. Coba lagi beberapa saat.'},502,origin);}
- const output=raw.choices?.[0]?.message?.content;
- let answer='';try{answer=JSON.parse(String(output??'')).answer;}catch{console.error('Groq returned unreadable output',raw);return json({error:'Jawaban Kawan AI tidak dapat dibaca.'},502,origin);}
+ let answer='';
+ if(response.ok){
+   const output=raw.choices?.[0]?.message?.content;
+   try{answer=clean(JSON.parse(String(output??'')).answer,6000);}catch{console.error('Groq returned unreadable output',raw);}
+ }else{console.error('Groq chat completion failed',response.status,raw);}
+ if(!answer)answer=fallbackAnswer(context,input,mode);
  const membershipResult=await client.rpc('current_membership_id');
  const membership=membershipResult.data as string | null;
  if(!membership)return json({error:'Keanggotaan aktif tidak ditemukan.'},403,origin);
