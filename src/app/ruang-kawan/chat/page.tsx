@@ -56,6 +56,7 @@ function localInputValue(date: Date) {
 
 export default function KawanChatPage() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'denied'>('loading');
+  const [ceoAssistantAvailable, setCeoAssistantAvailable] = useState(false);
   const [workspace, setWorkspace] = useState<Workspace>(emptyWorkspace);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ConversationPayload | null>(null);
@@ -168,6 +169,8 @@ export default function KawanChatPage() {
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { window.location.replace('/ruang-kawan/'); return; }
+    const ceoAccess = await supabase.rpc('kawan_ai_ceo_access');
+    setCeoAssistantAvailable(Boolean(ceoAccess.data) && !ceoAccess.error);
     const accessResult = await supabase.rpc('get_my_access');
     const access = Array.isArray(accessResult.data) ? accessResult.data[0] : accessResult.data;
     if (!access || access.membership_status !== 'active') { setStatus('denied'); return; }
@@ -389,7 +392,7 @@ export default function KawanChatPage() {
         <button className="rk-chat-new" onClick={() => setCreateOpen(true)} disabled={backendPending}><FiPlus /> Percakapan baru</button>
         <label className="rk-chat-search"><FiSearch /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari percakapan" /></label>
         <nav className="rk-chat-shortcuts"><button data-active={listMode === 'unread'} onClick={() => setListMode((value) => value === 'unread' ? 'all' : 'unread')}><FiBell /><span>Belum dibaca</span><b>{workspace.unread_total}</b></button><button data-active={listMode === 'mentions'} onClick={() => setListMode((value) => value === 'mentions' ? 'all' : 'mentions')}><FiAtSign /><span>Mention</span>{workspace.mentions_total ? <b>{workspace.mentions_total}</b> : null}</button><button data-active={listMode === 'starred'} onClick={() => setListMode((value) => value === 'starred' ? 'all' : 'starred')}><FiStar /><span>Berbintang</span></button></nav>
-        <section className="rk-chat-group"><header><strong>Asisten</strong><FiZap /></header><a className="rk-chat-ceo-link" href="/ruang-kawan/chat/ceo/"><FiZap /><span><strong>Kawan AI — Asisten CEO</strong><small>Prioritas, deadline, approval</small></span></a></section>
+        {ceoAssistantAvailable ? <section className="rk-chat-group"><header><strong>Asisten</strong><FiZap /></header><a className="rk-chat-ceo-link" href="/ruang-kawan/chat/ceo/"><FiZap /><span><strong>Kawan AI — Asisten CEO</strong><small>Prioritas, deadline, approval</small></span></a></section> : null}
         <ConversationGroup title="Pesan langsung" items={direct} selectedId={selectedId} onSelect={selectConversation} />
         <ConversationGroup title="Ruang" items={spaces} selectedId={selectedId} onSelect={selectConversation} />
       </aside>
