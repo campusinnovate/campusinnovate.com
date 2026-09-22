@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { supabasePublishableKey, supabaseUrl } from '@/lib/supabase/config';
 
 type Source={label:string;url:string};
-type Message={id:string;role:'user'|'assistant'|'system';message_kind:'chat'|'morning_briefing';content:string;sources:Source[];created_at:string};
+type Message={id:string;role:'user'|'assistant'|'system';message_kind:'chat'|'morning_briefing';content:string;sources:Source[];created_at:string;briefing_date?:string|null};
 const prompts=['Hari ini aku harus ngerjain apa?','Ada deadline yang kelewat?','Besok ada meeting apa?','Apa yang butuh approval aku?','Tolong buatkan prioritas kerja hari ini.'];
 
 export default function KawanAiCeoPage(){
@@ -37,7 +37,9 @@ export default function KawanAiCeoPage(){
  }
  useEffect(()=>{void load();},[]);
  useEffect(()=>{
-  if(loading||items.some(item=>item.message_kind==='morning_briefing'))return;
+  const formatter=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'});
+  const today=formatter.format(new Date());
+  if(loading||items.some(item=>item.message_kind==='morning_briefing'&&item.briefing_date===today))return;
   const hour=Number(new Intl.DateTimeFormat('en-US',{hour:'2-digit',hour12:false,timeZone:'Asia/Jakarta'}).format(new Date()));
   if(hour>=7)void ask('', 'morning_briefing');
  },[loading,items.length]);
