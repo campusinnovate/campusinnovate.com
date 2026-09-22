@@ -32,9 +32,6 @@ begin
 
   if public.current_user_has_permission('activity.view_self') then
     select coalesce(public.list_my_activity_feed(),'[]'::jsonb) into feed;
-  end if;
-
-  if public.current_user_has_permission('assignments.view') then
     select coalesce(public.list_accessible_assignments(),'[]'::jsonb) into assignments;
   end if;
 
