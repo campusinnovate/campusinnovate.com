@@ -39,7 +39,7 @@ begin
   return coalesce((
     select jsonb_agg(jsonb_build_object(
       'id',id,'role',role,'message_kind',message_kind,'content',content,
-      'sources',sources,'created_at',created_at
+      'sources',sources,'briefing_date',briefing_date,'created_at',created_at
     ) order by created_at)
     from (
       select * from public.kawan_ai_ceo_messages
