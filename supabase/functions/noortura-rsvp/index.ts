@@ -27,16 +27,11 @@ async function syncToGoogleSheets(
   admin: ReturnType<typeof createClient>,
   registrationId: string,
 ) {
-  const webhookUrl = Deno.env.get('GOOGLE_SHEETS_WEBHOOK_URL')
-  const sharedSecret = Deno.env.get('NOORTURA_SHEETS_SECRET')
+  const spreadsheetId = '18BmluvyFClHJwjAuJRocDcj-Wdkeumd9gSBcx-nd74M'
+  const googleClientId = Deno.env.get('GOOGLE_CALENDAR_CLIENT_ID')
+  const googleClientSecret = Deno.env.get('GOOGLE_CALENDAR_CLIENT_SECRET')
 
-  if (!webhookUrl || !sharedSecret) {
-    await admin
-      .from('noortura_open_house_rsvps')
-      .update({ sheet_sync_status: 'disabled', sheet_sync_error: 'Webhook Google Sheets belum dikonfigurasi.' })
-      .eq('id', registrationId)
-    return 'disabled'
-  }
+  if (!googleClientId || !googleClientSecret) throw new Error('Konfigurasi Google Workspace belum tersedia.')
 
   const { data: registration, error: registrationError } = await admin
     .from('noortura_open_house_rsvps')
@@ -46,29 +41,128 @@ async function syncToGoogleSheets(
 
   if (registrationError || !registration) throw registrationError || new Error('Data RSVP tidak ditemukan.')
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 8_000)
+  const { data: connection, error: connectionError } = await admin
+    .from('google_calendar_connections')
+    .select('id,access_token,refresh_token,token_expires_at')
+    .eq('google_account_email', 'innovatecampus@gmail.com')
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
-  try {
-    const sheetResponse = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret: sharedSecret, registration }),
-      signal: controller.signal,
-    })
-    const result = await sheetResponse.json().catch(() => ({}))
-    if (!sheetResponse.ok || result?.ok !== true) {
-      throw new Error(result?.error || `Google Sheets merespons ${sheetResponse.status}.`)
-    }
-
-    await admin
-      .from('noortura_open_house_rsvps')
-      .update({ sheet_sync_status: 'synced', sheet_synced_at: new Date().toISOString(), sheet_sync_error: null })
-      .eq('id', registrationId)
-    return 'synced'
-  } finally {
-    clearTimeout(timeout)
+  if (connectionError || !connection?.refresh_token) {
+    throw connectionError || new Error('Akun Google Campus Innovate belum terhubung.')
   }
+
+  let accessToken = connection.access_token
+  const expiresAt = connection.token_expires_at ? new Date(connection.token_expires_at).getTime() : 0
+  if (!accessToken || expiresAt <= Date.now() + 90_000) {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: googleClientId,
+        client_secret: googleClientSecret,
+        refresh_token: connection.refresh_token,
+        grant_type: 'refresh_token',
+      }),
+    })
+    const token = await tokenResponse.json()
+    if (!tokenResponse.ok || !token.access_token) {
+      throw new Error(token.error_description || 'Token Google tidak dapat diperbarui.')
+    }
+    accessToken = token.access_token
+    await admin.from('google_calendar_connections').update({
+      access_token: accessToken,
+      token_expires_at: new Date(Date.now() + Number(token.expires_in ?? 3600) * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', connection.id)
+  }
+
+  const sheetsRequest = async (path: string, init?: RequestInit) => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8_000)
+    try {
+      const googleResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}${path}`, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          ...(init?.headers || {}),
+        },
+        signal: controller.signal,
+      })
+      const result = await googleResponse.json().catch(() => ({}))
+      if (!googleResponse.ok) throw new Error(result?.error?.message || `Google Sheets merespons ${googleResponse.status}.`)
+      return result
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+
+  const timestamp = new Date(registration.created_at).getTime() / 86_400_000 + 25_569
+  const rsvpStatus = registration.status === 'tentative' ? 'Tentatif' : 'Hadir'
+
+  if (registration.invited_guest_id) {
+    const range = encodeURIComponent("'Guest List'!A5:A1000")
+    const guestIds = await sheetsRequest(`/values/${range}?majorDimension=ROWS`)
+    const index = (guestIds.values || []).findIndex((row: unknown[]) => row?.[0] === registration.invited_guest_id)
+    if (index < 0) throw new Error(`ID tamu ${registration.invited_guest_id} tidak ditemukan di Guest List.`)
+    const row = index + 5
+
+    await sheetsRequest('/values:batchUpdate', {
+      method: 'POST',
+      body: JSON.stringify({
+        valueInputOption: 'USER_ENTERED',
+        data: [
+          { range: `'Guest List'!E${row}:H${row}`, values: [[registration.whatsapp, registration.email, registration.adult_count, registration.child_count]] },
+          { range: `'Guest List'!J${row}:M${row}`, values: [[rsvpStatus, registration.arrival_slot, registration.parent_name, timestamp]] },
+        ],
+      }),
+    })
+  } else {
+    const idRange = encodeURIComponent("'RSVP Publik'!B5:B1000")
+    const publicIds = await sheetsRequest(`/values/${idRange}?majorDimension=ROWS`)
+    const index = (publicIds.values || []).findIndex((row: unknown[]) => row?.[0] === registration.id)
+    const children = (registration.children || [])
+      .map((child: Record<string, unknown>) => `${child.name} (${child.age} tahun)`)
+      .join(', ')
+    const values = [[
+      timestamp,
+      registration.id,
+      registration.parent_name,
+      registration.whatsapp,
+      registration.email,
+      registration.adult_count,
+      registration.child_count,
+      children,
+      registration.arrival_slot,
+      `${registration.attendance_confidence}%`,
+      rsvpStatus,
+      registration.documentation_consent,
+      registration.privacy_consent,
+      registration.source,
+      '',
+    ]]
+
+    if (index >= 0) {
+      const row = index + 5
+      const range = encodeURIComponent(`'RSVP Publik'!A${row}:O${row}`)
+      await sheetsRequest(`/values/${range}?valueInputOption=USER_ENTERED`, { method: 'PUT', body: JSON.stringify({ values }) })
+    } else {
+      const range = encodeURIComponent("'RSVP Publik'!A:O")
+      await sheetsRequest(`/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
+        method: 'POST',
+        body: JSON.stringify({ values }),
+      })
+    }
+  }
+
+  await admin
+    .from('noortura_open_house_rsvps')
+    .update({ sheet_sync_status: 'synced', sheet_synced_at: new Date().toISOString(), sheet_sync_error: null })
+    .eq('id', registrationId)
+  return 'synced'
 }
 
 Deno.serve(async (req) => {
