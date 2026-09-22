@@ -32,7 +32,7 @@ Deno.serve(async req=>{
  const historyResult=await client.rpc('kawan_ai_ceo_history');
  const history=historyResult.error?[]:historyResult.data;
  if(mode==='morning_briefing'){
-   const already=Array.isArray(history)&&history.find((item:Record<string,unknown>)=>item.message_kind==='morning_briefing'&&String(item.created_at).slice(0,10)===today);
+   const already=Array.isArray(history)&&history.find((item:Record<string,unknown>)=>item.message_kind==='morning_briefing'&&String(item.briefing_date)===today);
    if(already)return json({message:already,existing:true},200,origin);
  }
  const schema={type:'object',additionalProperties:false,required:['answer'],properties:{answer:{type:'string',minLength:1,maxLength:6000}}};
@@ -45,7 +45,7 @@ Deno.serve(async req=>{
  if(!response.ok)return json({error:'Kawan AI belum dapat memproses permintaan.'},502,origin);
  const output=raw.output_text??raw.output?.flatMap((x:Record<string,unknown>)=>Array.isArray(x.content)?x.content:[]).find((x:Record<string,unknown>)=>x.type==='output_text')?.text;
  let answer='';try{answer=JSON.parse(String(output??'')).answer;}catch{return json({error:'Jawaban Kawan AI tidak dapat dibaca.'},502,origin);}
- const membership=(contextResult.data as Record<string,unknown>).actor?.membership_id;
+ const membershipResult=await client.rpc('current_membership_id');\n const membership=membershipResult.data as string | null;\n if(!membership)return json({error:'Keanggotaan aktif tidak ditemukan.'},403,origin);
  const cited=sources(context);
  if(mode==='chat')await client.from('kawan_ai_ceo_messages').insert({membership_id:membership,role:'user',message_kind:'chat',content:prompt,sources:[]});
  const saved=await client.from('kawan_ai_ceo_messages').insert({membership_id:membership,role:'assistant',message_kind:mode==='morning_briefing'?'morning_briefing':'chat',content:answer,sources:cited,briefing_date:mode==='morning_briefing'?today:null}).select().single();
