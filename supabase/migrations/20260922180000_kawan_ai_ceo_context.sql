@@ -23,6 +23,8 @@ declare
   feed jsonb:='[]'::jsonb;
   assignments jsonb:='[]'::jsonb;
   notifications jsonb:='[]'::jsonb;
+  projects jsonb:='[]'::jsonb;
+  chat_attention jsonb:='{}'::jsonb;
 begin
   if me is null
     or not public.current_user_has_permission('ai.use')
@@ -33,6 +35,14 @@ begin
   if public.current_user_has_permission('activity.view_self') then
     select coalesce(public.list_my_activity_feed(),'[]'::jsonb) into feed;
     select coalesce(public.list_accessible_assignments(),'[]'::jsonb) into assignments;
+  end if;
+
+  if public.current_user_has_permission('projects.view') then
+    select coalesce(public.list_projects(),'[]'::jsonb) into projects;
+  end if;
+
+  if public.current_user_has_permission('chat.view') then
+    select coalesce(public.chat_workspace(),'{}'::jsonb) into chat_attention;
   end if;
 
   if public.current_user_has_permission('notifications.view_self') then
@@ -91,6 +101,8 @@ begin
         and coalesce(x->>'status','not_started') <> 'done'
     ),'[]'::jsonb),
     'assignments',assignments,
+    'project_risks',projects,
+    'chat_attention',chat_attention,
     'unread_notifications',notifications,
     'source_policy','Setiap item hanya berasal dari RPC dan tabel yang sudah dibatasi oleh izin pengguna aktif. Gunakan module_route atau action_url sebagai sumber.'
   );
