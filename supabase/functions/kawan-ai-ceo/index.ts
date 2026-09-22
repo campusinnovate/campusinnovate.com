@@ -40,13 +40,11 @@ Deno.serve(async req=>{
  const input=mode==='morning_briefing'
    ? 'Buat briefing CEO lengkap untuk hari ini. Cantumkan: seluruh tugas hari ini, overdue penting, deadline tujuh hari ke depan, meeting, follow-up pipeline, project berisiko, approval yang memerlukan keputusan CEO, notifikasi penting, lalu prioritas dengan kelompok Kerjakan sekarang, Selesaikan hari ini, Delegasikan, Pantau, dan Bisa ditunda. Gunakan heading yang mudah dipindai dan tetap ringkas pada tiap item. Akhiri dengan satu pertanyaan tindak lanjut.'
    : prompt;
- const response=await fetch('https://api.groq.com/openai/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${GROQ_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,max_output_tokens:1800,instructions:instruction,input:`Pertanyaan: ${input}
-
-Konteks terotorisasi: ${JSON.stringify(context).slice(0,26000)}`,text:{format:{type:'json_schema',name:'kawan_ai_ceo_response',strict:true,schema}}})});
+ const response=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${GROQ_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,reasoning_effort:'low',max_completion_tokens:1800,messages:[{role:'system',content:instruction},{role:'user',content:`Pertanyaan: ${input}\n\nKonteks terotorisasi: ${JSON.stringify(context).slice(0,26000)}`}],response_format:{type:'json_schema',json_schema:{name:'kawan_ai_ceo_response',strict:true,schema}}})});
  const raw=await response.json().catch(()=>({}));
- if(!response.ok)return json({error:'Kawan AI belum dapat memproses permintaan.'},502,origin);
- const output=raw.output_text??raw.output?.flatMap((x:Record<string,unknown>)=>Array.isArray(x.content)?x.content:[]).find((x:Record<string,unknown>)=>x.type==='output_text')?.text;
- let answer='';try{answer=JSON.parse(String(output??'')).answer;}catch{return json({error:'Jawaban Kawan AI tidak dapat dibaca.'},502,origin);}
+ if(!response.ok){console.error('Groq chat completion failed',response.status,raw);return json({error:'Kawan AI belum dapat memproses permintaan. Coba lagi beberapa saat.'},502,origin);}
+ const output=raw.choices?.[0]?.message?.content;
+ let answer='';try{answer=JSON.parse(String(output??'')).answer;}catch{console.error('Groq returned unreadable output',raw);return json({error:'Jawaban Kawan AI tidak dapat dibaca.'},502,origin);}
  const membershipResult=await client.rpc('current_membership_id');
  const membership=membershipResult.data as string | null;
  if(!membership)return json({error:'Keanggotaan aktif tidak ditemukan.'},403,origin);
