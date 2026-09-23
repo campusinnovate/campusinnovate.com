@@ -38,7 +38,7 @@ type SearchResult = { id: string; conversation_id: string; conversation_name: st
 type ProjectOption = { id: string; name: string; project_code?: string | null };
 type ActionKind = 'assignment' | 'decision' | 'meeting' | 'project' | 'edit' | null;
 type AiAction = { id: string; type: 'create_assignment' | 'save_decision' | 'create_meeting' | 'link_project'; title: string; payload_json?: string };
-type CeoMessage = { id: string; role: 'user'|'assistant'|'system'; message_kind: 'chat'|'morning_briefing'; content: string; sources?: Array<{label:string;url:string}>; briefing_date?: string|null; created_at: string };
+type CeoMessage = { id: string; role: 'user'|'assistant'|'system'; message_kind: 'chat'|'morning_briefing'; content: string; sources?: Array<{label:string;url:string}>; briefing_date?: string|null; parent_message_id?: string|null; created_at: string };
 
 const emptyWorkspace: Workspace = { conversations: [], members: [], unread_total: 0 };
 const apiMissingCodes = new Set(['42883', 'PGRST202', 'PGRST205']);
@@ -466,6 +466,7 @@ function CeoAssistantPanel({ onBack }: { onBack: () => void }) {
   const [messages,setMessages]=useState<CeoMessage[]>([]);
   const [context,setContext]=useState<Record<string,unknown>>({});
   const [input,setInput]=useState('');
+  const [replyTo,setReplyTo]=useState<CeoMessage|null>(null);
   const [loading,setLoading]=useState(true);
   const [sending,setSending]=useState(false);
   const [error,setError]=useState('');
@@ -501,11 +502,11 @@ function CeoAssistantPanel({ onBack }: { onBack: () => void }) {
     if(!result.error)setContext((result.data??{}) as Record<string,unknown>);
     void refreshCalendarCount();
   }
-  async function invoke(prompt:string,mode:'chat'|'morning_briefing'='chat'){
+  async function invoke(prompt:string,mode:'chat'|'morning_briefing'='chat',reply?:CeoMessage|null){
     const supabase=createClient();
     const {data:{session}}=await supabase.auth.getSession();
     if(!session)throw new Error('Sesi login berakhir. Silakan masuk kembali.');
-    const response=await fetch(`${supabaseUrl}/functions/v1/kawan-ai-ceo`,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({prompt,mode})});
+    const response=await fetch(`${supabaseUrl}/functions/v1/kawan-ai-ceo`,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({prompt,mode,reply_to_message_id:reply?.id??null,reply_context:reply?.content??''})});
     const body=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(String(body.error??'Kawan AI belum dapat memproses permintaan.'));
     if(body.message)setMessages(current=>body.existing?current:[...current,body.message as CeoMessage]);
@@ -524,7 +525,7 @@ function CeoAssistantPanel({ onBack }: { onBack: () => void }) {
   }
   useEffect(()=>{void load();},[]);
   useEffect(()=>{bottom.current?.scrollIntoView({block:'end'});},[messages,sending]);
-  async function send(event:FormEvent){event.preventDefault();const prompt=input.trim();if(!prompt||sending)return;setSending(true);setError('');setMessages(current=>[...current,{id:`local-${Date.now()}`,role:'user',message_kind:'chat',content:prompt,created_at:new Date().toISOString()}]);setInput('');try{await invoke(prompt);}catch(err){setError(err instanceof Error?err.message:'Kawan AI belum dapat memproses permintaan.');}finally{setSending(false);}}
+  async function send(event:FormEvent){event.preventDefault();const prompt=input.trim();const parent=replyTo;if(!prompt||sending)return;setSending(true);setError('');setMessages(current=>[...current,{id:`local-${Date.now()}`,role:'user',message_kind:'chat',content:prompt,parent_message_id:parent?.id??null,created_at:new Date().toISOString()}]);setInput('');setReplyTo(null);try{await invoke(prompt,'chat',parent);}catch(err){setError(err instanceof Error?err.message:'Kawan AI belum dapat memproses permintaan.');}finally{setSending(false);}}
   const renderTask=(item:ContextItem,overdue=false)=><a className="rk-ceo-focus-item" data-tone={taskTone(item,overdue)} href={item.module_route||item.action_url||'/ruang-kawan/activity/'} key={item.id||`${item.title}-${item.activity_date}`}><span className="rk-ceo-focus-index"><FiCheckCircle/></span><span className="rk-ceo-focus-copy"><strong>{item.title||'Aktivitas tanpa judul'}</strong><small>{deadlineLabel(item,overdue)}</small></span><em>{taskLabel(item,overdue)}</em><i>{sourceLabel(item)} <FiArrowLeft/></i></a>;
   return <div className="rk-ceo-chat">
     <header className="rk-chat-conversation-head rk-ceo-chat-head"><button className="rk-chat-mobile-back" onClick={onBack} aria-label="Buka daftar percakapan"><FiArrowLeft /></button><span className="rk-ceo-avatar"><FiZap /></span><div><h1>Kawan AI — Asisten CEO</h1><span>CEO workspace · Asia/Jakarta</span></div></header>
@@ -535,10 +536,10 @@ function CeoAssistantPanel({ onBack }: { onBack: () => void }) {
       {items('today_tasks').map(item=>renderTask(item))}
       {!items('overdue_tasks').length&&!items('today_tasks').length?<p>Belum ada task dengan deadline hari ini atau yang terlambat.</p>:null}
       </section>
-      {messages.map(item=>{const obsolete=item.role==='assistant'&&item.content.length>900&&item.content.includes('Berikut fokus kerja Anda berdasarkan');if(obsolete)return null;const concise=item.content.replace(/\*\*/g,'');return <article className="rk-ceo-message" data-role={item.role} key={item.id}><small>{item.role==='assistant'?'Kawan AI':'Anda'} · {formatTime(item.created_at)}</small><p>{concise}</p>{compactSources(item).length?<nav>{compactSources(item).map(source=><a href={source.url} key={source.url} title={source.label}><FiLink/><span>{source.label}</span></a>)}</nav>:null}</article>})}
+      {messages.map(item=>{const obsolete=item.role==='assistant'&&item.content.length>900&&item.content.includes('Berikut fokus kerja Anda berdasarkan');if(obsolete)return null;const concise=item.content.replace(/\*\*/g,'');return <article className="rk-ceo-message" data-role={item.role} key={item.id}><small>{item.role==='assistant'?'Kawan AI':'Anda'} · {formatTime(item.created_at)}</small>{item.parent_message_id?<em className="rk-ceo-reply-label"><FiCornerUpLeft/> Membalas konteks sebelumnya</em>:null}<p>{concise}</p>{compactSources(item).length?<nav>{compactSources(item).map(source=><a href={source.url} key={source.url} title={source.label}><FiLink/><span>{source.label}</span></a>)}</nav>:null}{item.role==='assistant'?<footer><button type="button" onClick={()=>setReplyTo(item)}><FiCornerUpLeft/> Balas</button></footer>:null}</article>})}
     </>}{error?<p className="rk-chat-alert">{error}</p>:null}<div ref={bottom}/></section>
     <section className="rk-ceo-prompts"><button onClick={()=>setInput('Hari ini aku harus ngerjain apa?')}>Prioritas hari ini</button><button onClick={()=>setInput('Ada deadline yang kelewat?')}>Deadline terlewat</button><button onClick={()=>setInput('Apa yang butuh approval aku?')}>Butuh approval</button></section>
-    <form className="rk-chat-composer rk-ceo-composer" onSubmit={send}><input value={input} onChange={event=>setInput(event.target.value)} placeholder="Tanya atau perintahkan Kawan AI…" /><button type="submit" aria-label="Kirim pesan" disabled={!input.trim()||sending}>{sending?<FiLoader/>:<FiSend/>}</button></form>
+    <form className="rk-chat-composer rk-ceo-composer" onSubmit={send}>{replyTo?<div className="rk-ceo-replying"><span><FiCornerUpLeft/> Membalas Kawan AI · {replyTo.content.slice(0,100)}{replyTo.content.length>100?'…':''}</span><button type="button" onClick={()=>setReplyTo(null)} aria-label="Batalkan balasan"><FiX/></button></div>:null}<input value={input} onChange={event=>setInput(event.target.value)} placeholder={replyTo?"Tulis balasan untuk konteks ini…":"Tanya atau perintahkan Kawan AI…"} /><button type="submit" aria-label="Kirim pesan" disabled={!input.trim()||sending}>{sending?<FiLoader/>:<FiSend/>}</button></form>
   </div>;
 }
 
