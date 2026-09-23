@@ -151,7 +151,7 @@ function registerGuest_(spreadsheet, registration, requestId) {
   ]]);
   sheet.getRange(row, 10, 1, 4).setValues([[
     status,
-    registration.slot,
+    textCell_(registration.slot),
     safeCell_(childNames),
     new Date(),
   ]]);
@@ -183,7 +183,7 @@ function registerPublic_(spreadsheet, registration, requestId) {
     registration.adultCount,
     registration.childCount,
     safeCell_(childDetails),
-    registration.slot,
+    textCell_(registration.slot),
     registration.certainty + '%',
     status,
     registration.documentation ? 'Ya' : 'Tidak',
@@ -282,8 +282,9 @@ function getSlotCounts_(spreadsheet, excludedGuestRow) {
   if (guestSheet && guestSheet.getLastRow() >= 5) {
     const rows = guestSheet.getRange(5, 10, guestSheet.getLastRow() - 4, 2).getDisplayValues();
     rows.forEach(function (row, index) {
-      if (index + 5 !== excludedGuestRow && row[0] && ARRIVAL_SLOTS.indexOf(row[1]) !== -1) {
-        counts[row[1]] = (counts[row[1]] || 0) + 1;
+      const slot = normalizeSlot_(row[1]);
+      if (index + 5 !== excludedGuestRow && row[0] && ARRIVAL_SLOTS.indexOf(slot) !== -1) {
+        counts[slot] = (counts[slot] || 0) + 1;
       }
     });
   }
@@ -291,8 +292,9 @@ function getSlotCounts_(spreadsheet, excludedGuestRow) {
   if (publicSheet && publicSheet.getLastRow() >= 5) {
     const rows = publicSheet.getRange(5, 9, publicSheet.getLastRow() - 4, 3).getDisplayValues();
     rows.forEach(function (row) {
-      if (row[2] && ARRIVAL_SLOTS.indexOf(row[0]) !== -1) {
-        counts[row[0]] = (counts[row[0]] || 0) + 1;
+      const slot = normalizeSlot_(row[0]);
+      if (row[2] && ARRIVAL_SLOTS.indexOf(slot) !== -1) {
+        counts[slot] = (counts[slot] || 0) + 1;
       }
     });
   }
@@ -326,6 +328,17 @@ function javascriptResponse_(callback, body) {
 function safeCell_(value) {
   const text = String(value == null ? '' : value);
   return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+function textCell_(value) {
+  return "'" + String(value == null ? '' : value);
+}
+
+function normalizeSlot_(value) {
+  const text = String(value == null ? '' : value).trim().replace(':', '.');
+  if (ARRIVAL_SLOTS.indexOf(text) !== -1) return text;
+  const numeric = Number(text);
+  return isFinite(numeric) ? numeric.toFixed(2) : text;
 }
 
 function normalizePhone_(value) {

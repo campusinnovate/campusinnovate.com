@@ -21,7 +21,7 @@ const context = {
 };
 
 vm.createContext(context);
-vm.runInContext(`${source}\nthis.__test = { getFullSlots_, assertSlotAvailable_, htmlResponse_, jsonResponse_, validateRegistration_ };`, context);
+vm.runInContext(`${source}\nthis.__test = { getFullSlots_, assertSlotAvailable_, htmlResponse_, jsonResponse_, normalizeSlot_, validateRegistration_ };`, context);
 
 function makeSheet(rows, columns) {
   return {
@@ -95,5 +95,7 @@ assert.doesNotThrow(() => context.__test.validateRegistration_({
 assert.match(source, /getRange\(row, 10, 1, 4\)/);
 assert.match(source, /getRange\(row, 15\)\.setValue\(requestId\)/);
 assert.match(source, /getRange\(row, 1, 1, 16\)/);
+assert.equal(context.__test.normalizeSlot_('14.4'), '14.40');
+assert.equal(context.__test.normalizeSlot_('08:20'), '08.20');
 
 console.log('Noortura Apps Script tests passed.');
