@@ -70,6 +70,18 @@ function parseLegacyAppsScriptHtml(rawHtml: string) {
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>')
     .replaceAll('&amp;', '&');
+  const wrapper = html.match(/goog\.script\.init\("((?:\\.|[^"])*)"/s);
+  if (wrapper) {
+    const decodedConfig = wrapper[1]
+      .replace(/\\x([0-9a-f]{2})/gi, (_match, hex) => String.fromCharCode(Number.parseInt(hex, 16)))
+      .replace(/\\u([0-9a-f]{4})/gi, (_match, hex) => String.fromCharCode(Number.parseInt(hex, 16)))
+      .replace(/\\"/g, '"')
+      .replace(/\\\//g, '/')
+      .replace(/\\\\/g, '\\');
+    const config = JSON.parse(decodedConfig) as { userHtml?: string };
+    if (config.userHtml) return parseLegacyAppsScriptHtml(config.userHtml);
+  }
+
   const marker = html.search(/(?:parent|window\.parent)\s*\.\s*postMessage\s*\(/i);
   const start = html.indexOf('{', marker);
   if (marker < 0 || start < 0) throw new Error('Google Apps Script belum mengirim respons JSON.');
