@@ -60,6 +60,38 @@ function upstreamErrorStatus(code: string) {
   return 502;
 }
 
+// Deployment bridge only: production Apps Script may still be on the previous
+// HTML/postMessage version while its JSON deployment is being updated.
+function parseLegacyAppsScriptHtml(rawHtml: string) {
+  const html = rawHtml
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#34;', '"')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&amp;', '&');
+  const marker = html.search(/(?:parent|window\.parent)\s*\.\s*postMessage\s*\(/i);
+  const start = html.indexOf('{', marker);
+  if (marker < 0 || start < 0) throw new Error('Google Apps Script belum mengirim respons JSON.');
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < html.length; index += 1) {
+    const character = html[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') inString = true;
+    else if (character === '{') depth += 1;
+    else if (character === '}' && --depth === 0) return JSON.parse(html.slice(start, index + 1)) as JsonObject;
+  }
+  throw new Error('Balasan Google Apps Script tidak lengkap.');
+}
+
 async function sendToAppsScript(payload: JsonObject) {
   let lastError: unknown = new Error('Google Sheet belum merespons.');
 
@@ -82,11 +114,9 @@ async function sendToAppsScript(payload: JsonObject) {
 
       const contentType = response.headers.get('content-type') || '';
       const body = await response.text();
-      if (!contentType.toLowerCase().includes('application/json')) {
-        throw new Error('Google Apps Script belum mengirim respons JSON.');
-      }
-
-      const result = JSON.parse(body) as JsonObject;
+      const result = contentType.toLowerCase().includes('application/json')
+        ? JSON.parse(body) as JsonObject
+        : parseLegacyAppsScriptHtml(body);
       if (result.requestId !== payload.requestId) {
         throw new Error('Request ID balasan Google Sheet tidak cocok.');
       }
