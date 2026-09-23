@@ -474,8 +474,10 @@ function CeoAssistantPanel({ onBack }: { onBack: () => void }) {
   const items=(key:string)=>(Array.isArray(context[key])?context[key]:[]) as ContextItem[];
   const count=(key:string)=>items(key).length;
   const taskLabel=(item:ContextItem,overdue=false)=>{
-    if(overdue)return 'Terlambat';
-    return item.priority==='urgent'||item.priority==='high'?'Mendesak':'Hari ini';
+    if(overdue)return 'Mendesak';
+    if(item.priority==='urgent'||item.priority==='high')return 'Mendesak';
+    if(item.priority==='low')return 'Rendah';
+    return 'Sedang';
   };
   const taskTone=(item:ContextItem,overdue=false)=>overdue||item.priority==='urgent'||item.priority==='high'?'critical':'high';
   const deadlineLabel=(item:ContextItem,overdue=false)=>overdue?`Lewat dari ${item.activity_date||'tanggal yang ditetapkan'}`:'Deadline hari ini';
