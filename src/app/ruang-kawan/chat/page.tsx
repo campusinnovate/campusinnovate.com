@@ -38,6 +38,7 @@ type SearchResult = { id: string; conversation_id: string; conversation_name: st
 type ProjectOption = { id: string; name: string; project_code?: string | null };
 type ActionKind = 'assignment' | 'decision' | 'meeting' | 'project' | 'edit' | null;
 type AiAction = { id: string; type: 'create_assignment' | 'save_decision' | 'create_meeting' | 'link_project'; title: string; payload_json?: string };
+type CeoMessage = { id: string; role: 'user'|'assistant'|'system'; message_kind: 'chat'|'morning_briefing'; content: string; sources?: Array<{label:string;url:string}>; briefing_date?: string|null; created_at: string };
 
 const emptyWorkspace: Workspace = { conversations: [], members: [], unread_total: 0 };
 const apiMissingCodes = new Set(['42883', 'PGRST202', 'PGRST205']);
@@ -57,6 +58,7 @@ function localInputValue(date: Date) {
 export default function KawanChatPage() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'denied'>('loading');
   const [ceoAssistantAvailable, setCeoAssistantAvailable] = useState(false);
+  const [ceoOpen, setCeoOpen] = useState(false);
   const [workspace, setWorkspace] = useState<Workspace>(emptyWorkspace);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ConversationPayload | null>(null);
@@ -224,7 +226,7 @@ export default function KawanChatPage() {
     setThread(result.data as ThreadPayload);setThreadUnread(current=>({...current,[messageId]:0}));setThreadOpen(true); setDetailOpen(true); setMenuMessageId(null);
   }
 
-  function selectConversation(id:string){setSelectedId(id);if(window.innerWidth<=900)setSidebarOpen(false);}
+  function selectConversation(id:string){setCeoOpen(false);setSelectedId(id);if(window.innerWidth<=900)setSidebarOpen(false);}
 
   useEffect(() => { void loadWorkspace(); }, []);
   useEffect(() => { if (selectedId) void loadConversation(selectedId); else setDetail(null);const refresh=()=>{if(selectedId&&document.visibilityState==='visible')void loadConversation(selectedId,false);};const timer=setInterval(refresh,60000);window.addEventListener('focus',refresh);return()=>{++conversationRequest.current;clearInterval(timer);window.removeEventListener('focus',refresh);}; }, [selectedId]);
@@ -392,13 +394,13 @@ export default function KawanChatPage() {
         <button className="rk-chat-new" onClick={() => setCreateOpen(true)} disabled={backendPending}><FiPlus /> Percakapan baru</button>
         <label className="rk-chat-search"><FiSearch /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari percakapan" /></label>
         <nav className="rk-chat-shortcuts"><button data-active={listMode === 'unread'} onClick={() => setListMode((value) => value === 'unread' ? 'all' : 'unread')}><FiBell /><span>Belum dibaca</span><b>{workspace.unread_total}</b></button><button data-active={listMode === 'mentions'} onClick={() => setListMode((value) => value === 'mentions' ? 'all' : 'mentions')}><FiAtSign /><span>Mention</span>{workspace.mentions_total ? <b>{workspace.mentions_total}</b> : null}</button><button data-active={listMode === 'starred'} onClick={() => setListMode((value) => value === 'starred' ? 'all' : 'starred')}><FiStar /><span>Berbintang</span></button></nav>
-        {ceoAssistantAvailable ? <section className="rk-chat-group"><header><strong>Asisten</strong><FiZap /></header><a className="rk-chat-ceo-link" href="/ruang-kawan/chat/ceo/"><FiZap /><span><strong>Kawan AI — Asisten CEO</strong><small>Prioritas, deadline, approval</small></span></a></section> : null}
+        {ceoAssistantAvailable ? <section className="rk-chat-group"><header><strong>Asisten</strong><FiZap /></header><button type="button" className="rk-chat-ceo-link" data-active={ceoOpen} onClick={() => { setCeoOpen(true); if (window.innerWidth <= 900) setSidebarOpen(false); }}><FiZap /><span><strong>Kawan AI — Asisten CEO</strong><small>Prioritas, deadline, approval</small></span></button></section> : null}
         <ConversationGroup title="Pesan langsung" items={direct} selectedId={selectedId} onSelect={selectConversation} />
         <ConversationGroup title="Ruang" items={spaces} selectedId={selectedId} onSelect={selectConversation} />
       </aside>
 
       <section className="rk-chat-main">
-        {detail ? <>
+        {ceoOpen ? <CeoAssistantPanel onBack={() => setSidebarOpen(true)} /> : detail ? <>
           <header className="rk-chat-conversation-head" data-meeting={hasMeeting}>
             <button className="rk-chat-mobile-back" onClick={() => setSidebarOpen(true)} aria-label="Buka daftar percakapan"><FiArrowLeft /></button>
             <Avatar name={detail.conversation.name} url={detail.conversation.avatar_url} />
@@ -457,6 +459,49 @@ export default function KawanChatPage() {
     {searchOpen ? <ChatSearchDialog value={searchText} results={searchResults} searching={searching} mentionsOnly={listMode === 'mentions'} onChange={setSearchText} onSearch={runSearch} onClose={() => setSearchOpen(false)} onSelect={(item) => { setSelectedId(item.conversation_id); setSearchOpen(false); }} /> : null}
     {memberOpen&&detail?<ManageMembers conversationId={detail.conversation.id} current={detail.members} available={workspace.members} onClose={()=>setMemberOpen(false)} onSaved={async()=>{setMemberOpen(false);await loadConversation(detail.conversation.id,false);}}/>:null}
   </main>;
+}
+
+function CeoAssistantPanel({ onBack }: { onBack: () => void }) {
+  const [messages,setMessages]=useState<CeoMessage[]>([]);
+  const [context,setContext]=useState<Record<string,unknown>>({});
+  const [input,setInput]=useState('');
+  const [loading,setLoading]=useState(true);
+  const [sending,setSending]=useState(false);
+  const [error,setError]=useState('');
+  const bottom=useRef<HTMLDivElement>(null);
+  const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
+  const count=(key:string)=>Array.isArray(context[key])?context[key].length:0;
+
+  async function invoke(prompt:string,mode:'chat'|'morning_briefing'='chat'){
+    const supabase=createClient();
+    const {data:{session}}=await supabase.auth.getSession();
+    if(!session)throw new Error('Sesi login berakhir. Silakan masuk kembali.');
+    const response=await fetch(`${supabaseUrl}/functions/v1/kawan-ai-ceo`,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({prompt,mode})});
+    const body=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(String(body.error??'Kawan AI belum dapat memproses permintaan.'));
+    if(body.message)setMessages(current=>body.existing?current:[...current,body.message as CeoMessage]);
+  }
+  async function load(){
+    setLoading(true);setError('');
+    const supabase=createClient();
+    const [contextResult,historyResult]=await Promise.all([supabase.rpc('kawan_ai_ceo_context'),supabase.rpc('kawan_ai_ceo_history')]);
+    if(contextResult.error){setError(contextResult.error.message||'Konteks CEO belum dapat dimuat.');setLoading(false);return;}
+    const loaded=(historyResult.data??[]) as CeoMessage[];
+    setContext((contextResult.data??{}) as Record<string,unknown>);setMessages(loaded);setLoading(false);
+    if(!loaded.some(item=>item.message_kind==='morning_briefing'&&item.briefing_date===today)){
+      try{await invoke('', 'morning_briefing');}catch(err){setError(err instanceof Error?err.message:'Briefing belum dapat dibuat.');}
+    }
+  }
+  useEffect(()=>{void load();},[]);
+  useEffect(()=>{bottom.current?.scrollIntoView({block:'end'});},[messages,sending]);
+  async function send(event:FormEvent){event.preventDefault();const prompt=input.trim();if(!prompt||sending)return;setSending(true);setError('');setMessages(current=>[...current,{id:`local-${Date.now()}`,role:'user',message_kind:'chat',content:prompt,created_at:new Date().toISOString()}]);setInput('');try{await invoke(prompt);}catch(err){setError(err instanceof Error?err.message:'Kawan AI belum dapat memproses permintaan.');}finally{setSending(false);}}
+  return <div className="rk-ceo-chat">
+    <header className="rk-chat-conversation-head rk-ceo-chat-head"><button className="rk-chat-mobile-back" onClick={onBack} aria-label="Buka daftar percakapan"><FiArrowLeft /></button><span className="rk-ceo-avatar"><FiZap /></span><div><h1>Kawan AI — Asisten CEO</h1><span>CEO workspace · Asia/Jakarta</span></div></header>
+    <section className="rk-ceo-summary"><div><small>Fokus CEO</small><strong>Briefing saat Anda membuka chat</strong></div><span><b>{count('today_tasks')}</b> Hari ini</span><span data-alert><b>{count('overdue_tasks')}</b> Terlambat</span><span><b>{count('today_meetings')}</b> Meeting</span><span><b>{count('ceo_approvals')}</b> Approval</span></section>
+    <section className="rk-ceo-timeline">{loading?<div className="rk-chat-empty"><FiLoader /><strong>Memuat Asisten CEO…</strong></div>:messages.map(item=><article className="rk-ceo-message" data-role={item.role} key={item.id}><small>{item.role==='assistant'?'Kawan AI':'Anda'} · {formatTime(item.created_at)}</small><p>{item.content}</p>{item.sources?.length?<nav>{item.sources.map(source=><a href={source.url} key={source.url}>Buka: {source.label}</a>)}</nav>:null}</article>)}{error?<p className="rk-chat-alert">{error}</p>:null}<div ref={bottom}/></section>
+    <section className="rk-ceo-prompts"><button onClick={()=>setInput('Hari ini aku harus ngerjain apa?')}>Prioritas hari ini</button><button onClick={()=>setInput('Ada deadline yang kelewat?')}>Deadline terlewat</button><button onClick={()=>setInput('Apa yang butuh approval aku?')}>Butuh approval</button></section>
+    <form className="rk-chat-composer rk-ceo-composer" onSubmit={send}><input value={input} onChange={event=>setInput(event.target.value)} placeholder="Tanya atau perintahkan Kawan AI…" /><button type="submit" disabled={!input.trim()||sending}>{sending?<FiLoader/>:<FiSend/>}</button></form>
+  </div>;
 }
 
 function MeetingCard({meeting,now,onRespond}:{meeting:ChatMeeting;now:number;onRespond:(meeting:ChatMeeting,response:'yes'|'no'|'maybe',attendanceNote:string,seatNote:string)=>Promise<void>}){const[note,setNote]=useState(meeting.my_response?.attendance_note??'');const[seat,setSeat]=useState(meeting.my_response?.seat_note??'');const[busy,setBusy]=useState(false);const active=meetingActive(meeting,now);async function respond(value:'yes'|'no'|'maybe'){if(!active)return;setBusy(true);try{await onRespond(meeting,value,note,seat);}finally{setBusy(false);}}return <article className="rk-chat-meeting-card" data-type="meeting" data-expired={!active}><span><FiVideo/></span><div><small>{active ? 'Meeting' : meeting.status === 'cancelled' ? 'Dibatalkan' : 'Meeting selesai'} · {new Date(meeting.starts_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB</small><strong>{meeting.title}</strong>{meeting.agenda?<p>{meeting.agenda}</p>:null}<label>Catatan kehadiran<input disabled={!active} value={note} onChange={event=>setNote(event.target.value)} placeholder="Opsional"/></label><label>Tempat duduk<input disabled={!active} value={seat} onChange={event=>setSeat(event.target.value)} placeholder="Opsional"/></label><nav><button disabled={busy || !active} data-active={active && meeting.my_response?.response==='yes'} onClick={()=>void respond('yes')}>Yes</button><button disabled={busy || !active} data-active={active && meeting.my_response?.response==='maybe'} onClick={()=>void respond('maybe')}>Maybe</button><button disabled={busy || !active} data-active={active && meeting.my_response?.response==='no'} onClick={()=>void respond('no')}>No</button></nav>{active&&meeting.meet_url?<a href={meeting.meet_url} target="_blank" rel="noreferrer">Masuk Google Meet</a>:null}</div></article>}
