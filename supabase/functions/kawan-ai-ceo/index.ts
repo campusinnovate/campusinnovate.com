@@ -55,7 +55,6 @@ Deno.serve(async req=>{
  const origin=req.headers.get('Origin');
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors(origin)});
  if(req.method!=='POST')return json({error:'Metode tidak didukung.'},405,origin);
- if(!GROQ_KEY)return json({error:'Kawan AI belum dikonfigurasi.'},503,origin);
  const authorization=req.headers.get('Authorization');
  if(!authorization?.startsWith('Bearer '))return json({error:'Sesi tidak valid.'},401,origin);
  const client=createClient(URL,KEY,{global:{headers:{Authorization:authorization}},auth:{persistSession:false,autoRefreshToken:false}});
@@ -79,13 +78,13 @@ Deno.serve(async req=>{
  const input=mode==='morning_briefing'
    ? 'Buat briefing CEO lengkap untuk hari ini. Cantumkan: seluruh tugas hari ini, overdue penting, deadline tujuh hari ke depan, meeting, follow-up pipeline, project berisiko, approval yang memerlukan keputusan CEO, notifikasi penting, lalu prioritas dengan kelompok Kerjakan sekarang, Selesaikan hari ini, Delegasikan, Pantau, dan Bisa ditunda. Gunakan heading yang mudah dipindai dan tetap ringkas pada tiap item. Akhiri dengan satu pertanyaan tindak lanjut.'
    : prompt;
- const response=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${GROQ_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,max_completion_tokens:1800,messages:[{role:'system',content:instruction},{role:'user',content:`Pertanyaan: ${input}\n\nKonteks terotorisasi: ${JSON.stringify(context).slice(0,26000)}`}],response_format:{type:'json_object'}})});
- const raw=await response.json().catch(()=>({}));
+ const response=GROQ_KEY?await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${GROQ_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,max_completion_tokens:1800,messages:[{role:'system',content:instruction},{role:'user',content:`Pertanyaan: ${input}\n\nKonteks terotorisasi: ${JSON.stringify(context).slice(0,26000)}`}],response_format:{type:'json_object'}})}):null;
+ const raw=response?await response.json().catch(()=>({})):{};
  let answer=''; let actions:Array<Record<string,unknown>>=[];
- if(response.ok){
+ if(response?.ok){
    const output=raw.choices?.[0]?.message?.content;
    try{const parsed=JSON.parse(String(output??''));answer=clean(parsed.answer,6000);actions=Array.isArray(parsed.actions)?parsed.actions.filter((item:unknown)=>item&&typeof item==='object').slice(0,3) as Array<Record<string,unknown>>:[];}catch{console.error('Groq returned unreadable output',raw);}
- }else{console.error('Groq chat completion failed',response.status,raw);}
+ }else if(response){console.error('Groq chat completion failed',response.status,raw);}
  if(!answer)answer=fallbackAnswer(context,input,mode);
  const executed:Array<{type:string;label:string;url:string}>=[];
  if(mode==='chat'&&actions.length){
