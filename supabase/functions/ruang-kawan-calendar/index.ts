@@ -368,6 +368,32 @@ async function syncChatMeetings(req: Request, origin: string | null) {
   return json({updated,skipped},200,origin);
 }
 
+async function createCeoMeeting(req: Request, origin: string | null) {
+  const auth = await authenticatedClient(req); if (!auth) return json({ error: 'Sesi tidak valid.' }, 401, origin);
+  const { data: ceoAllowed } = await auth.client.rpc('kawan_ai_ceo_access');
+  if (!ceoAllowed) return json({ error: 'Asisten CEO tidak tersedia untuk akun ini.' }, 403, origin);
+  const body = await req.json().catch(() => ({}));
+  const title = String(body.title ?? '').trim();
+  const startsAt = String(body.startsAt ?? ''); const endsAt = String(body.endsAt ?? '');
+  const timezone = String(body.timezone ?? 'Asia/Jakarta');
+  if (!title || !startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt)) return json({ error: 'Judul serta waktu meeting tidak valid.' }, 400, origin);
+  const { data: personal } = await service.from('google_calendar_connections').select('*').eq('connection_type','personal').eq('owner_user_id',auth.user.id).eq('is_active',true).maybeSingle();
+  const connection = personal ?? await companyWorkspaceConnection();
+  if (!connection) return json({ error: 'Google Calendar belum dihubungkan.', needsAuthorization: true }, 409, origin);
+  const calendarId = connection.selected_calendar_ids?.[0] ?? (connection.connection_type === 'company' ? COMPANY_CALENDAR_ID : 'primary');
+  const requestId = crypto.randomUUID();
+  const event = await googleFetch(connection, `/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1&sendUpdates=none`, {
+    method: 'POST', body: JSON.stringify({
+      summary: title, description: String(body.agenda ?? ''),
+      start: { dateTime: startsAt, timeZone: timezone }, end: { dateTime: endsAt, timeZone: timezone },
+      conferenceData: { createRequest: { requestId, conferenceSolutionKey: { type: 'hangoutsMeet' } } },
+      extendedProperties: { private: { source: 'kawan-ai-ceo', actorUserId: auth.user.id } },
+    }),
+  });
+  const meetUrl = event.hangoutLink ?? event.conferenceData?.entryPoints?.find((item: Record<string,any>) => item.entryPointType === 'video')?.uri ?? null;
+  return json({ ready: true, eventId: event.id, meetUrl, htmlLink: event.htmlLink ?? null, calendarId }, 200, origin);
+}
+
 async function respondChatMeeting(req: Request, origin: string | null) {
   const auth=await authenticatedClient(req);if(!auth)return json({error:'Sesi tidak valid.'},401,origin);
   const body=await req.json().catch(()=>({}));const meetingId=String(body.meetingId??'');const response=String(body.response??'').toLowerCase();
@@ -467,6 +493,7 @@ Deno.serve(async (req) => {
     if (path === '/calendars' && req.method === 'GET') return await listCalendars(req, origin);
     if (path === '/events' && req.method === 'GET') return await listEvents(req, origin);
     if (path === '/meetings' && req.method === 'POST') return await createChatMeeting(req, origin);
+    if (path === '/ceo/meetings' && req.method === 'POST') return await createCeoMeeting(req, origin);
     if (path === '/meetings/sync' && req.method === 'POST') return await syncChatMeetings(req, origin);
     if (path === '/meetings/respond' && req.method === 'POST') return await respondChatMeeting(req, origin);
     if (path === '/chat/email' && req.method === 'POST') return await emailChatMessage(req, origin);
