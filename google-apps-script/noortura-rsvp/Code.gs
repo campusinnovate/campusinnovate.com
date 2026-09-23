@@ -28,7 +28,12 @@ function doGet(e) {
 
 function doPost(e) {
   let requestId = '';
+  let responseMode = 'html';
   const lock = LockService.getScriptLock();
+
+  function respond(body) {
+    return responseMode === 'json' ? jsonResponse_(body) : htmlResponse_(body);
+  }
 
   try {
     const raw = e && e.parameter && e.parameter.payload
@@ -36,27 +41,45 @@ function doPost(e) {
       : (e && e.postData && e.postData.contents || '{}');
     const input = JSON.parse(raw);
     requestId = String(input.requestId || '').slice(0, 100);
+    responseMode = String(input.responseMode || '').toLowerCase() === 'json' ? 'json' : 'html';
 
-    if (input.website) return htmlResponse_({ ok: true, requestId: requestId });
+    if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{15,99}$/.test(requestId)) {
+      fail_('VALIDATION_ERROR', 'Request ID RSVP belum valid.');
+    }
+
+    if (input.website) return respond({ ok: true, requestId: requestId, filtered: true });
 
     const registration = normalizeRegistration_(input);
     validateRegistration_(registration);
     lock.waitLock(20000);
 
     const spreadsheet = SpreadsheetApp.openById(NOORTURA_SPREADSHEET_ID);
-    const result = registration.invitedGuestId
-      ? registerGuest_(spreadsheet, registration)
-      : registerPublic_(spreadsheet, registration);
+    ensureRequestColumns_(spreadsheet);
+    const previous = findRequest_(spreadsheet, requestId);
+    if (previous) {
+      return respond({
+        ok: true,
+        requestId: requestId,
+        mode: previous.mode,
+        row: previous.row,
+        replayed: true,
+      });
+    }
 
-    return htmlResponse_({
+    const result = registration.invitedGuestId
+      ? registerGuest_(spreadsheet, registration, requestId)
+      : registerPublic_(spreadsheet, registration, requestId);
+
+    return respond({
       ok: true,
       requestId: requestId,
       mode: result.mode,
       row: result.row,
+      replayed: false,
     });
   } catch (error) {
     console.error(error);
-    return htmlResponse_({
+    return respond({
       ok: false,
       requestId: requestId,
       code: error && error.code || 'RSVP_ERROR',
@@ -94,7 +117,7 @@ function validateRegistration_(registration) {
   if (!registration.parentName) fail_('VALIDATION_ERROR', 'Nama orang tua atau pendamping wajib diisi.');
   if (registration.whatsapp.replace(/\D/g, '').length < 8) fail_('VALIDATION_ERROR', 'Nomor WhatsApp belum valid.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registration.email)) fail_('VALIDATION_ERROR', 'Alamat email belum valid.');
-  if ([1, 2].indexOf(registration.adultCount) === -1) fail_('VALIDATION_ERROR', 'Jumlah pendamping belum valid.');
+  if ([1, 2, 3, 4].indexOf(registration.adultCount) === -1) fail_('VALIDATION_ERROR', 'Jumlah pendamping belum valid.');
   if ([0, 1, 2, 3].indexOf(registration.childCount) === -1) fail_('VALIDATION_ERROR', 'Jumlah anak belum valid.');
   if (registration.children.length !== registration.childCount) fail_('VALIDATION_ERROR', 'Data anak belum lengkap.');
   registration.children.forEach(function (child) {
@@ -107,7 +130,7 @@ function validateRegistration_(registration) {
   if (!registration.documentation || !registration.privacy) fail_('VALIDATION_ERROR', 'Persetujuan RSVP wajib dicentang.');
 }
 
-function registerGuest_(spreadsheet, registration) {
+function registerGuest_(spreadsheet, registration, requestId) {
   const sheet = spreadsheet.getSheetByName(GUEST_SHEET);
   if (!sheet) fail_('CONFIG_ERROR', 'Tab Guest List tidak ditemukan.');
 
@@ -132,11 +155,12 @@ function registerGuest_(spreadsheet, registration) {
     safeCell_(childNames),
     new Date(),
   ]]);
+  sheet.getRange(row, 15).setValue(requestId);
 
   return { mode: 'personal', row: row };
 }
 
-function registerPublic_(spreadsheet, registration) {
+function registerPublic_(spreadsheet, registration, requestId) {
   const sheet = spreadsheet.getSheetByName(PUBLIC_SHEET);
   if (!sheet) fail_('CONFIG_ERROR', 'Tab RSVP Publik tidak ditemukan.');
 
@@ -150,7 +174,7 @@ function registerPublic_(spreadsheet, registration) {
   }).join(', ');
   const status = registration.certainty === 100 ? 'Hadir' : 'Tentatif';
 
-  sheet.getRange(row, 1, 1, 15).setValues([[
+  sheet.getRange(row, 1, 1, 16).setValues([[
     new Date(),
     id,
     safeCell_(registration.parentName),
@@ -166,9 +190,47 @@ function registerPublic_(spreadsheet, registration) {
     registration.privacy ? 'Ya' : 'Tidak',
     'Website publik',
     '',
+    requestId,
   ]]);
 
   return { mode: 'public', row: row };
+}
+
+function ensureRequestColumns_(spreadsheet) {
+  const guestSheet = spreadsheet.getSheetByName(GUEST_SHEET);
+  const publicSheet = spreadsheet.getSheetByName(PUBLIC_SHEET);
+
+  if (guestSheet && !guestSheet.getRange(4, 15).getDisplayValue()) {
+    guestSheet.getRange(4, 14).copyTo(guestSheet.getRange(4, 15), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+    guestSheet.getRange(4, 15).setValue('Request ID');
+    guestSheet.hideColumns(15);
+  }
+
+  if (publicSheet && !publicSheet.getRange(4, 16).getDisplayValue()) {
+    publicSheet.getRange(4, 15).copyTo(publicSheet.getRange(4, 16), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+    publicSheet.getRange(4, 16).setValue('Request ID');
+    publicSheet.hideColumns(16);
+  }
+}
+
+function findRequest_(spreadsheet, requestId) {
+  const guestSheet = spreadsheet.getSheetByName(GUEST_SHEET);
+  const publicSheet = spreadsheet.getSheetByName(PUBLIC_SHEET);
+  const guestMatch = findRequestInSheet_(guestSheet, 15, requestId);
+  if (guestMatch) return { mode: 'personal', row: guestMatch.getRow() };
+
+  const publicMatch = findRequestInSheet_(publicSheet, 16, requestId);
+  if (publicMatch) return { mode: 'public', row: publicMatch.getRow() };
+  return null;
+}
+
+function findRequestInSheet_(sheet, column, requestId) {
+  if (!sheet || sheet.getLastRow() < 5) return null;
+  return sheet
+    .getRange(5, column, sheet.getLastRow() - 4, 1)
+    .createTextFinder(requestId)
+    .matchEntireCell(true)
+    .findNext();
 }
 
 function assertNoDuplicate_(spreadsheet, registration, excludedGuestRow) {
@@ -247,6 +309,12 @@ function htmlResponse_(body) {
     .replace(/\u2029/g, '\\u2029');
   const html = '<!doctype html><meta charset="utf-8"><script>parent.postMessage(' + json + ', "*");<\/script>';
   return HtmlService.createHtmlOutput(html).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function jsonResponse_(body) {
+  return ContentService
+    .createTextOutput(JSON.stringify(body))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function javascriptResponse_(callback, body) {

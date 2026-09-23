@@ -7,7 +7,7 @@ const source = fs.readFileSync(path.join(__dirname, 'Code.gs'), 'utf8');
 const context = {
   console,
   ContentService: {
-    MimeType: { JAVASCRIPT: 'JAVASCRIPT' },
+    MimeType: { JAVASCRIPT: 'JAVASCRIPT', JSON: 'JSON' },
     createTextOutput(value) {
       return { value, setMimeType() { return this; } };
     },
@@ -21,7 +21,7 @@ const context = {
 };
 
 vm.createContext(context);
-vm.runInContext(`${source}\nthis.__test = { getFullSlots_, assertSlotAvailable_, htmlResponse_, validateRegistration_ };`, context);
+vm.runInContext(`${source}\nthis.__test = { getFullSlots_, assertSlotAvailable_, htmlResponse_, jsonResponse_, validateRegistration_ };`, context);
 
 function makeSheet(rows, columns) {
   return {
@@ -63,6 +63,9 @@ assert.match(response.value, /parent\.postMessage/);
 assert.match(response.value, /request-1/);
 assert.match(response.value, /SLOT_FULL/);
 
+const jsonResponse = context.__test.jsonResponse_({ ok: true, requestId: 'noortura-request-1' });
+assert.equal(jsonResponse.value, '{"ok":true,"requestId":"noortura-request-1"}');
+
 assert.doesNotThrow(() => context.__test.validateRegistration_({
   parentName: 'Amilia',
   whatsapp: '083812327019',
@@ -75,5 +78,22 @@ assert.doesNotThrow(() => context.__test.validateRegistration_({
   documentation: true,
   privacy: true,
 }));
+
+assert.doesNotThrow(() => context.__test.validateRegistration_({
+  parentName: 'Test Family',
+  whatsapp: '081234567890',
+  email: 'test@example.com',
+  adultCount: 4,
+  childCount: 0,
+  children: [],
+  slot: '08.20',
+  certainty: 75,
+  documentation: true,
+  privacy: true,
+}));
+
+assert.match(source, /getRange\(row, 10, 1, 4\)/);
+assert.match(source, /getRange\(row, 15\)\.setValue\(requestId\)/);
+assert.match(source, /getRange\(row, 1, 1, 16\)/);
 
 console.log('Noortura Apps Script tests passed.');
