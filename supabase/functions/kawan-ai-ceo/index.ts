@@ -16,6 +16,21 @@ function contextList(context:Record<string,unknown>,key:string){return Array.isA
 function itemTitle(item:Record<string,unknown>){return clean(item.title,140)||'Aktivitas tanpa judul';}
 function itemDate(item:Record<string,unknown>){return clean(item.activity_date,32);}
 function compactList(items:Array<Record<string,unknown>>,limit=4){return items.slice(0,limit).map((item,index)=>`${index+1}. ${itemTitle(item)}${itemDate(item)?` — ${itemDate(item)}`:''}`).join('\n');}
+async function executeAction(client: ReturnType<typeof createClient>, authorization:string, action:Record<string,unknown>, command:string) {
+  const type=clean(action.type,64);
+  const payload=action.payload&&typeof action.payload==='object'?action.payload as Record<string,unknown>:{};
+  if (!['create_task','update_pipeline','save_project_task','save_project_record','complete_activity','create_calendar_meeting'].includes(type)) return null;
+  if(type==='create_calendar_meeting'){
+    const response=await fetch(URL+'/functions/v1/ruang-kawan-calendar/ceo/meetings',{method:'POST',headers:{Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify({title:payload.title,agenda:payload.agenda??'',startsAt:payload.starts_at,endsAt:payload.ends_at,timezone:'Asia/Jakarta'})});
+    const body=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(clean(body.error,300)||'Agenda belum dapat dibuat.');
+    return {type,label:clean(payload.title,140),url:clean(body.htmlLink,500)||clean(body.meetUrl,500)};
+  }
+  const result=await client.rpc('kawan_ai_ceo_execute_action',{action_type:type,action_payload:payload,command_text:command});
+  if(result.error)throw new Error(result.error.message);
+  const output=result.data&&typeof result.data==='object'?result.data as Record<string,unknown>:{};
+  return {type,label:clean(output.label,140)||type,url:clean(output.url,500)};
+}
 function fallbackAnswer(context:Record<string,unknown>,prompt:string,mode:string){
  const today=contextList(context,'today_tasks'), overdue=contextList(context,'overdue_tasks'), upcoming=contextList(context,'upcoming_deadlines');
  const meetings=contextList(context,'today_meetings'), approvals=contextList(context,'ceo_approvals'), pipeline=contextList(context,'pipeline_followups'), risks=contextList(context,'project_risks');
@@ -60,18 +75,26 @@ Deno.serve(async req=>{
    const already=Array.isArray(history)&&history.find((item:Record<string,unknown>)=>item.message_kind==='morning_briefing'&&String(item.briefing_date)===today);
    if(already)return json({message:already,existing:true},200,origin);
  }
- const instruction='Kamu adalah Kawan AI — Asisten CEO Campus Innovate. Jawab dalam Bahasa Indonesia yang ringkas, akurat, dan action-oriented. Hanya gunakan konteks terotorisasi. Jangan mengarang data, tanggal, meeting, keputusan, atau status. Jika data tidak tersedia, katakan jelas. Zona waktu selalu Asia/Jakarta. Aturan prioritas CEO: deadline dan keterlambatan selalu menjadi faktor utama; deadline hari ini atau pekerjaan overdue wajib ditandai sebagai mendesak. Setelah itu gunakan urgency, dampak bisnis, nilai klien, dependensi, dan keterlibatan CEO sebagai tie-breaker. Project berisiko wajib disorot bila memenuhi salah satu indikator: berstatus blocked/terhambat, progres di bawah 50% ketika deadline mendekat, tidak ada update selama tujuh hari, atau status tidak berubah saat deadline dekat. Approval dideteksi dari kombinasi status dan kata kunci yang relevan dalam judul/detail—misalnya approval, review, proposal, pricing, negosiasi, quotation, deck, materi, keputusan, scope, revisi—dan wajib disorot bila terkait proposal/pricing/negosiasi klien, finalisasi deck/materi, keputusan project, atau perubahan scope. Untuk rekomendasi delegasi, sertakan peran atau PIC yang cocok hanya bila didukung konteks; selalu berikan deadline usulan dan draft assignment. Jangan mengklaim assignment sudah dibuat. Kelompokkan rekomendasi menjadi: Kerjakan sekarang, Selesaikan hari ini, Delegasikan, Pantau, Bisa ditunda. Saat diminta menjadwalkan, rekomendasikan slot waktu otomatis bila data memungkinkan, tetapi hanya sebagai draft. Jangan pernah membuat, mengubah, atau membatalkan agenda maupun deadline; semua tindakan tersebut wajib menunggu konfirmasi eksplisit pengguna. Selalu keluarkan satu objek JSON valid dengan tepat satu properti bernama answer.';
+ const instruction='Kamu adalah Kawan AI — Asisten CEO Campus Innovate. Jawab dalam Bahasa Indonesia yang ringkas, akurat, dan action-oriented. Hanya gunakan konteks terotorisasi. Jangan mengarang data, tanggal, meeting, keputusan, atau status. Jika data tidak tersedia, katakan jelas. Zona waktu selalu Asia/Jakarta. Aturan prioritas CEO: deadline dan keterlambatan selalu menjadi faktor utama; deadline hari ini atau pekerjaan overdue wajib ditandai sebagai mendesak. Setelah itu gunakan urgency, dampak bisnis, nilai klien, dependensi, dan keterlibatan CEO sebagai tie-breaker. Project berisiko wajib disorot bila memenuhi salah satu indikator: berstatus blocked/terhambat, progres di bawah 50% ketika deadline mendekat, tidak ada update selama tujuh hari, atau status tidak berubah saat deadline dekat. Approval dideteksi dari kombinasi status dan kata kunci yang relevan dalam judul/detail—misalnya approval, review, proposal, pricing, negosiasi, quotation, deck, materi, keputusan, scope, revisi—dan wajib disorot bila terkait proposal/pricing/negosiasi klien, finalisasi deck/materi, keputusan project, atau perubahan scope. Untuk rekomendasi delegasi, sertakan peran atau PIC yang cocok hanya bila didukung konteks; selalu berikan deadline usulan dan draft assignment. Jangan mengklaim assignment sudah dibuat. Kelompokkan rekomendasi menjadi: Kerjakan sekarang, Selesaikan hari ini, Delegasikan, Pantau, Bisa ditunda. Saat pengguna memberi perintah eksplisit untuk membuat atau mengubah data (misalnya buat task, ubah stage pipeline, buat project task/record, tandai task selesai, atau masukkan agenda), kamu BOLEH mengeksekusi hanya jika judul/entity dan data wajibnya sudah jelas. Untuk itu keluarkan actions berisi maksimal 3 aksi. Jika entity/PIC/waktu belum jelas, jangan buat action; tanyakan klarifikasi. Jangan pernah menghapus, membatalkan, mengirim email/WhatsApp, atau menjalankan aksi finansial. Format wajib satu objek JSON valid: {"answer":"...","actions":[{"type":"create_task|update_pipeline|save_project_task|save_project_record|complete_activity|create_calendar_meeting","payload":{...}}]}. Untuk create_task wajib title, due_date YYYY-MM-DD, priority. Untuk update_pipeline wajib pipeline_lead_id, stage, next_action, due_date. Untuk calendar wajib title, starts_at dan ends_at ISO-8601 dengan offset +07:00. Jangan gunakan actions untuk pertanyaan informasi atau briefing.';
  const input=mode==='morning_briefing'
    ? 'Buat briefing CEO lengkap untuk hari ini. Cantumkan: seluruh tugas hari ini, overdue penting, deadline tujuh hari ke depan, meeting, follow-up pipeline, project berisiko, approval yang memerlukan keputusan CEO, notifikasi penting, lalu prioritas dengan kelompok Kerjakan sekarang, Selesaikan hari ini, Delegasikan, Pantau, dan Bisa ditunda. Gunakan heading yang mudah dipindai dan tetap ringkas pada tiap item. Akhiri dengan satu pertanyaan tindak lanjut.'
    : prompt;
  const response=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${GROQ_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,max_completion_tokens:1800,messages:[{role:'system',content:instruction},{role:'user',content:`Pertanyaan: ${input}\n\nKonteks terotorisasi: ${JSON.stringify(context).slice(0,26000)}`}],response_format:{type:'json_object'}})});
  const raw=await response.json().catch(()=>({}));
- let answer='';
+ let answer=''; let actions:Array<Record<string,unknown>>=[];
  if(response.ok){
    const output=raw.choices?.[0]?.message?.content;
-   try{answer=clean(JSON.parse(String(output??'')).answer,6000);}catch{console.error('Groq returned unreadable output',raw);}
+   try{const parsed=JSON.parse(String(output??''));answer=clean(parsed.answer,6000);actions=Array.isArray(parsed.actions)?parsed.actions.filter((item:unknown)=>item&&typeof item==='object').slice(0,3) as Array<Record<string,unknown>>:[];}catch{console.error('Groq returned unreadable output',raw);}
  }else{console.error('Groq chat completion failed',response.status,raw);}
  if(!answer)answer=fallbackAnswer(context,input,mode);
+ const executed:Array<{type:string;label:string;url:string}>=[];
+ if(mode==='chat'&&actions.length){
+   for(const action of actions){
+     try{const done=await executeAction(client,authorization,action,prompt);if(done)executed.push(done);}
+     catch(error){answer+='\n\nAksi belum dijalankan: '+(error instanceof Error?error.message:'data aksi belum lengkap.');}
+   }
+ }
+ if(executed.length)answer+='\n\n✅ Sudah diperbarui:\n'+executed.map(item=>'• '+item.label+(item.url?' — '+item.url:'')).join('\n');
  const membershipResult=await client.rpc('current_membership_id');
  const membership=membershipResult.data as string | null;
  if(!membership)return json({error:'Keanggotaan aktif tidak ditemukan.'},403,origin);
