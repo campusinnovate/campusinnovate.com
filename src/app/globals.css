@@ -7033,3 +7033,8 @@ img {
 .rk-ceo-prompts{padding:0 22px 12px;background:#f5f8fc}.rk-ceo-prompts button{min-height:34px;font-size:11px}
 .rk-ceo-composer{display:flex;align-items:center;gap:10px;padding:14px 22px 18px}.rk-ceo-composer input{height:52px;flex:1;padding:0 17px;border-radius:14px;font-size:13px;background:#fff}.rk-ceo-composer button{width:44px;height:44px;flex:0 0 44px;padding:0;border-radius:50%;color:#14365d;background:#ffd348}.rk-ceo-composer button svg{font-size:18px}.rk-ceo-composer button:hover{background:#ffc928}
 @media(max-width:760px){.rk-ceo-summary{padding:11px 14px}.rk-ceo-summary>div{min-width:170px}.rk-ceo-timeline{padding:15px}.rk-ceo-focus-item{grid-template-columns:26px minmax(0,1fr) auto}.rk-ceo-focus-item i{display:none}.rk-ceo-focus-copy strong{white-space:normal}.rk-ceo-composer{padding:12px 14px 16px}.rk-ceo-composer input{height:50px}.rk-ceo-message{max-width:96%}}
+
+
+/* CEO assistant composer: generous typing area with a clearly visible send control. */
+.rk-ceo-composer{gap:12px;padding-block:16px}.rk-ceo-composer input{height:62px;padding-inline:19px;border-radius:16px;font-size:14px}.rk-ceo-composer button{width:62px;height:62px;flex-basis:62px;border-radius:17px;box-shadow:0 7px 16px rgba(213,157,0,.24)}.rk-ceo-composer button svg{font-size:22px}
+@media(max-width:760px){.rk-ceo-composer input{height:58px;font-size:13px}.rk-ceo-composer button{width:56px;height:56px;flex-basis:56px}}
