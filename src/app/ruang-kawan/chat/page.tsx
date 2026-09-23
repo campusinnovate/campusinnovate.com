@@ -492,8 +492,8 @@ function CeoAssistantPanel({ onBack }: { onBack: () => void }) {
   const compactSources=(item:CeoMessage)=>item.sources?.slice(0,3)??[];
   async function refreshCalendarCount(){
     const supabase=createClient();const {data:{session}}=await supabase.auth.getSession();if(!session)return;
-    const next=new Date(`${today}T00:00:00+07:00`);next.setUTCDate(next.getUTCDate()+1);
-    const response=await fetch(`${supabaseUrl}/functions/v1/ruang-kawan-calendar/events?timeMin=${today}T00:00:00%2B07:00&timeMax=${next.toISOString().slice(0,10)}T00:00:00%2B07:00`,{headers:{Authorization:`Bearer ${session.access_token}`}}).catch(()=>null);
+    const [year,month,date]=today.split('-').map(Number);const next=new Date(Date.UTC(year,month-1,date+1)).toISOString().slice(0,10);
+    const response=await fetch(`${supabaseUrl}/functions/v1/ruang-kawan-calendar/events?timeMin=${today}T00:00:00%2B07:00&timeMax=${next}T00:00:00%2B07:00`,{headers:{Authorization:`Bearer ${session.access_token}`}}).catch(()=>null);
     const body=response?await response.json().catch(()=>({})):{};if(response?.ok&&Array.isArray(body.events))setCalendarTodayCount(body.events.filter((item:Record<string,unknown>)=>{const start=item.start as Record<string,unknown>|undefined;const value=String(start?.dateTime??start?.date??'');return item.status!=='cancelled'&&value.slice(0,10)===today;}).length);
   }
   async function refreshContext(){
