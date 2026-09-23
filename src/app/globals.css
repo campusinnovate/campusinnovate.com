@@ -7038,3 +7038,10 @@ img {
 /* CEO assistant composer: generous typing area with a clearly visible send control. */
 .rk-ceo-composer{gap:12px;padding-block:16px}.rk-ceo-composer input{height:62px;padding-inline:19px;border-radius:16px;font-size:14px}.rk-ceo-composer button{width:62px;height:62px;flex-basis:62px;border-radius:17px;box-shadow:0 7px 16px rgba(213,157,0,.24)}.rk-ceo-composer button svg{font-size:22px}
 @media(max-width:760px){.rk-ceo-composer input{height:58px;font-size:13px}.rk-ceo-composer button{width:56px;height:56px;flex-basis:56px}}
+
+
+/* Final CEO composer layout: avoid inheriting Kawan Chat's attachment grid. */
+.rk-chat-composer.rk-ceo-composer{display:grid!important;grid-template-columns:minmax(0,1fr) 68px!important;align-items:center!important;gap:12px!important}
+.rk-chat-composer.rk-ceo-composer input{grid-column:1!important;width:100%!important;min-width:0!important;height:66px!important;padding-inline:20px!important;font-size:14px!important}
+.rk-chat-composer.rk-ceo-composer button{grid-column:2!important;width:68px!important;min-width:68px!important;height:66px!important;min-height:66px!important;padding:0!important;border-radius:16px!important}
+@media(max-width:760px){.rk-chat-composer.rk-ceo-composer{grid-template-columns:minmax(0,1fr) 58px!important}.rk-chat-composer.rk-ceo-composer input{height:60px!important}.rk-chat-composer.rk-ceo-composer button{grid-column:2!important;width:58px!important;min-width:58px!important;height:60px!important;min-height:60px!important}}
