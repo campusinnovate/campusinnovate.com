@@ -21,7 +21,7 @@ const context = {
 };
 
 vm.createContext(context);
-vm.runInContext(`${source}\nthis.__test = { getFullSlots_, assertSlotAvailable_, htmlResponse_, jsonResponse_, normalizeSlot_, validateRegistration_ };`, context);
+vm.runInContext(`${source}\nthis.__test = { findRequest_, getFullSlots_, assertSlotAvailable_, htmlResponse_, jsonResponse_, normalizeSlot_, validateRegistration_ };`, context);
 
 function makeSheet(rows, columns) {
   return {
@@ -97,5 +97,31 @@ assert.match(source, /getRange\(row, 15\)\.setValue\(requestId\)/);
 assert.match(source, /getRange\(row, 1, 1, 16\)/);
 assert.equal(context.__test.normalizeSlot_('14.4'), '14.40');
 assert.equal(context.__test.normalizeSlot_('08:20'), '08.20');
+
+const requestSpreadsheet = {
+  getSheetByName(name) {
+    return {
+      getLastRow() { return 8; },
+      getRange() {
+        return {
+          createTextFinder(requestId) {
+            return {
+              matchEntireCell() { return this; },
+              findNext() {
+                return name === 'Guest List' && requestId === 'noortura-idempotency-test'
+                  ? { getRow() { return 7; } }
+                  : null;
+              },
+            };
+          },
+        };
+      },
+    };
+  },
+};
+assert.deepEqual(
+  JSON.parse(JSON.stringify(context.__test.findRequest_(requestSpreadsheet, 'noortura-idempotency-test'))),
+  { mode: 'personal', row: 7 },
+);
 
 console.log('Noortura Apps Script tests passed.');
