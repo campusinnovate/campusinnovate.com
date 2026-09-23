@@ -7045,3 +7045,8 @@ img {
 .rk-chat-composer.rk-ceo-composer input{grid-column:1!important;width:100%!important;min-width:0!important;height:66px!important;padding-inline:20px!important;font-size:14px!important}
 .rk-chat-composer.rk-ceo-composer button{grid-column:2!important;width:68px!important;min-width:68px!important;height:66px!important;min-height:66px!important;padding:0!important;border-radius:16px!important}
 @media(max-width:760px){.rk-chat-composer.rk-ceo-composer{grid-template-columns:minmax(0,1fr) 58px!important}.rk-chat-composer.rk-ceo-composer input{height:60px!important}.rk-chat-composer.rk-ceo-composer button{grid-column:2!important;width:58px!important;min-width:58px!important;height:60px!important;min-height:60px!important}}
+
+
+/* CEO quick prompts: compact, centered, secondary to the conversation. */
+.rk-ceo-prompts{justify-content:center!important;gap:6px!important;padding:4px 18px 10px!important}
+.rk-ceo-prompts button{min-height:29px!important;padding:5px 9px!important;border-radius:8px!important;font-size:10px!important;font-weight:750!important}
