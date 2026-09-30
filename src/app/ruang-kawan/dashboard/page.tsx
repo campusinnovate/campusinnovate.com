@@ -33,6 +33,7 @@ export default function RuangKawanDashboardPage(){
   {show:access.permissions.includes('documents.view'),href:'/ruang-kawan/documents/',icon:FiBookOpen,title:'Documents',text:'Cari dan buka dokumen kerja yang tersedia.'},
   {show:access.permissions.includes('reports.view_self'),href:'/ruang-kawan/reports/',icon:FiFileText,title:'Reports',text:'Ringkasan progress, problem, plan, dan priority.'},
   {show:access.permissions.includes('finance.view'),href:'/ruang-kawan/finance/',icon:FiDollarSign,title:'Finance',text:'Transaksi, dokumen, piutang, budget, dan aset.'},
+  {show:access.permissions.includes('finance_next.view'),href:'/ruang-kawan/finance-pilot/',icon:FiDollarSign,title:'Finance Pilot',text:'Pilot pembukuan double entry dan kontrol periode, terpisah dari Finance yang ada.'},
  ].filter(item=>item.show).sort((a,b)=>{const ai=modulePriority.indexOf(a.title);const bi=modulePriority.indexOf(b.title);return(ai<0?99:ai)-(bi<0?99:bi)}).slice(0,4);
  return <main className="rk-dashboard-foundation"><section className="rk-dashboard-shell rk-glossy-shell">
   <header className="rk-dashboard-hero rk-glossy-hero"><div className="rk-hero-ring" aria-hidden="true"/><div className="rk-hero-square" aria-hidden="true"/><div><small>RUANG KAWAN · {todayLabel}</small><h1>{greeting}, {firstName}!</h1><p>Satu tempat untuk melihat fokus, pekerjaan, dan kabar penting hari ini.</p></div><Link href="/ruang-kawan/activity/">Buka aktivitas <FiArrowUpRight/></Link></header>

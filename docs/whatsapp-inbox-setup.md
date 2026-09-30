@@ -23,6 +23,18 @@
 5. Build/deploy the frontend using the existing process. Open `/ruang-kawan/inbox/` with an active Pipeline-enabled staff account.
 6. Send a message from an authorized test recipient/customer, confirm capture, open it to clear the staff unread badge, reply, and verify `sent` → `delivered` → `read` where customer read receipts are available. Replaying the same webhook must not increase message count.
 
+## Optional n8n for outbound WhatsApp
+
+n8n can handle outbound automation while the inbox continues to store messages and enforce staff permissions. The Supabase `whatsapp-send` function claims each request ID before calling n8n, so configure the n8n webhook to send only once per request. Meta inbound webhooks and delivery receipts should continue to point to `whatsapp-webhook`; it verifies Meta's signature and persists messages/statuses to the inbox.
+
+1. In n8n, create a **Production** Webhook node using `POST` and a private path. Add an authentication credential that checks the `Authorization: Bearer <secret>` header.
+2. Add an HTTP Request node to Meta's `POST https://graph.facebook.com/<GRAPH_VERSION>/<PHONE_NUMBER_ID>/messages` endpoint. Pass the bearer token in an n8n credential (not a hard-coded workflow value), use JSON body `{"messaging_product":"whatsapp","to":"<to from webhook>","type":"text","text":{"body":"<text from webhook>"}}`, and map the incoming `to` and `text` fields.
+3. Return the Meta response from the Webhook using **Respond to Webhook**. It must contain `messages[0].id` (or a top-level `message_id` / `whatsapp_message_id`). Return a non-2xx status on Meta errors and do not return success until Meta responds.
+4. Set `WHATSAPP_N8N_SEND_WEBHOOK_URL` to the n8n Production URL and `WHATSAPP_N8N_SEND_SECRET` to a long random value, both as Supabase Edge Function secrets. When this URL is set, outbound sends use n8n; without it, the function uses the direct Meta API secrets above. Keep `WHATSAPP_PHONE_NUMBER_ID` configured in either mode.
+5. Activate the workflow and deploy `whatsapp-send` again. Send one authorized test reply from the inbox and verify the database message receives Meta's `wamid`, then `delivered`/`read` updates arrive through the unchanged Meta callback.
+
+The bridge only covers text replies initiated from the inbox. n8n should not replay a request after a timeout: the send may have reached Meta, and the inbox marks that outcome `unknown` for manual reconciliation. n8n execution history and webhook access should be restricted because payloads contain customer phone numbers and message content.
+
 Official references: [Meta Cloud API collection](https://www.postman.com/meta/whatsapp-business-platform/documentation/wlk6lh4/whatsapp-cloud-api), [Meta webhook signature handling](https://whatsapp.github.io/WhatsApp-Nodejs-SDK/api-reference/webhooks/start/).
 
 ## Behavior and limits
