@@ -216,8 +216,9 @@ begin
     end if;
     mapped_status:=case
       when canonical_id is not null then 'duplicate'
-      when coalesce(payload->>'status','') ilike '%potential lead%' then 'potential'
-      when coalesce(payload->>'position_status','') ilike '%unverified%' then 'replace_pic'
+      when coalesce(payload->>'status','') ilike '%replace pic%'
+        or coalesce(payload->>'position_status','') ilike '%unverified%' then 'replace_pic'
+      when coalesce(payload->>'status','') ilike '%potential%' then 'potential'
       else 'needs_review'
     end;
     insert into public.prospects(
