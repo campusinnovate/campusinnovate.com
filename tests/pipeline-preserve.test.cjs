@@ -33,6 +33,7 @@ test('partial Pipeline save preserves non-form fields, metrics, nested research 
   create function sync_pipeline_tickets() returns trigger language plpgsql as $$begin return new; end$$;
   create function refresh_pipeline_contact_metrics() returns trigger language plpgsql as $$begin return new; end$$;`);
   await db.exec(migration('20261002005935_pipeline_preserve_edits.sql'));
+  await db.exec(migration('20261002045248_pipeline_inactive_owner_edit.sql'));
   const source=(await db.query(`insert into work_sources values(gen_random_uuid(),'pipeline','{"stages":["Target","Won"],"priorities":["Medium"],"activity_types":["Follow Up"]}') returning id`)).rows[0].id;
   const originalPayload={source_id:source,account_name:'Regression fixture',stage:'Target',next_action:'Call',due_date:'2026-10-10',trip_program:'Trip',seats:4,price_per_person:900,payment_status:'Lunas',probability:0.5,follow_up_count:8,last_contact_date:'2026-09-20',business_unit:'Legacy',account_type:'School',linked_kpi:'Outreach',document_url:'https://example.com/doc',extra_data:{research:{notes:'Keep me'},proposal_value:1000,won_value:800,email_contact:'a@example.com',qualification:{evidence:'Keep evidence',need:true}}};
   const id=(await db.query('select save_pipeline_lead(null,$1) id',[originalPayload])).rows[0].id;
@@ -49,5 +50,9 @@ test('partial Pipeline save preserves non-form fields, metrics, nested research 
   const cleared=await get();assert.equal(cleared.proposal_value,null);assert.equal(cleared.won_value,null);assert.equal(cleared.email_contact,null);
   await db.query('select save_pipeline_lead($1,$2)',[id,{stage:'Won',extra_data:{proposal_value:1000,won_value:''}}]);
   assert.equal((await get()).won_value,null,'Won must not infer project revenue from GM/proposal');
+  await db.exec(`update memberships set status='inactive' where id='${actor}'`);
+  await db.query('select save_pipeline_lead($1,$2)',[id,{notes:'Historical owner retained'}]);
+  assert.equal((await get()).notes,'Historical owner retained');
+  await assert.rejects(db.query('select save_pipeline_lead($1,$2)',[id,{owner_membership_id:'00000000-0000-4000-8000-000000000002'}]),/Owner Pipeline BD tidak valid/);
  }finally{await db.close()}
 });
