@@ -26,12 +26,29 @@ export function monthlyMetrics(leads: MetricLead[], startMonth: string, endMonth
   }
   const byMonth = new Map(rows.map(row=>[row.month,row]));
   for (const lead of leads) {
-    const entered = byMonth.get(lead.date_added.slice(0,7));
+    const historicalYearOnly=lead.extra_data?.historical_date_precision==='year';
+    const entered = historicalYearOnly ? undefined : byMonth.get(lead.date_added.slice(0,7));
     if (entered) entered.leads++;
-    const proposal = byMonth.get(lead.proposal_date?.slice(0,7)??'');
+    const proposedMonth=lead.proposal_date?.slice(0,7) ?? (typeof lead.extra_data?.proposal_month==='number' && typeof lead.extra_data?.proposal_year==='number' ? `${lead.extra_data.proposal_year}-${String(lead.extra_data.proposal_month).padStart(2,'0')}` : '');
+    const proposal = byMonth.get(proposedMonth);
     if (proposal) proposal.proposal += confirmedValue(lead,'proposal_value')??0;
-    const won = byMonth.get(dealDate(lead)?.slice(0,7)??'');
+    const wonMonth=dealDate(lead)?.slice(0,7) ?? (typeof lead.extra_data?.won_month==='number' && typeof lead.extra_data?.won_year==='number' ? `${lead.extra_data.won_year}-${String(lead.extra_data.won_month).padStart(2,'0')}` : '');
+    const won = byMonth.get(wonMonth);
     if (won && isWon(lead)) { won.projects++; won.won += confirmedValue(lead,'won_value')??0; }
   }
   return rows;
+}
+// A year-only archival record contributes to annual/all-time totals, never an invented month.
+export function yearOnlyMetrics(leads: MetricLead[], startYear: string, endYear: string) {
+  const total={leads:0,proposal:0,won:0,projects:0};
+  for(const lead of leads){
+    if(lead.extra_data?.historical_date_precision==='year' && lead.date_added.slice(0,4)>=startYear && lead.date_added.slice(0,4)<=endYear) total.leads++;
+    const proposalYear=lead.extra_data?.proposal_year;
+    if(lead.extra_data?.proposal_month==null && typeof proposalYear==='number' && String(proposalYear)>=startYear && String(proposalYear)<=endYear) total.proposal+=confirmedValue(lead,'proposal_value')??0;
+    const wonYear=lead.extra_data?.won_year;
+    if(lead.extra_data?.won_month==null && typeof wonYear==='number' && String(wonYear)>=startYear && String(wonYear)<=endYear && isWon(lead)){
+      total.projects++;total.won+=confirmedValue(lead,'won_value')??0;
+    }
+  }
+  return total;
 }

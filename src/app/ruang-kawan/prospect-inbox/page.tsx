@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
  FiAlertCircle,FiArrowLeft,FiCheckCircle,FiClock,FiCopy,FiExternalLink,FiFilter,
- FiInbox,FiRefreshCw,FiSearch,FiSend,FiUserCheck,FiUsers,FiX,
+ FiInbox,FiPlus,FiRefreshCw,FiSearch,FiSend,FiUserCheck,FiUsers,FiX,
 } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 import { safeWebUrl } from '@/lib/prospects/google';
@@ -36,6 +36,8 @@ type ReviewDraft={
  website:string;phone:string;email:string;contact_name:string;contact_role:string;recommended_service:string;
  recommended_pipeline:string;recommended_business_unit:string;review_notes:string;review_manual_bd_ceo:string;review_manual_cto_digital_system:string;
 };
+type ManualDraft={account_name:string;account_type:string;industry:string;city:string;website:string;phone:string;email:string;linkedin_url:string;contact_name:string;contact_role:string;recommended_service:string;recommended_pipeline:string;recommended_business_unit:string;review_notes:string;research:Record<string,string>};
+const blankManual=():ManualDraft=>({account_name:'',account_type:'',industry:'',city:'',website:'',phone:'',email:'',linkedin_url:'',contact_name:'',contact_role:'',recommended_service:'',recommended_pipeline:'',recommended_business_unit:'',review_notes:'',research:{}});
 
 const emptyWorkspace:Workspace={prospects:[],stats:{total:0,needs_review:0,potential:0,duplicates:0,converted:0},pipeline_sources:[],members:[],imports:[]};
 const statusMeta:Record<InboxStatus,{label:string;hint:string}>={
@@ -67,6 +69,7 @@ export default function ProspectInboxPage(){
  const[source,setSource]=useState('all');const[selected,setSelected]=useState<Detail|null>(null);const[draft,setDraft]=useState<ReviewDraft|null>(null);
  const[pipelineId,setPipelineId]=useState('');const[ownerId,setOwnerId]=useState('');const[busy,setBusy]=useState('');
  const[message,setMessage]=useState('');const[error,setError]=useState('');
+ const[manual,setManual]=useState<ManualDraft|null>(null);
  async function load(){
   setError('');const s=createClient();const{data:{session}}=await s.auth.getSession();if(!session){location.replace('/ruang-kawan/');return}
   const[workspace,accessR]=await Promise.all([s.rpc('prospect_inbox_workspace'),s.rpc('get_my_access')]);
@@ -96,11 +99,19 @@ export default function ProspectInboxPage(){
   setBusy('promote');setError('');const r=await createClient().rpc('promote_inbox_prospect_to_pipeline',{target_prospect_id:selected.id,target_source_id:pipelineId,target_owner_id:ownerId||null});setBusy('');
   if(r.error){setError(r.error.message);return}setMessage(`${selected.account_name} masuk ke Pipeline BD sebagai record yang sama.`);await refreshDetail();
  }
+ async function createManual(e:FormEvent){
+  e.preventDefault();if(!manual||!canManage||busy)return;
+  setBusy('manual');setError('');setMessage('');
+  const r=await createClient().rpc('create_manual_inbox_prospect',{payload:manual});
+  setBusy('');if(r.error){setError(r.error.message);return}
+  setManual(null);setMessage('Lead manual berhasil ditambahkan ke Prospect Inbox.');
+  await load();await openDetail(r.data as string);
+ }
  if(state==='loading')return <main className={styles.foundation}><div className={styles.empty}>Menyiapkan Prospect Inbox…</div></main>;
  if(state==='denied')return <main className={styles.foundation}><div className={styles.empty}><h1>Prospect Inbox belum tersedia</h1><p>Akses Pipeline BD diperlukan.</p><Link href="/ruang-kawan/marketing/">Kembali ke Marketing</Link></div></main>;
  return <main className={styles.foundation}><section className={styles.shell}>
   <nav className={styles.topnav}><Link href="/ruang-kawan/marketing/?tab=pipeline"><FiArrowLeft/> Pipeline & Prospect</Link><button onClick={()=>void load()}><FiRefreshCw/> Muat ulang</button></nav>
-  <header className={styles.hero}><div><small>Pre-pipeline review workspace</small><h1>Prospect Inbox</h1><p>Review seluruh data riset, tandai duplicate atau junk, validasi PIC, lalu pindahkan record yang sama ke Pipeline BD saat siap outreach.</p></div><Link href="/ruang-kawan/pipeline/">Buka Pipeline BD <FiSend/></Link></header>
+  <header className={styles.hero}><div><small>Pre-pipeline review workspace</small><h1>Prospect Inbox</h1><p>Review seluruh data riset, tandai duplicate atau junk, validasi PIC, lalu pindahkan record yang sama ke Pipeline BD saat siap outreach.</p></div><div className={styles.heroActions}>{canManage?<button onClick={()=>{setError('');setManual(blankManual())}}><FiPlus/> Tambah lead</button>:null}<Link href="/ruang-kawan/pipeline/">Buka Pipeline BD <FiSend/></Link></div></header>
   {message?<p className={styles.success}>{message}</p>:null}{error?<p className={styles.error}>{error}</p>:null}
   <section className={styles.stats}>
    <article><FiInbox/><span><strong>{data.stats.total}</strong><small>Seluruh prospect</small></span></article>
@@ -120,6 +131,20 @@ export default function ProspectInboxPage(){
    <button aria-label={`Buka ${p.account_name}`} disabled={busy===`detail-${p.id}`} onClick={()=>void openDetail(p.id)}>Detail</button>
   </article>)}{!visible.length?<div className={styles.empty}>Tidak ada prospect pada filter ini.</div>:null}</section>
  </section>
+ {manual?<div className={styles.overlay} onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setManual(null)}}><aside className={styles.drawer} role="dialog" aria-modal="true" aria-label="Tambah lead ke Prospect Inbox">
+  <header className={styles.drawerHeader}><div><small>Input manual</small><h2>Tambah lead</h2><p>Masuk ke Prospect Inbox untuk review sebelum dipromosikan ke Pipeline.</p></div><button type="button" aria-label="Tutup" disabled={!!busy} onClick={()=>setManual(null)}><FiX/></button></header>
+  {error?<p className={styles.error}>{error}</p>:null}
+  <form className={styles.reviewForm} onSubmit={createManual}>
+   <section><header><h3>Account & PIC</h3></header><div className={styles.formGrid}>
+    {([['account_name','Account / instansi'],['account_type','Jenis account'],['contact_name','Nama PIC'],['contact_role','Posisi PIC'],['industry','Industri'],['city','Kota'],['website','Website'],['phone','Telepon / WhatsApp'],['email','Email'],['linkedin_url','LinkedIn PIC']] as const).map(([key,label])=><label key={key}>{label}<input required={key==='account_name'} type={key==='email'?'email':key==='website'||key==='linkedin_url'?'url':'text'} maxLength={key==='account_name'||key==='contact_name'?180:undefined} value={manual[key]} onChange={e=>setManual({...manual,[key]:e.target.value})}/></label>)}
+    <label>Final service<select value={manual.recommended_service} onChange={e=>setManual({...manual,recommended_service:e.target.value})}><option value="">Belum ditentukan</option>{services.map(value=><option key={value}>{value}</option>)}</select></label>
+    <label>Recommended pipeline<input value={manual.recommended_pipeline} onChange={e=>setManual({...manual,recommended_pipeline:e.target.value})}/></label><label>Business unit<input value={manual.recommended_business_unit} onChange={e=>setManual({...manual,recommended_business_unit:e.target.value})}/></label>
+   </div></section>
+   {researchGroups.map(group=><section key={group.title}><header><h3>{group.title}</h3></header><div className={styles.formGrid}>{group.fields.map(([key,label])=><label key={key} className={styles.wide}>{label}<textarea rows={2} value={manual.research[key]??''} onChange={e=>setManual({...manual,research:{...manual.research,[key]:e.target.value}})}/></label>)}</div></section>)}
+   <section><header><h3>Evidence & review</h3></header><div className={styles.formGrid}>{([['evidence_sources','Evidence / Sources'],['company_website_social_media','Company Website / Social Media'],['review_manual_bd_ceo','Review Manual BD/CEO'],['review_manual_cto_digital_system','Review Manual CTO — Digital System']] as const).map(([key,label])=><label key={key} className={styles.wide}>{label}<textarea rows={3} value={manual.research[key]??''} onChange={e=>setManual({...manual,research:{...manual.research,[key]:e.target.value}})}/></label>)}<label className={styles.wide}>Catatan internal BD<textarea rows={3} maxLength={5000} value={manual.review_notes} onChange={e=>setManual({...manual,review_notes:e.target.value})}/></label></div></section>
+   <button className={styles.saveButton} disabled={!!busy}>{busy==='manual'?'Menyimpan…':'Simpan ke Prospect Inbox'}</button>
+  </form>
+ </aside></div>:null}
  {selected&&draft?<div className={styles.overlay} onMouseDown={e=>{if(e.target===e.currentTarget&&!busy){setSelected(null);setDraft(null)}}}><aside className={styles.drawer} role="dialog" aria-modal="true" aria-label={`Detail ${selected.account_name}`}>
   <header className={styles.drawerHeader}><div><small>{selected.lead_code||selected.primary_source}</small><h2>{selected.account_name}</h2><p>{[selected.contact_name,selected.contact_role,selected.city].filter(Boolean).join(' · ')||'Data dasar belum lengkap'}</p></div><button aria-label="Tutup" disabled={!!busy} onClick={()=>{setSelected(null);setDraft(null)}}><FiX/></button></header>
   <section className={styles.scoreCard}><strong>{selected.total_score}</strong><div><b>Research score</b><span>Fit {selected.fit_score}/40 · Intent {selected.intent_score}/40 · Access {selected.accessibility_score}/20</span></div><span className={styles.status} data-status={selected.inbox_status}>{statusMeta[selected.inbox_status].label}</span></section>
