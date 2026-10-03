@@ -89,7 +89,6 @@ end; $$;
 
 revoke all on function public.log_prospect_interaction(uuid,jsonb),public.promote_ready_inbox_prospect(uuid,uuid,uuid,jsonb) from public,anon;
 grant execute on function public.log_prospect_interaction(uuid,jsonb),public.promote_ready_inbox_prospect(uuid,uuid,uuid,jsonb) to authenticated;
-revoke execute on function public.promote_inbox_prospect_to_pipeline(uuid,uuid,uuid),public.promote_prospect_to_pipeline(uuid,uuid,uuid) from authenticated;
 
 -- Extend existing read APIs while preserving the original research payload.
 create or replace function public.prospect_inbox_workspace()
@@ -164,7 +163,7 @@ begin
 end; $$;
 
 
--- All promotion routes now honor a recorded Inbox decision and carry outreach history.
+-- Inbox promotion records its decision; existing Harvester promotion remains compatible.
 create or replace function public.promote_prospect_to_pipeline(target_prospect_id uuid,target_source_id uuid,target_owner_id uuid default null)
 returns uuid language plpgsql security definer set search_path=public as $$
 declare
@@ -177,8 +176,6 @@ begin
   if p.id is null then raise exception 'Prospect tidak ditemukan.'; end if;
   if p.promoted_lead_id is not null then return p.promoted_lead_id; end if;
   if p.status='archived' then raise exception 'Prospect diarsipkan.'; end if;
-  if p.pipeline_entry_path is null or p.pipeline_next_action is null or p.pipeline_due_date is null then
-    raise exception 'Gunakan checklist kesiapan di Prospect Inbox sebelum promosi.'; end if;
   select ws.module_config,ws.key into config,source_key from public.work_sources ws where ws.id=target_source_id and ws.module_type='pipeline' and public.can_access_work_source(ws.id);
   if config is null then raise exception 'Pipeline tujuan tidak tersedia.' using errcode='42501'; end if;
 
@@ -193,7 +190,7 @@ begin
   elsif (coalesce(p.recommended_service,'') ilike '%website%' or coalesce(p.recommended_service,'') ilike '%digital%' or coalesce(p.recommended_service,'') ilike '%system%') and coalesce(config->'kpi_options','[]'::jsonb) ? 'Outreach Client Website/Landing Page & Sistem Digital' then chosen_kpi:='Outreach Client Website/Landing Page & Sistem Digital';
   elsif coalesce(config->'kpi_options','[]'::jsonb) ? 'Outreach Client EO' then chosen_kpi:='Outreach Client EO'; else chosen_kpi:=config->'kpi_options'->>0; end if;
   contact_blob:=nullif(trim(concat_ws(' · ',nullif(p.phone,''),nullif(p.email,''))),'');
-  lead_payload:=jsonb_build_object('source_id',target_source_id,'owner_membership_id',owner_id,'date_added',current_date,'business_unit',chosen_unit,'account_name',p.account_name,'account_type',p.account_type,'contact_name',p.contact_name,'contact_role',p.contact_role,'contact_details',contact_blob,'lead_source',p.primary_source,'priority',chosen_priority,'stage',chosen_stage,'qualification_status',chosen_qualification,'activity_type',chosen_activity,'next_action',p.pipeline_next_action,'due_date',p.pipeline_due_date,'document_url',p.website,'notes',p.ai_summary,'linked_kpi',chosen_kpi,'extra_data',jsonb_build_object('prospect_id',p.id,'prospect_score',score,'fit_score',p.fit_score,'intent_score',p.intent_score,'accessibility_score',p.accessibility_score,'recommended_service',p.recommended_service,'google_maps_url',p.google_maps_url,'linkedin_url',p.linkedin_url,'threads_url',p.threads_url,'instagram_url',p.instagram_url,'website',p.website,'pipeline_entry_path',p.pipeline_entry_path,'pipeline_entry_reason',p.pipeline_entry_reason,
+  lead_payload:=jsonb_build_object('source_id',target_source_id,'owner_membership_id',owner_id,'date_added',current_date,'business_unit',chosen_unit,'account_name',p.account_name,'account_type',p.account_type,'contact_name',p.contact_name,'contact_role',p.contact_role,'contact_details',contact_blob,'lead_source',p.primary_source,'priority',chosen_priority,'stage',chosen_stage,'qualification_status',chosen_qualification,'activity_type',chosen_activity,'next_action',coalesce(p.pipeline_next_action,'Hubungi '||p.account_name||case when p.recommended_service is not null then ' terkait '||p.recommended_service else '' end),'due_date',coalesce(p.pipeline_due_date,current_date+1),'document_url',p.website,'notes',p.ai_summary,'linked_kpi',chosen_kpi,'extra_data',jsonb_build_object('prospect_id',p.id,'prospect_score',score,'fit_score',p.fit_score,'intent_score',p.intent_score,'accessibility_score',p.accessibility_score,'recommended_service',p.recommended_service,'google_maps_url',p.google_maps_url,'linkedin_url',p.linkedin_url,'threads_url',p.threads_url,'instagram_url',p.instagram_url,'website',p.website,'pipeline_entry_path',p.pipeline_entry_path,'pipeline_entry_reason',p.pipeline_entry_reason,
     'inbox_interactions',(select coalesce(jsonb_agg(jsonb_build_object('channel',i.channel,'outcome',i.outcome,'occurred_at',i.occurred_at,'note',i.note,'follow_up_date',i.follow_up_date) order by i.occurred_at),'[]'::jsonb) from (select * from public.prospect_interactions where prospect_id=p.id order by occurred_at desc limit 100) i)));
   lead_id:=public.save_pipeline_lead(null,lead_payload);
   update public.prospects set status='promoted',promoted_lead_id=lead_id,promoted_at=now(),updated_at=now() where id=p.id;
