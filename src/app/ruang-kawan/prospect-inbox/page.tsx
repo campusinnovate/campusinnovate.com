@@ -17,19 +17,23 @@ type ProspectSummary={
  fit_score:number;intent_score:number;accessibility_score:number;total_score:number;inbox_status:InboxStatus;
  duplicate_of_prospect_id:string|null;promoted_lead_id:string|null;updated_at:string;lead_code:string|null;
  source_status:string|null;pipeline_category:string|null;confidence:string|null;research_date:string|null;
- position_status:string|null;next_action:string|null;
+ position_status:string|null;next_action:string|null;last_outcome:Outcome|null;last_channel:string|null;last_contact_at:string|null;follow_up_date:string|null;interaction_count:number;
 };
+type Outcome='sent'|'seen'|'waiting_reply'|'soft_reply'|'not_now'|'interested'|'meeting_agreed'|'not_interested';
+type Interaction={id:string;actor_membership_id:string;channel:string;outcome:Outcome;occurred_at:string;note:string;follow_up_date:string|null};
+type InteractionDraft={channel:string;outcome:Outcome;occurred_at:string;note:string;follow_up_date:string};
+type EntryDraft={entry_path:'active_outreach'|'opportunity';reason:string;next_action:string;due_date:string;fit_confirmed:boolean;pic_confirmed:boolean;service_confirmed:boolean};
 type PipelineSource={id:string;key:string;name:string;color:string;module_config:{business_units?:string[]}};
 type Member={id:string;name:string;position:string|null};
 type ImportBatch={id:string;source_title:string;source_sheet_name:string|null;total_rows:number;processed_rows:number;failed_rows:number;status:string;created_at:string};
-type Workspace={prospects:ProspectSummary[];stats:{total:number;needs_review:number;potential:number;duplicates:number;converted:number};pipeline_sources:PipelineSource[];members:Member[];imports:ImportBatch[]};
+type Workspace={prospects:ProspectSummary[];stats:{total:number;needs_review:number;potential:number;duplicates:number;converted:number;contacted:number;follow_up_due:number};pipeline_sources:PipelineSource[];members:Member[];imports:ImportBatch[]};
 type Research=Record<string,string|null>&{id:string;raw_snapshot:Record<string,unknown>};
 type Signal={id:string;source:string;signal_type:string;content:string|null;url:string|null;detected_at:string;signal_score:number};
 type ReviewEvent={id:string;actor_membership_id:string|null;event_type:string;changed_fields:string[];previous_status:string|null;new_status:string|null;created_at:string};
 type Detail=ProspectSummary&{
  address:string|null;website:string|null;phone:string|null;email:string|null;linkedin_url:string|null;threads_url:string|null;
  instagram_url:string|null;google_maps_url:string|null;recommended_business_unit:string|null;ai_summary:string|null;review_notes:string;
- research:Research|null;signals:Signal[];review_events:ReviewEvent[];duplicate_of:{id:string;account_name:string;contact_name:string|null;promoted_lead_id:string|null}|null;
+ research:Research|null;signals:Signal[];review_events:ReviewEvent[];interactions:Interaction[];duplicate_of:{id:string;account_name:string;contact_name:string|null;promoted_lead_id:string|null}|null;
 };
 type ReviewDraft={
  inbox_status:InboxStatus;duplicate_of_prospect_id:string;account_name:string;account_type:string;industry:string;city:string;
@@ -39,13 +43,17 @@ type ReviewDraft={
 type ManualDraft={account_name:string;account_type:string;industry:string;city:string;website:string;phone:string;email:string;linkedin_url:string;contact_name:string;contact_role:string;recommended_service:string;recommended_pipeline:string;recommended_business_unit:string;review_notes:string;research:Record<string,string>};
 const blankManual=():ManualDraft=>({account_name:'',account_type:'',industry:'',city:'',website:'',phone:'',email:'',linkedin_url:'',contact_name:'',contact_role:'',recommended_service:'',recommended_pipeline:'',recommended_business_unit:'',review_notes:'',research:{}});
 
-const emptyWorkspace:Workspace={prospects:[],stats:{total:0,needs_review:0,potential:0,duplicates:0,converted:0},pipeline_sources:[],members:[],imports:[]};
+const emptyWorkspace:Workspace={prospects:[],stats:{total:0,needs_review:0,potential:0,duplicates:0,converted:0,contacted:0,follow_up_due:0},pipeline_sources:[],members:[],imports:[]};
 const statusMeta:Record<InboxStatus,{label:string;hint:string}>={
  new:{label:'New',hint:'Baru masuk dan belum diperiksa'},needs_review:{label:'Needs Review',hint:'Perlu dilengkapi atau diverifikasi'},
  potential:{label:'Potential',hint:'Layak diprioritaskan untuk outreach'},duplicate:{label:'Duplicate',hint:'Ditautkan ke prospect utama'},
  junk:{label:'Junk',hint:'Tidak relevan dengan target market'},replace_pic:{label:'Replace PIC',hint:'Account relevan, PIC perlu diganti'},
  converted:{label:'In Pipeline',hint:'Sudah menjadi lead aktif'},
 };
+const outcomes:Record<Outcome,string>={sent:'Pesan terkirim',seen:'Seen',waiting_reply:'Menunggu balasan',soft_reply:'Balasan sopan / belum konkret',not_now:'Belum ada kebutuhan',interested:'Tertarik / ada kebutuhan',meeting_agreed:'Meeting disepakati',not_interested:'Tidak tertarik'};
+const todayJakarta=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
+const blankInteraction=():InteractionDraft=>({channel:'linkedin',outcome:'sent',occurred_at:todayJakarta(),note:'',follow_up_date:''});
+const blankEntry=():EntryDraft=>({entry_path:'active_outreach',reason:'',next_action:'',due_date:'',fit_confirmed:false,pic_confirmed:false,service_confirmed:false});
 const services=['Event Management','Training & Development','Digital Transformation','Program Development','COREVA ERP Organisasi','Stripmate Trip & Community'];
 const researchGroups=[
  {title:'Research & Opportunity',fields:[['description','Description'],['context_findings','Context / Findings'],['potential_problem_opportunity','Potential Problem / Opportunity'],['recommended_solution','Recommended Campus Innovate Solution']]},
@@ -70,6 +78,8 @@ export default function ProspectInboxPage(){
  const[pipelineId,setPipelineId]=useState('');const[ownerId,setOwnerId]=useState('');const[busy,setBusy]=useState('');
  const[message,setMessage]=useState('');const[error,setError]=useState('');
  const[manual,setManual]=useState<ManualDraft|null>(null);
+ const[interaction,setInteraction]=useState<InteractionDraft>(blankInteraction);const[entry,setEntry]=useState<EntryDraft>(blankEntry);
+ const[outreachFilter,setOutreachFilter]=useState('all');
  async function load(){
   setError('');const s=createClient();const{data:{session}}=await s.auth.getSession();if(!session){location.replace('/ruang-kawan/');return}
   const[workspace,accessR]=await Promise.all([s.rpc('prospect_inbox_workspace'),s.rpc('get_my_access')]);
@@ -80,23 +90,29 @@ export default function ProspectInboxPage(){
  useEffect(()=>{void load()},[]);
  async function openDetail(id:string){
   setBusy(`detail-${id}`);setError('');const r=await createClient().rpc('prospect_inbox_detail',{target_prospect_id:id});setBusy('');
-  if(r.error){setError(r.error.message);return}const detail=r.data as Detail;setSelected(detail);setDraft(blankDraft(detail));
+  if(r.error){setError(r.error.message);return}const detail=r.data as Detail;setSelected(detail);setDraft(blankDraft(detail));setInteraction(blankInteraction());setEntry(blankEntry());
   const recommended=data.pipeline_sources.find(item=>item.name===detail.recommended_pipeline||item.key==='pipeline_bd'&&detail.recommended_pipeline==='B2B Services');
   setPipelineId(recommended?.id??data.pipeline_sources[0]?.id??'');setOwnerId('');
  }
  async function refreshDetail(){if(!selected)return;await load();await openDetail(selected.id)}
  const visible=useMemo(()=>data.prospects.filter(p=>{
   const needle=query.trim().toLowerCase();const match=!needle||[p.account_name,p.contact_name,p.contact_role,p.lead_code,p.pipeline_category,p.recommended_service,p.next_action].some(v=>v?.toLowerCase().includes(needle));
-  return match&&(status==='all'||p.inbox_status===status)&&(source==='all'||p.primary_source===source);
- }),[data.prospects,query,status,source]);
+  const today=todayJakarta();const matchesOutreach=outreachFilter==='all'||(outreachFilter==='contacted'&&p.interaction_count>0)||(outreachFilter==='not_contacted'&&p.interaction_count===0)||(outreachFilter==='waiting'&&['sent','seen','waiting_reply'].includes(p.last_outcome??''))||(outreachFilter==='nurture'&&['soft_reply','not_now'].includes(p.last_outcome??''))||(outreachFilter==='follow_up'&&!!p.follow_up_date&&p.follow_up_date<=today&&p.inbox_status!=='converted')||(outreachFilter==='ready'&&p.inbox_status==='potential'&&['interested','meeting_agreed'].includes(p.last_outcome??''));
+  return match&&matchesOutreach&&(status==='all'||p.inbox_status===status)&&(source==='all'||p.primary_source===source);
+ }),[data.prospects,query,status,source,outreachFilter]);
  async function saveReview(e:FormEvent){
   e.preventDefault();if(!selected||!draft||!canManage||busy)return;setBusy('review');setError('');setMessage('');
   const r=await createClient().rpc('save_prospect_inbox_review',{target_prospect_id:selected.id,expected_updated_at:selected.updated_at,payload:draft});
   setBusy('');if(r.error){setError(r.error.message);return}setMessage('Review Prospect Inbox tersimpan.');await refreshDetail();
  }
+ async function saveInteraction(e:FormEvent){
+  e.preventDefault();if(!selected||!canManage||busy)return;setBusy('interaction');setError('');
+  const r=await createClient().rpc('log_prospect_interaction',{target_prospect_id:selected.id,payload:{...interaction,occurred_at:new Date(`${interaction.occurred_at}T12:00:00+07:00`).toISOString()}});
+  setBusy('');if(r.error){setError(r.error.message);return}setMessage('Interaksi tercatat di Prospect Inbox.');await refreshDetail();
+ }
  async function promote(){
-  if(!selected||!canManage||busy)return;if(!pipelineId){setError('Pilih Pipeline tujuan.');return}
-  setBusy('promote');setError('');const r=await createClient().rpc('promote_inbox_prospect_to_pipeline',{target_prospect_id:selected.id,target_source_id:pipelineId,target_owner_id:ownerId||null});setBusy('');
+  if(!selected||!canManage||busy)return;if(!pipelineId){setError('Pilih Pipeline tujuan.');return}if(!entry.fit_confirmed||!entry.pic_confirmed||!entry.service_confirmed){setError('Lengkapi checklist kesiapan terlebih dahulu.');return}
+  setBusy('promote');setError('');const r=await createClient().rpc('promote_ready_inbox_prospect',{target_prospect_id:selected.id,target_source_id:pipelineId,target_owner_id:ownerId||null,payload:entry});setBusy('');
   if(r.error){setError(r.error.message);return}setMessage(`${selected.account_name} masuk ke Pipeline BD sebagai record yang sama.`);await refreshDetail();
  }
  async function createManual(e:FormEvent){
@@ -117,16 +133,17 @@ export default function ProspectInboxPage(){
    <article><FiInbox/><span><strong>{data.stats.total}</strong><small>Seluruh prospect</small></span></article>
    <article data-attention={data.stats.needs_review>0}><FiClock/><span><strong>{data.stats.needs_review}</strong><small>Perlu review</small></span></article>
    <article><FiUserCheck/><span><strong>{data.stats.potential}</strong><small>Potential</small></span></article>
-   <article><FiCopy/><span><strong>{data.stats.duplicates}</strong><small>Duplicate</small></span></article>
+   <article><FiSend/><span><strong>{data.stats.contacted}</strong><small>Sudah dihubungi</small></span></article>
+   <article data-attention={data.stats.follow_up_due>0}><FiClock/><span><strong>{data.stats.follow_up_due}</strong><small>Follow-up jatuh tempo</small></span></article>
    <article><FiCheckCircle/><span><strong>{data.stats.converted}</strong><small>In Pipeline</small></span></article>
   </section>
-  <section className={styles.toolbar}><label><FiSearch/><input aria-label="Cari prospect" placeholder="Cari account, PIC, lead code, layanan, next action…" value={query} onChange={e=>setQuery(e.target.value)}/></label><span><FiFilter/><select value={status} onChange={e=>setStatus(e.target.value as 'all'|InboxStatus)}><option value="all">Semua status</option>{Object.entries(statusMeta).map(([key,value])=><option key={key} value={key}>{value.label}</option>)}</select><select value={source} onChange={e=>setSource(e.target.value)}><option value="all">Semua sumber</option>{Array.from(new Set(data.prospects.map(p=>p.primary_source))).sort().map(value=><option key={value}>{value}</option>)}</select></span></section>
+  <section className={styles.toolbar}><label><FiSearch/><input aria-label="Cari prospect" placeholder="Cari account, PIC, lead code, layanan, next action…" value={query} onChange={e=>setQuery(e.target.value)}/></label><span><FiFilter/><select value={status} onChange={e=>setStatus(e.target.value as 'all'|InboxStatus)}><option value="all">Semua status</option>{Object.entries(statusMeta).map(([key,value])=><option key={key} value={key}>{value.label}</option>)}</select><select value={source} onChange={e=>setSource(e.target.value)}><option value="all">Semua sumber</option>{Array.from(new Set(data.prospects.map(p=>p.primary_source))).sort().map(value=><option key={value}>{value}</option>)}</select><select aria-label="Filter outreach" value={outreachFilter} onChange={e=>setOutreachFilter(e.target.value)}><option value="all">Semua interaksi</option><option value="not_contacted">Belum dihubungi</option><option value="contacted">Sudah dihubungi</option><option value="waiting">Menunggu balasan</option><option value="nurture">Nurture / belum butuh</option><option value="follow_up">Follow-up jatuh tempo</option><option value="ready">Respons positif</option></select></span></section>
   <div className={styles.resultMeta}><span><b>{visible.length}</b> prospect tampil</span>{data.imports[0]?<span>Impor terakhir: <b>{data.imports[0].source_title}</b> · {data.imports[0].processed_rows}/{data.imports[0].total_rows} diproses · {data.imports[0].failed_rows} gagal</span>:<span>Belum ada batch impor tercatat.</span>}</div>
-  <section className={styles.table} aria-label="Daftar Prospect Inbox"><header><span>Account & PIC</span><span>Research</span><span>Service / Category</span><span>Next Action</span><span>Status</span><span/></header>{visible.map(p=><article key={p.id}>
+  <section className={styles.table} aria-label="Daftar Prospect Inbox"><header><span>Account & PIC</span><span>Research</span><span>Service / Category</span><span>Interaksi / Follow-up</span><span>Status</span><span/></header>{visible.map(p=><article key={p.id}>
    <div><strong>{p.account_name}</strong><small>{[p.contact_name,p.contact_role].filter(Boolean).join(' · ')||'PIC belum tersedia'}</small><em>{p.lead_code||p.primary_source}</em></div>
    <div><strong>{p.confidence||'Belum dinilai'}</strong><small>{p.position_status||'Posisi belum diverifikasi'}</small><em>{dateLabel(p.research_date)}</em></div>
    <div><strong>{p.recommended_service||p.pipeline_category||'Belum dipetakan'}</strong><small>{p.recommended_pipeline||p.account_type||'—'}</small></div>
-   <div><p>{p.next_action||'Tentukan next action saat review.'}</p></div>
+   <div><strong>{p.last_outcome?outcomes[p.last_outcome]:'Belum dihubungi'}</strong><small>{p.last_channel?`${p.last_channel} · ${dateLabel(p.last_contact_at)}`:'Catat reachout pertama di detail'}</small>{p.follow_up_date?<em>Follow-up {dateLabel(p.follow_up_date)}</em>:null}</div>
    <div><span className={styles.status} data-status={p.inbox_status}>{statusMeta[p.inbox_status].label}</span></div>
    <button aria-label={`Buka ${p.account_name}`} disabled={busy===`detail-${p.id}`} onClick={()=>void openDetail(p.id)}>Detail</button>
   </article>)}{!visible.length?<div className={styles.empty}>Tidak ada prospect pada filter ini.</div>:null}</section>
@@ -156,7 +173,11 @@ export default function ProspectInboxPage(){
    <section><header><h3>Riwayat</h3></header><ol className={styles.history}>{selected.review_events.map(event=><li key={event.id}><strong>{event.event_type.replaceAll('_',' ')}</strong><span>{event.changed_fields.join(', ')||'Status diperbarui'}</span><small>{data.members.find(m=>m.id===event.actor_membership_id)?.name||'Staff'} · {new Date(event.created_at).toLocaleString('id-ID')}</small></li>)}{!selected.review_events.length?<li>Belum ada perubahan manual tercatat.</li>:null}</ol></section>
    {canManage&&selected.inbox_status!=='converted'?<button className={styles.saveButton} disabled={!!busy}>{busy==='review'?'Menyimpan…':'Simpan review & data prospect'}</button>:null}
   </form>
-  {selected.inbox_status!=='converted'&&selected.inbox_status!=='junk'&&selected.inbox_status!=='duplicate'?<section className={styles.promote}><header><div><small>Same-record promotion</small><h3>Terima ke Pipeline BD</h3></div></header><p>Prospect tidak disalin. Record ini ditautkan ke lead aktif, owner, next action, due date, dan My Activity.</p><div><label>Pipeline<select value={pipelineId} onChange={e=>setPipelineId(e.target.value)}>{data.pipeline_sources.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Owner<select value={ownerId} onChange={e=>setOwnerId(e.target.value)}><option value="">Saya sendiri</option>{data.members.map(member=><option key={member.id} value={member.id}>{member.name}{member.position?` · ${member.position}`:''}</option>)}</select></label></div><button disabled={!canManage||!!busy} onClick={()=>void promote()}><FiSend/> {busy==='promote'?'Memproses…':'Accept Prospect / Start Outreach'}</button></section>:selected.inbox_status==='converted'?<section className={styles.converted}><FiCheckCircle/><div><strong>Sudah masuk Pipeline BD</strong><Link href="/ruang-kawan/pipeline/">Buka lead aktif</Link></div></section>:null}
+  <section className={styles.outreach}><header><div><small>CRM Prospect Inbox</small><h3>Interaksi & follow-up</h3></div><span>{selected.interactions.length} catatan</span></header><p className={styles.helper}>Balasan sopan atau belum ada kebutuhan tetap di Inbox. Catat respons aktual dan jadwalkan follow-up bila perlu.</p>
+   {canManage&&selected.inbox_status!=='converted'&&selected.inbox_status!=='junk'&&selected.inbox_status!=='duplicate'?<form onSubmit={saveInteraction}><div className={styles.formGrid}><label>Kanal<select value={interaction.channel} onChange={e=>setInteraction({...interaction,channel:e.target.value})}><option value="linkedin">LinkedIn</option><option value="whatsapp">WhatsApp</option><option value="email">Email</option><option value="call">Telepon</option><option value="other">Lainnya</option></select></label><label>Hasil<select value={interaction.outcome} onChange={e=>setInteraction({...interaction,outcome:e.target.value as Outcome})}>{Object.entries(outcomes).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label><label>Tanggal interaksi<input required type="date" value={interaction.occurred_at} onChange={e=>setInteraction({...interaction,occurred_at:e.target.value})}/></label><label>Follow-up berikutnya<input type="date" value={interaction.follow_up_date} onChange={e=>setInteraction({...interaction,follow_up_date:e.target.value})}/></label><label className={styles.wide}>Catatan ringkas<textarea rows={2} maxLength={3000} placeholder="Apa yang dikirim atau dijawab?" value={interaction.note} onChange={e=>setInteraction({...interaction,note:e.target.value})}/></label></div><button className={styles.saveButton} disabled={!!busy}>{busy==='interaction'?'Menyimpan…':'Catat interaksi'}</button></form>:null}
+   <ol className={styles.history}>{selected.interactions.map(item=><li key={item.id}><strong>{outcomes[item.outcome]} · {item.channel}</strong><span>{item.note||'Tanpa catatan tambahan'}</span><small>{dateLabel(item.occurred_at)} · {data.members.find(m=>m.id===item.actor_membership_id)?.name||'Staff'}{item.follow_up_date?` · Follow-up ${dateLabel(item.follow_up_date)}`:''}</small></li>)}{!selected.interactions.length?<li>Belum ada interaksi yang tercatat.</li>:null}</ol>
+  </section>
+  {selected.inbox_status!=='converted'&&selected.inbox_status!=='junk'&&selected.inbox_status!=='duplicate'?<section className={styles.promote}><header><div><small>Same-record promotion</small><h3>Terima ke Pipeline BD</h3></div></header><p>Masukkan hanya prospect Potential dengan PIC, kanal kontak, layanan, dan alasan kerja yang jelas. Respons sopan saja tetap untuk nurture.</p><div className={styles.checklist}><label><input type="checkbox" checked={entry.fit_confirmed} onChange={e=>setEntry({...entry,fit_confirmed:e.target.checked})}/> Fit dengan target market telah diverifikasi</label><label><input type="checkbox" checked={entry.pic_confirmed} onChange={e=>setEntry({...entry,pic_confirmed:e.target.checked})}/> PIC dan kanal kontak benar</label><label><input type="checkbox" checked={entry.service_confirmed} onChange={e=>setEntry({...entry,service_confirmed:e.target.checked})}/> Layanan yang relevan sudah jelas</label></div><div className={styles.formGrid}><label>Jalur masuk<select value={entry.entry_path} onChange={e=>setEntry({...entry,entry_path:e.target.value as EntryDraft['entry_path']})}><option value="active_outreach">Outreach aktif (cold, fit kuat)</option><option value="opportunity">Peluang konkret (tertarik / meeting)</option></select></label><label>Pipeline<select value={pipelineId} onChange={e=>setPipelineId(e.target.value)}>{data.pipeline_sources.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Owner<select value={ownerId} onChange={e=>setOwnerId(e.target.value)}><option value="">Saya sendiri</option>{data.members.map(member=><option key={member.id} value={member.id}>{member.name}{member.position?` · ${member.position}`:''}</option>)}</select></label><label>Deadline next action<input type="date" min={todayJakarta()} value={entry.due_date} onChange={e=>setEntry({...entry,due_date:e.target.value})}/></label><label className={styles.wide}>Next action<input value={entry.next_action} onChange={e=>setEntry({...entry,next_action:e.target.value})} placeholder="Contoh: follow-up PIC via LinkedIn"/></label><label className={styles.wide}>Alasan masuk Pipeline<textarea rows={2} value={entry.reason} onChange={e=>setEntry({...entry,reason:e.target.value})} placeholder="Bukti fit atau kebutuhan konkret, bukan sekadar balasan sopan"/></label></div><button disabled={!canManage||!!busy||selected.inbox_status!=='potential'||!entry.fit_confirmed||!entry.pic_confirmed||!entry.service_confirmed||entry.reason.trim().length<12||entry.next_action.trim().length<5||!entry.due_date} onClick={()=>void promote()}><FiSend/> {busy==='promote'?'Memproses…':'Masukkan ke Pipeline'}</button>{selected.inbox_status!=='potential'?<p className={styles.helper}>Ubah status review menjadi Potential dan simpan dulu.</p>:null}</section>:selected.inbox_status==='converted'?<section className={styles.converted}><FiCheckCircle/><div><strong>Sudah masuk Pipeline BD</strong><Link href="/ruang-kawan/pipeline/">Buka lead aktif</Link></div></section>:null}
  </aside></div>:null}
  </main>;
 }
