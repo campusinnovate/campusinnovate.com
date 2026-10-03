@@ -84,6 +84,23 @@ begin
   update public.prospects set pipeline_entry_path=entry_path,pipeline_entry_reason=trim(payload->>'reason'),
     pipeline_next_action=trim(payload->>'next_action'),pipeline_due_date=due_on,updated_at=now() where id=p.id;
   lead_id:=public.promote_inbox_prospect_to_pipeline(target_prospect_id,target_source_id,target_owner_id);
+  -- The existing Harvester/Pipeline promotion function stays unchanged. Enrich only
+  -- this newly promoted lead, including its paired My Activity record.
+  update public.pipeline_leads pl set
+    next_action=trim(payload->>'next_action'),due_date=due_on,
+    extra_data=pl.extra_data||jsonb_build_object(
+      'pipeline_entry_path',entry_path,'pipeline_entry_reason',trim(payload->>'reason'),
+      'inbox_interactions',(select coalesce(jsonb_agg(jsonb_build_object(
+        'channel',i.channel,'outcome',i.outcome,'occurred_at',i.occurred_at,
+        'note',i.note,'follow_up_date',i.follow_up_date) order by i.occurred_at),'[]'::jsonb)
+        from (select * from public.prospect_interactions where prospect_id=p.id order by occurred_at desc limit 100) i)),
+    updated_at=now()
+  where pl.id=lead_id;
+  update public.activities a set
+    title=trim(payload->>'next_action')||' · '||p.account_name,
+    activity_date=due_on,next_action=trim(payload->>'next_action'),
+    updated_by=auth.uid(),updated_at=now()
+  where a.id=(select pl.activity_id from public.pipeline_leads pl where pl.id=lead_id);
   return lead_id;
 end; $$;
 
@@ -161,39 +178,3 @@ begin
   if result is null then raise exception 'Prospect tidak ditemukan.'; end if;
   return result;
 end; $$;
-
-
--- Inbox promotion records its decision; existing Harvester promotion remains compatible.
-create or replace function public.promote_prospect_to_pipeline(target_prospect_id uuid,target_source_id uuid,target_owner_id uuid default null)
-returns uuid language plpgsql security definer set search_path=public as $$
-declare
-  p public.prospects%rowtype; config jsonb; source_key text; owner_id uuid:=coalesce(target_owner_id,public.current_membership_id());
-  chosen_stage text; chosen_priority text; chosen_unit text; chosen_activity text; chosen_kpi text; chosen_qualification text;
-  score integer; lead_id uuid; contact_blob text; lead_payload jsonb;
-begin
-  if not public.current_user_has_permission('pipeline.manage_self') then raise exception 'Izin kelola Pipeline BD diperlukan.' using errcode='42501'; end if;
-  select * into p from public.prospects where id=target_prospect_id for update;
-  if p.id is null then raise exception 'Prospect tidak ditemukan.'; end if;
-  if p.promoted_lead_id is not null then return p.promoted_lead_id; end if;
-  if p.status='archived' then raise exception 'Prospect diarsipkan.'; end if;
-  select ws.module_config,ws.key into config,source_key from public.work_sources ws where ws.id=target_source_id and ws.module_type='pipeline' and public.can_access_work_source(ws.id);
-  if config is null then raise exception 'Pipeline tujuan tidak tersedia.' using errcode='42501'; end if;
-
-  chosen_stage:=case when coalesce(config->'stages','[]'::jsonb) ? 'Researched' then 'Researched' else config->'stages'->>0 end;
-  score:=p.fit_score+p.intent_score+p.accessibility_score;
-  chosen_priority:=case when score>=80 then 'High' when score>=60 then 'Medium' else 'Low' end;
-  if jsonb_array_length(coalesce(config->'priorities','[]'::jsonb))>0 and not (config->'priorities') ? chosen_priority then chosen_priority:=coalesce(config->'priorities'->>0,'Medium'); end if;
-  chosen_unit:=case when p.recommended_business_unit is not null and coalesce(config->'business_units','[]'::jsonb) ? p.recommended_business_unit then p.recommended_business_unit else config->'business_units'->>0 end;
-  chosen_activity:=case when coalesce(config->'activity_types','[]'::jsonb) ? 'Follow Up' then 'Follow Up' else coalesce(config->'activity_types'->>0,'Follow Up') end;
-  chosen_qualification:=case when coalesce(config->'qualification_statuses','[]'::jsonb) ? 'Pending' then 'Pending' else null end;
-  if source_key='pipeline_coreva' and coalesce(config->'kpi_options','[]'::jsonb) ? 'Outreach Client Coreva' then chosen_kpi:='Outreach Client Coreva';
-  elsif (coalesce(p.recommended_service,'') ilike '%website%' or coalesce(p.recommended_service,'') ilike '%digital%' or coalesce(p.recommended_service,'') ilike '%system%') and coalesce(config->'kpi_options','[]'::jsonb) ? 'Outreach Client Website/Landing Page & Sistem Digital' then chosen_kpi:='Outreach Client Website/Landing Page & Sistem Digital';
-  elsif coalesce(config->'kpi_options','[]'::jsonb) ? 'Outreach Client EO' then chosen_kpi:='Outreach Client EO'; else chosen_kpi:=config->'kpi_options'->>0; end if;
-  contact_blob:=nullif(trim(concat_ws(' · ',nullif(p.phone,''),nullif(p.email,''))),'');
-  lead_payload:=jsonb_build_object('source_id',target_source_id,'owner_membership_id',owner_id,'date_added',current_date,'business_unit',chosen_unit,'account_name',p.account_name,'account_type',p.account_type,'contact_name',p.contact_name,'contact_role',p.contact_role,'contact_details',contact_blob,'lead_source',p.primary_source,'priority',chosen_priority,'stage',chosen_stage,'qualification_status',chosen_qualification,'activity_type',chosen_activity,'next_action',coalesce(p.pipeline_next_action,'Hubungi '||p.account_name||case when p.recommended_service is not null then ' terkait '||p.recommended_service else '' end),'due_date',coalesce(p.pipeline_due_date,current_date+1),'document_url',p.website,'notes',p.ai_summary,'linked_kpi',chosen_kpi,'extra_data',jsonb_build_object('prospect_id',p.id,'prospect_score',score,'fit_score',p.fit_score,'intent_score',p.intent_score,'accessibility_score',p.accessibility_score,'recommended_service',p.recommended_service,'google_maps_url',p.google_maps_url,'linkedin_url',p.linkedin_url,'threads_url',p.threads_url,'instagram_url',p.instagram_url,'website',p.website,'pipeline_entry_path',p.pipeline_entry_path,'pipeline_entry_reason',p.pipeline_entry_reason,
-    'inbox_interactions',(select coalesce(jsonb_agg(jsonb_build_object('channel',i.channel,'outcome',i.outcome,'occurred_at',i.occurred_at,'note',i.note,'follow_up_date',i.follow_up_date) order by i.occurred_at),'[]'::jsonb) from (select * from public.prospect_interactions where prospect_id=p.id order by occurred_at desc limit 100) i)));
-  lead_id:=public.save_pipeline_lead(null,lead_payload);
-  update public.prospects set status='promoted',promoted_lead_id=lead_id,promoted_at=now(),updated_at=now() where id=p.id;
-  return lead_id;
-end; $$;
-
