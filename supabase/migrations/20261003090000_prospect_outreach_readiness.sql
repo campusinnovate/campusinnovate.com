@@ -60,7 +60,8 @@ begin
   end if;
   if nullif(trim(p.account_name),'') is null or nullif(trim(coalesce(p.contact_name,'')),'') is null
     or nullif(trim(coalesce(p.recommended_service,'')),'') is null
-    or (nullif(trim(coalesce(p.linkedin_url,'')),'') is null and nullif(trim(coalesce(p.phone,'')),'') is null and nullif(trim(coalesce(p.email,'')),'') is null) then
+    or (nullif(trim(coalesce(p.linkedin_url,'')),'') is null and nullif(trim(coalesce(p.phone,'')),'') is null and nullif(trim(coalesce(p.email,'')),'') is null
+      and not exists(select 1 from public.prospect_interactions i where i.prospect_id=p.id and i.channel='linkedin')) then
     raise exception 'Lengkapi account, PIC, layanan, dan minimal satu kanal kontak di review terlebih dahulu.';
   end if;
   if payload->>'fit_confirmed' is distinct from 'true' or payload->>'pic_confirmed' is distinct from 'true'
