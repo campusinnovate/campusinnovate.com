@@ -1,19 +1,26 @@
--- RAB access is restricted to commercial staff. Google tokens and pricing file
--- metadata are handled only by the rab-generator Edge Function's service role.
+-- RAB access is restricted to the four named positions. Google tokens and
+-- pricing file metadata are handled only by the Edge Function's service role.
 insert into public.permissions(key,name,description) values
  ('marketing.rab.view','Lihat RAB Generator','Melihat generator dan daftar RAB milik sendiri.'),
  ('marketing.rab.manage','Buat RAB','Menghubungkan Drive dan membuat RAB dari template resmi.')
 on conflict(key) do update set name=excluded.name,description=excluded.description;
 
-insert into public.role_permissions(role_id,permission_id)
-select r.id,p.id from public.roles r cross join public.permissions p
-where r.key in ('system_admin','executive') and p.key in ('marketing.rab.view','marketing.rab.manage')
-on conflict do nothing;
+-- Generic executive/admin roles do not qualify on their own.
+delete from public.role_permissions rp
+using public.permissions p
+where rp.permission_id=p.id and p.key in ('marketing.rab.view','marketing.rab.manage');
 
 insert into public.position_permissions(position_id,permission_id)
 select pos.id,p.id from public.positions pos cross join public.permissions p
-where pos.key in ('business_development_staff','ceo','coo')
+where pos.key in ('business_development_staff','ceo','cto','coo')
   and p.key in ('marketing.rab.view','marketing.rab.manage')
+on conflict do nothing;
+
+-- Marketing Workspace and its dashboard entry require marketing.view.
+-- CEO, COO, and BD already have this permission; CTO needs it explicitly.
+insert into public.position_permissions(position_id,permission_id)
+select pos.id,p.id from public.positions pos cross join public.permissions p
+where pos.key='cto' and p.key='marketing.view'
 on conflict do nothing;
 
 create table if not exists public.rab_google_connections (

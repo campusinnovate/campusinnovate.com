@@ -28,7 +28,7 @@ Generator berada di Marketing → RAB Generator. Sumbernya adalah **Campus Innov
 
 ## Pemeriksaan sebelum aktif
 
-1. Login sebagai BD yang mendapat `marketing.rab.manage`, buka Marketing → RAB Generator, lalu hubungkan Google Drive.
+1. Login bergantian sebagai CEO, CTO, COO, dan BD. Keempat posisi harus melihat Marketing → RAB Generator dan bisa menghubungkan Google Drive. Pengguna di luar empat posisi tidak mendapat tab dari izin role umum.
 2. Buat RAB uji dengan satu komponen dan satu baris HPP. Pastikan file ada di folder hasil dan tujuh tab tetap berurutan: Dashboard, Pricing Control, RAB Internal, Client Proposal, Project P&L, Component Library, Read Me.
 3. Bandingkan formula dan format sel hasil dengan master, serta cek hasil angka di Dashboard, Client Proposal, dan Project P&L. Coba buka di tab baru dan ekspor Excel.
 4. Periksa sebagai pengguna tanpa izin: tab tidak muncul dan POST Function mengembalikan 403. Akun lain tidak dapat melihat riwayat atau mengunduh RAB pengguna tersebut dari aplikasi.
