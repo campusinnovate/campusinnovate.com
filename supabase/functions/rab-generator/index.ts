@@ -256,7 +256,8 @@ async function generate(owner: string, connection: Connection, input: Record<str
     const rab=verify.sheets.find((s:{properties:{title:string}})=>s.properties.title==='RAB Internal');
     const formula=pricing?.data?.[0]?.rowData?.[0]?.values?.[0]?.userEnteredValue?.formulaValue;
     const totalFormula=rab?.data?.[0]?.rowData?.[0]?.values?.[0]?.userEnteredValue?.formulaValue;
-    if (typeof formula!=='string'||!formula.startsWith('=')||typeof totalFormula!=='string'||!totalFormula.startsWith('=')) throw new RequestError('Formula master V2 tidak utuh pada salinan. RAB tidak ditandai siap.',502);
+    const lookupFormula=rab?.data?.[1]?.rowData?.[0]?.values?.[0]?.userEnteredValue?.formulaValue;
+    if (typeof formula!=='string'||!formula.startsWith('=')||typeof totalFormula!=='string'||!totalFormula.startsWith('=')||typeof lookupFormula!=='string'||!lookupFormula.startsWith('=')) throw new RequestError('Formula master V2 tidak utuh pada salinan. RAB tidak ditandai siap.',502);
     requireDb((await admin.from('rab_generations').update({ status: 'ready', updated_at: new Date().toISOString() }).eq('id', jobId)).error);
     return { id: jobId, url: `https://docs.google.com/spreadsheets/d/${fileId}/edit`, title };
   } catch (error) {
