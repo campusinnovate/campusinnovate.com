@@ -1,0 +1,36 @@
+# RAB Generator: setup operasional
+
+Generator berada di Marketing → RAB Generator. Sumbernya adalah **Campus Innovate Project Pricing Template**, sebuah Google Sheet native dengan tujuh tab. Backend membuat salinan Drive dari master dan hanya mengisi sel input melalui Sheets `values.batchUpdate` dengan `RAW`; rumus, format, validasi, dan tab lain tetap dari master.
+
+## Drive
+
+- Master Sheet: `1gMnJpwMH__ctYWVI-rCRmD5tFM_gDu-6F3ovkfM_BZo`
+- Folder hasil: `1zwXQYDu5q-I65iNPA1w7H6mS0oKmoa0T` (`03_FIN/RAB Generated`)
+- Akun Google yang dihubungkan staf harus punya akses baca master dan hak menambah file pada folder hasil. File hasil mengikuti izin folder Drive tersebut.
+
+## Google Cloud dan Supabase
+
+1. Aktifkan Google Drive API dan Google Sheets API di project Google Cloud organisasi.
+2. Buat OAuth client jenis Web application. Tambahkan authorized redirect URI `https://lxwqhtuhlddgwfxjtlas.supabase.co/functions/v1/rab-generator/callback` dan pastikan consent screen mengizinkan akun staf. Aplikasi meminta `openid`, `email`, `drive`, dan `spreadsheets`; scope Drive penuh diperlukan untuk menyalin master yang sudah ada. Proses verifikasi Google mungkin diperlukan sebelum pengguna di luar daftar test users bisa memberi izin.
+3. Jalankan migrasi `20261004110000_marketing_rab_generator.sql` dan deploy Edge Function `rab-generator` dengan `verify_jwt=false`. Function tetap memvalidasi JWT pengguna untuk seluruh POST; hanya OAuth callback memakai state sekali pakai dan PKCE.
+4. Isi Supabase Edge Function secrets di project yang sama:
+
+   | Secret | Nilai |
+   | --- | --- |
+   | `GOOGLE_RAB_CLIENT_ID` | OAuth client ID baru |
+   | `GOOGLE_RAB_CLIENT_SECRET` | OAuth client secret baru |
+   | `GOOGLE_RAB_ENCRYPTION_KEY` | 32 byte acak dalam hex (64 karakter); simpan aman, jangan ganti tanpa migrasi token |
+   | `GOOGLE_RAB_TEMPLATE_ID` | `1gMnJpwMH__ctYWVI-rCRmD5tFM_gDu-6F3ovkfM_BZo` |
+   | `GOOGLE_RAB_OUTPUT_FOLDER_ID` | `1zwXQYDu5q-I65iNPA1w7H6mS0oKmoa0T` |
+   | `APP_ORIGIN` | `https://campusinnovate.com` |
+
+   `SUPABASE_URL`, `SUPABASE_ANON_KEY`, dan `SUPABASE_SERVICE_ROLE_KEY` disediakan oleh Supabase. Jangan menaruh client secret, service role, atau encryption key di Next.js/browser.
+
+## Pemeriksaan sebelum aktif
+
+1. Login sebagai BD yang mendapat `marketing.rab.manage`, buka Marketing → RAB Generator, lalu hubungkan Google Drive.
+2. Buat RAB uji dengan satu komponen dan satu baris HPP. Pastikan file ada di folder hasil dan tujuh tab tetap berurutan: Dashboard, Pricing Control, RAB Internal, Client Proposal, Project P&L, Component Library, Read Me.
+3. Bandingkan formula dan format sel hasil dengan master, serta cek hasil angka di Dashboard, Client Proposal, dan Project P&L. Coba buka di tab baru dan ekspor Excel.
+4. Periksa sebagai pengguna tanpa izin: tab tidak muncul dan POST Function mengembalikan 403. Akun lain tidak dapat melihat riwayat atau mengunduh RAB pengguna tersebut dari aplikasi.
+
+Ekspor `.xlsx` dilakukan oleh Google Drive dari file native. Fungsi Sheets tertentu mungkin tidak dihitung identik oleh Excel setelah diunduh; versi Google Sheet adalah sumber angka final.
