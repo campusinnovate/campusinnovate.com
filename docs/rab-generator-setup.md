@@ -39,5 +39,6 @@ Ekspor `.xlsx` dilakukan oleh Google Drive dari file native. Fungsi Sheets terte
 
 - Input komersial ditulis ke `Pricing Control!E5:E8`, `H5:H6`, `H8`, `H11:H13`, `M6:M8`, dan `B5:B10`. `E9:E12`, kalkulasi overhead/marketing, dan pricing summary tetap formula master.
 - Cost rows diinisialisasi kosong dengan hanya menulis `RAB Internal!B:C`, `F:H`, dan `J` pada rows 10–39. Kolom lookup/formula D, E, I, K tidak disentuh.
+- Formula daftar komponen V2 memfilter Service Family secara exact, sementara katalog memiliki satu komponen berkeluarga `All`. Generator menambahkan komponen `All` resmi ke baris kosong berikutnya sebagai input library tanpa mengubah formula master; ini memungkinkan biaya Project Management & Coordination dipetakan ke Pricing Control dan RAB Internal.
 - Approval submission membaca ulang sheet yang sudah diedit dan membekukan `Pricing Control!B5:B10`, `A15:B27`, `A29:J41`, serta `RAB Internal!A9:J39` ke snapshot versi.
 - Alur review berurutan COO kemudian CEO. Keputusan dicatat atas akun aktif; perubahan pada sumber setelah submission membuat approval perlu diajukan ulang. Dokumen dapat dicetak/simpan PDF dan mengambil angka hanya dari snapshot; sistem tidak menandatangani atas nama pejabat.

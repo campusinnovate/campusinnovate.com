@@ -53,7 +53,9 @@ export default function RabGenerator(){
   const [proposal,setProposal]=useState('OFF-000');
   const [assumptions,setAssumptions]=useState(initialAssumptions);
   const [components,setComponents]=useState<Component[]>([]);
+  const [componentsEdited,setComponentsEdited]=useState(false);
   const [costs,setCosts]=useState<Cost[]>([]);
+  const [costsEdited,setCostsEdited]=useState(false);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const [message,setMessage]=useState('');
@@ -77,13 +79,16 @@ export default function RabGenerator(){
       setService(data.serviceFamily??'EO / Event');setMode(data.pricingMode??'Open-book');setProposal(String(data.proposalNumber??'OFF-000'));
       const a=data.assumptions??{};
       setAssumptions(Object.fromEntries(Object.keys(assumptionLabels).map(key=>[key,String(key==='units'?data.units??0:a[key]??initialAssumptions[key as keyof Assumptions])])) as Assumptions);
-      setComponents([]);
       const svc=String(data.serviceFamily??'EO / Event');
+      const serviceComponents=(data.library??[]).filter((row:LibraryRow)=>row[0]===svc);
+      const sharedComponent=(data.library??[]).find((row:LibraryRow)=>row[0]==='All');
+      setComponents(sharedComponent?[{row:30+serviceComponents.length,title:String(sharedComponent[1]??''),scope:String(sharedComponent[2]??''),type:String(sharedComponent[3]??'Core'),include:String(sharedComponent[4]??'YES'),method:String(sharedComponent[5]??'Fee'),adjustment:'',notes:String(sharedComponent[6]??''),changes:{title:String(sharedComponent[1]??''),scope:String(sharedComponent[2]??''),type:String(sharedComponent[3]??'Core'),include:String(sharedComponent[4]??'YES'),method:String(sharedComponent[5]??'Fee'),notes:String(sharedComponent[6]??'')}}]:[]);
       setCosts(normalized.filter(c=>c.service===svc||c.service==='All').slice(0,30).map((c,i)=>({row:10+i,component:c.component,detail:c.detail,costClass:c.costClass,unit:c.unit,qty:'0',days:'1',rate:'0',include:'NO'})));
+      setComponentsEdited(false);setCostsEdited(false);
     }).catch(e=>{if(live)setError(e instanceof Error?e.message:'Template tidak tersedia.');});
     return()=>{live=false};
   },[accountId]);
-  const suggestions=useMemo(()=>library.filter(row=>row[0]===service).slice(0,12),[library,service]);
+  const suggestions=useMemo(()=>[...library.filter(row=>row[0]===service).slice(0,11),...library.filter(row=>row[0]==='All').slice(0,1)],[library,service]);
   const rows=useMemo(()=>Array.from({length:12},(_,i)=>{
     const override=components.find(x=>x.row===30+i);
     const source=suggestions[i];
@@ -91,10 +96,11 @@ export default function RabGenerator(){
   }),[components,suggestions]);
   function changeComponent(row:number,key:keyof Omit<Component,'row'|'changes'>,value:string){
     const current=rows[row-30];
+    setComponentsEdited(true);
     setComponents(old=>[...old.filter(x=>x.row!==row),{...current,[key]:value,changes:{...current.changes,[key]:key==='adjustment'&&value!==''?Number(value):value}}]);
   }
-  function changeCost(row:number,key:keyof Cost,value:string){setCosts(old=>old.map(c=>c.row===row?{...c,[key]:value}:c));}
-  function addCost(){if(costs.length>=30)return;setCosts(old=>[...old,{row:10+old.length,component:'',detail:'',costClass:'',unit:'',qty:'1',days:'1',rate:'0',include:'YES'}]);}
+  function changeCost(row:number,key:keyof Cost,value:string){setCostsEdited(true);setCosts(old=>old.map(c=>c.row===row?{...c,[key]:value}:c));}
+  function addCost(){if(costs.length>=30)return;setCostsEdited(true);setCosts(old=>[...old,{row:10+old.length,component:'',detail:'',costClass:'',unit:'',qty:'1',days:'1',rate:'0',include:'YES'}]);}
   async function authorize(){setBusy(true);setError('');try{const data=await request('authorize');window.location.assign(data.url);}catch(e){setError(e instanceof Error?e.message:'Koneksi gagal.');setBusy(false);}}
   async function generate(event:FormEvent){
     event.preventDefault();setBusy(true);setError('');setNewUrl('');
@@ -139,7 +145,7 @@ export default function RabGenerator(){
       <section className={styles.panel}><div className={styles.panelHead}><span>01</span><div><h3>Informasi proyek</h3><p>Mengisi bagian Project Information pada Pricing Control.</p></div></div><div className={styles.fields}>
         <label>Nama proyek<input value={project} onChange={e=>setProject(e.target.value)} maxLength={160} required placeholder="Contoh: Leadership Camp 2026"/></label>
         <label>Client<input value={client} onChange={e=>setClient(e.target.value)} maxLength={160} required placeholder="Nama organisasi / perusahaan"/></label>
-        <label>Service Family<select value={service} onChange={e=>{const next=e.target.value;const edited=components.length>0||costs.some(c=>Number(c.qty)>0||Number(c.rate)>0||c.include==='YES');if(edited&&!window.confirm('Mengganti layanan akan memuat ulang komponen dan rincian HPP. Perubahan yang belum disimpan akan hilang. Lanjutkan?'))return;setService(next);setComponents([]);setCosts(costLibrary.filter(c=>c.service===next||(next==='Custom'&&c.service==='All')).slice(0,30).map((c,i)=>({row:10+i,component:c.component,detail:c.detail,costClass:c.costClass,unit:c.unit,qty:'0',days:'1',rate:'0',include:'NO'})));}}>{services.map(x=><option key={x}>{x}</option>)}</select></label>
+        <label>Service Family<select value={service} onChange={e=>{const next=e.target.value;const edited=componentsEdited||costsEdited||costs.some(c=>Number(c.qty)>0||Number(c.rate)>0||c.include==='YES');if(edited&&!window.confirm('Mengganti layanan akan memuat ulang komponen dan rincian HPP. Perubahan yang belum disimpan akan hilang. Lanjutkan?'))return;setService(next);const serviceComponents=library.filter(row=>row[0]===next);const shared=library.find(row=>row[0]==='All');setComponents(shared?[{row:30+serviceComponents.length,title:String(shared[1]??''),scope:String(shared[2]??''),type:String(shared[3]??'Core'),include:String(shared[4]??'YES'),method:String(shared[5]??'Fee'),adjustment:'',notes:String(shared[6]??''),changes:{title:String(shared[1]??''),scope:String(shared[2]??''),type:String(shared[3]??'Core'),include:String(shared[4]??'YES'),method:String(shared[5]??'Fee'),notes:String(shared[6]??'')}}]:[]);setComponentsEdited(false);setCosts(costLibrary.filter(c=>c.service===next||c.service==='All').slice(0,30).map((c,i)=>({row:10+i,component:c.component,detail:c.detail,costClass:c.costClass,unit:c.unit,qty:'0',days:'1',rate:'0',include:'NO'})));setCostsEdited(false);}}>{services.map(x=><option key={x}>{x}</option>)}</select></label>
         <label>Pricing Mode<select value={mode} onChange={e=>setMode(e.target.value)}>{modes.map(x=><option key={x}>{x}</option>)}</select></label>
         <label>Nomor penawaran<input value={proposal} onChange={e=>setProposal(e.target.value)} maxLength={80} required/></label>
         <label>Units / Participants<input type="number" min="0" step="any" value={assumptions.units} onChange={e=>setAssumptions({...assumptions,units:e.target.value})}/></label>
@@ -157,7 +163,7 @@ export default function RabGenerator(){
         <label className={styles.wide}>Notes<input value={row.notes} onChange={e=>changeComponent(row.row,'notes',e.target.value)}/></label>
       </div></details>)}</div></section>
       <section className={styles.panel}><div className={styles.panelHead}><span>04</span><div><h3>RAB Internal · HPP</h3><p>Maksimal 30 baris. Detail biaya dan pemetaan komponen tetap terlihat dalam file hasil.</p></div></div><div className={styles.costList}>{costs.map((cost,index)=><div key={cost.row} className={styles.cost}><div className={styles.costHead}><strong>Biaya #{index+1}</strong><button type="button" onClick={()=>setCosts(old=>old.filter(c=>c.row!==cost.row).map((c,i)=>({...c,row:10+i})))} aria-label={`Hapus biaya ${index+1}`}><FiTrash2/> Hapus</button></div><div className={styles.fields}>
-        <label>Client Component<select value={cost.component} onChange={e=>{const component=e.target.value;const option=costLibrary.find(c=>(c.service===service||c.service==='All')&&c.component===component);setCosts(old=>old.map(c=>c.row===cost.row?{...c,component,detail:option?.detail??''}:c));}} required><option value="">Pilih komponen</option>{rows.filter(r=>r.title).map(r=><option key={r.row} value={r.title}>{r.title}</option>)}</select></label>
+        <label>Client Component<select value={cost.component} onChange={e=>{const component=e.target.value;const option=costLibrary.find(c=>(c.service===service||c.service==='All')&&c.component===component);setCostsEdited(true);setCosts(old=>old.map(c=>c.row===cost.row?{...c,component,detail:option?.detail??''}:c));}} required><option value="">Pilih komponen</option>{rows.filter(r=>r.title).map(r=><option key={r.row} value={r.title}>{r.title}</option>)}</select></label>
         <label>Internal Cost Detail<select value={cost.detail} onChange={e=>changeCost(cost.row,'detail',e.target.value)} required><option value="">Pilih rincian dari Component Library</option>{costLibrary.filter(c=>(c.service===service||c.service==='All')&&c.component===cost.component).map((c,i)=><option key={`${c.detail}-${i}`} value={c.detail}>{c.detail}</option>)}</select></label>
         <label>Cost Class<input value={costLibrary.find(c=>(c.service===service||c.service==='All')&&c.detail===cost.detail)?.costClass??''} readOnly/></label>
         <label>Unit<input value={costLibrary.find(c=>(c.service===service||c.service==='All')&&c.detail===cost.detail)?.unit??''} readOnly/></label>
