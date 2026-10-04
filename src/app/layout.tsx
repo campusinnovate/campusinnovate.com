@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import './ruang-kawan-modules.css';
 import './ruang-kawan-chat.css';
@@ -40,7 +41,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Script id="google-ads-campus-innovate" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-18473450758');
+          `}
+        </Script>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18473450758"
+          strategy="afterInteractive"
+        />
+        {children}
+      </body>
     </html>
   );
 }
