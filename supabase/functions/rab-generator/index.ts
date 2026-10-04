@@ -141,15 +141,22 @@ async function decideApproval(owner:string,actor:Actor,input:Record<string,unkno
   if(!generation.data?.connection_id||!generation.data.owner_user_id)throw new RequestError('Koneksi Google pengaju tidak tersedia; hubungi admin RAB.',409);
   const ownerConnection=await admin.from('rab_google_connections').select('*').eq('id',generation.data.connection_id).eq('owner_user_id',generation.data.owner_user_id).maybeSingle();requireDb(ownerConnection.error);
   if(!ownerConnection.data)throw new RequestError('Koneksi Google pengaju tidak tersedia; hubungi admin RAB.',409);
-  const token=await accessToken(ownerConnection.data as Connection),latest=await readApprovalSnapshot(token,request.data.source_file_id);
+  const token=await accessToken(ownerConnection.data as Connection);
+  const invalidate=async(note:string)=>{
+    await admin.from('rab_approval_requests').update({status:'revision_requested',updated_at:new Date().toISOString()}).eq('id',requestId).eq('status',request.data.status);
+    await admin.from('rab_approval_actions').insert({request_id:requestId,actor_user_id:owner,actor_membership_id:actor.id,actor_name:actor.name,actor_position_key:actor.positionKey,decision:'revision_requested',comment:note});
+    throw new RequestError(note,409);
+  };
+  let latest:{values:unknown[][][];sourceHash:string;project:string;client:string;service:string;mode:string;proposal:string};
+  try{latest=await readApprovalSnapshot(token,request.data.source_file_id)}catch(error){
+    if(error instanceof RequestError&&error.status===400)await invalidate(`Versi Google Sheet tidak lagi layak disetujui: ${error.message} Ajukan ulang setelah diperbaiki.`);
+    throw error;
+  }
   const decision=oneOf(input.decision,['approved','revision_requested','rejected'],'Keputusan');
   const comment=optional(input.comment,'Catatan',1000)??null;
   if(decision!=='approved'&&!comment)throw new RequestError('Tambahkan catatan untuk revisi atau penolakan.');
   if(latest.sourceHash!==request.data.source_hash){
-    const note='Google Sheet berubah setelah pengajuan; buat pengajuan baru untuk versi terkini.';
-    await admin.from('rab_approval_requests').update({status:'revision_requested',updated_at:new Date().toISOString()}).eq('id',requestId).eq('status',request.data.status);
-    await admin.from('rab_approval_actions').insert({request_id:requestId,actor_user_id:owner,actor_membership_id:actor.id,actor_name:actor.name,actor_position_key:actor.positionKey,decision:'revision_requested',comment:note});
-    throw new RequestError(note,409);
+    await invalidate('Google Sheet berubah setelah pengajuan; buat pengajuan baru untuk versi terkini.');
   }
   const nextStatus=decision==='approved'?(expectedRole==='coo'?'pending_ceo':'approved'):decision;
   const updated=await admin.from('rab_approval_requests').update({status:nextStatus,updated_at:new Date().toISOString()}).eq('id',requestId).eq('status',request.data.status).select('id').maybeSingle();requireDb(updated.error);
