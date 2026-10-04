@@ -336,6 +336,7 @@ function ContactForm() {
       setStatus('success');
       setFeedback('Your message has been received. Our team will get back to you soon.');
       form.reset();
+      window.location.assign('/thank-you-event/');
     } catch (error) {
       setStatus('error');
       setFeedback(error instanceof Error ? error.message : 'Something went wrong. Please try again or contact us through WhatsApp.');
