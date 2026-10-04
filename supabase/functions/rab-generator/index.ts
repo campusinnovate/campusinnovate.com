@@ -92,15 +92,17 @@ async function actorFor(userId:string):Promise<Actor>{
   const role=(result.data.positions as {key?:string}|null)?.key??'';
   return{id:result.data.id,name:result.data.full_name||'Staf Campus Innovate',positionKey:role};
 }
-const approvalRanges=["'Pricing Control'!B5:B10","'Pricing Control'!A15:B27","'Pricing Control'!A29:J41","'RAB Internal'!A9:J39"];
+const approvalRanges=["'Pricing Control'!B5:B10","'Pricing Control'!C5:H13","'Pricing Control'!K5:O9","'Pricing Control'!A15:B27","'Pricing Control'!A29:J41","'RAB Internal'!A9:J39"];
 async function readApprovalSnapshot(token:string,fileId:string){
   const params=new URLSearchParams();for(const range of approvalRanges)params.append('ranges',range);
   params.set('valueRenderOption','FORMATTED_VALUE');
   const data=await googleJson(token,`https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values:batchGet?${params}`);
   const values=(data.valueRanges??[]).map((v:{values?:unknown[][]})=>v.values??[]);
   if(values.length!==approvalRanges.length)throw new RequestError('Tidak dapat membaca seluruh RAB dari Google Sheets.',502);
+  const formulaError=values.some(range=>range.some(row=>row.some(cell=>typeof cell==='string'&&/^#(?:REF!|DIV\/0!|VALUE!|N\/A|NAME\?|ERROR!)/i.test(cell))));
+  if(formulaError)throw new RequestError('RAB memiliki error formula. Perbaiki di Google Sheets sebelum diajukan.');
   const project=String(values[0]?.[0]?.[0]??'').trim(),client=String(values[0]?.[1]?.[0]??'').trim();
-  const decision=String(values[1]?.[12]?.[1]??'').trim();
+  const decision=String(values[3]?.[12]?.[1]??'').trim();
   if(!project||!client)throw new RequestError('Lengkapi nama proyek dan client di Pricing Control sebelum mengajukan.');
   if(decision!=='OK — GM & OH COVERED')throw new RequestError('RAB belum lolos keputusan harga di Pricing Control. Periksa Gross Margin dan Contribution setelah OH.');
   const sourceHash=await digest(JSON.stringify(values));
