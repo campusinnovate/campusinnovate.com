@@ -3,6 +3,11 @@ export type MetricLead = {
   stage: string; proposal_value: number | null; won_value: number | null;
   extra_data?: Record<string, unknown>;
 };
+export function leadsInPeriod<T extends { date_added: string }>(leads: T[], period: 'month' | 'year' | 'all', month: string, year: string): T[] {
+  if (period === 'all') return leads;
+  if (period === 'year') return leads.filter(lead => lead.date_added.slice(0, 4) === year);
+  return leads.filter(lead => lead.date_added.startsWith(month));
+}
 export const isWon = (lead: MetricLead) => ['Won', 'Closed Won', 'Deal', 'Paid/Booked'].includes(lead.stage);
 // Legacy deal_value represented GM. Only explicitly entered amounts are revenue.
 export function confirmedValue(lead: MetricLead, kind: 'proposal_value' | 'won_value'): number | null {
@@ -13,7 +18,16 @@ export function confirmedValue(lead: MetricLead, kind: 'proposal_value' | 'won_v
 }
 export function dealDate(lead: MetricLead): string | null {
   const explicit = lead.extra_data?.won_date;
-  return typeof explicit === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(explicit) ? explicit : null;
+  if (typeof explicit === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(explicit)) return explicit;
+  // Won records created by the workflow have a system timestamp even when
+  // nobody entered a separate commercial close date.
+  if (lead.won_at) {
+    const parsed = new Date(lead.won_at);
+    if (Number.isFinite(parsed.getTime())) {
+      return parsed.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    }
+  }
+  return null;
 }
 export function monthlyMetrics(leads: MetricLead[], startMonth: string, endMonth: string) {
   const rows: {month:string; leads:number; proposal:number; won:number; projects:number}[] = [];
@@ -29,7 +43,7 @@ export function monthlyMetrics(leads: MetricLead[], startMonth: string, endMonth
     const historicalYearOnly=lead.extra_data?.historical_date_precision==='year';
     const entered = historicalYearOnly ? undefined : byMonth.get(lead.date_added.slice(0,7));
     if (entered) entered.leads++;
-    const proposedMonth=lead.proposal_date?.slice(0,7) ?? (typeof lead.extra_data?.proposal_month==='number' && typeof lead.extra_data?.proposal_year==='number' ? `${lead.extra_data.proposal_year}-${String(lead.extra_data.proposal_month).padStart(2,'0')}` : '');
+    const proposedMonth=lead.proposal_date?.slice(0,7) || (typeof lead.extra_data?.proposal_month==='number' && typeof lead.extra_data?.proposal_year==='number' ? `${lead.extra_data.proposal_year}-${String(lead.extra_data.proposal_month).padStart(2,'0')}` : '');
     const proposal = byMonth.get(proposedMonth);
     if (proposal) proposal.proposal += confirmedValue(lead,'proposal_value')??0;
     const wonMonth=dealDate(lead)?.slice(0,7) ?? (typeof lead.extra_data?.won_month==='number' && typeof lead.extra_data?.won_year==='number' ? `${lead.extra_data.won_year}-${String(lead.extra_data.won_month).padStart(2,'0')}` : '');
