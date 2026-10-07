@@ -1,0 +1,90 @@
+-- Shared DEV only. Run via execute_sql; never against another project.
+-- Database role/JWT-claim simulation, NOT a real Auth/Storage HTTP session test.
+-- All synthetic DEV writes roll back; no public financial writes.
+begin;
+set local lock_timeout='3s';
+set local statement_timeout='30s';
+do $$
+declare coo uuid; ceo uuid; outsider uuid:=gen_random_uuid(); mid uuid; r uuid; inv uuid; rec uuid; key uuid:=gen_random_uuid(); payload jsonb; s jsonb; evidence text; denied boolean; state text; cnt bigint;
+begin
+ select user_id into coo from finance_pilot_dev_private.participants where position_key='coo';
+ select user_id into ceo from finance_pilot_dev_private.participants where position_key='ceo';
+ if coo is null or ceo is null then raise exception 'Missing test participants'; end if;
+ perform set_config('request.jwt.claim.sub','',true);
+ perform set_config('role','anon',true);
+ denied:=false;
+ begin perform public.finance_pilot_dev_bind(); exception when insufficient_privilege then denied:=true; end;
+ if not denied then raise exception 'Anon unexpectedly allowed'; end if;
+ perform set_config('role','postgres',true);
+ perform set_config('request.jwt.claim.sub',outsider::text,true);
+ perform set_config('role','authenticated',true);
+ denied:=false;
+ begin perform public.finance_pilot_dev_bind(); exception when insufficient_privilege then denied:=true; end;
+ if not denied then raise exception 'Outsider unexpectedly allowed'; end if;
+ perform set_config('request.jwt.claim.sub',coo::text,true);
+ mid:=public.finance_pilot_dev_bind();
+ if (public.finance_pilot_dev_access()->>'manage')::boolean is not true then raise exception 'COO cannot manage'; end if;
+ denied:=false;
+ begin insert into finance_pilot_dev.finance_coa(code,name,account_class) values('BAD','BAD','Aset'); exception when insufficient_privilege then denied:=true; end;
+ if not denied then raise exception 'Direct write unexpectedly allowed'; end if;
+ select count(*) into cnt from storage.objects where bucket_id in ('office-documents','office-signatures');
+ execute 'explain insert into storage.objects(bucket_id,name) values(''office-documents'',''synthetic-plan-only.pdf'')';
+ evidence:=coo::text||'/rollback-smoke.pdf';
+ insert into storage.objects(bucket_id,name) values('finance-pilot-dev-evidence',evidence);
+ perform set_config('request.jwt.claim.sub',ceo::text,true);
+ perform public.finance_pilot_dev_bind();
+ if (public.finance_pilot_dev_access()->>'approve')::boolean is not true then raise exception 'CEO cannot approve'; end if;
+ denied:=false;
+ begin perform public.finance_pilot_dev_save_request(gen_random_uuid(),'journal','{}'); exception when insufficient_privilege then denied:=true; end;
+ if not denied then raise exception 'CEO operational access unexpectedly allowed'; end if;
+ perform set_config('role','postgres',true);
+ insert into finance_pilot_dev.finance_coa(code,name,account_class,cash_flow_category,default_flow)
+ select code,code,cl,'Operasional','Non-Kas' from (values('FP-CASH','Aset'),('FP-AP','Kewajiban'),('FP-ADV','Kewajiban'),('FP-TAX','Kewajiban'),('FP-RE','Ekuitas'),('FP-DIST','Kewajiban')) t(code,cl);
+ perform set_config('request.jwt.claim.sub',coo::text,true);
+ perform set_config('role','authenticated',true);
+ payload:='{"approval_threshold":1000000,"fiscal_start":1,"accounts":{"cash":"FP-CASH","receivable":"2000","payable":"FP-AP","advance":"FP-ADV","tax_payable":"FP-TAX","retained_earnings":"FP-RE","distribution_payable":"FP-DIST","fixed_asset":"7000","related_receivable":"2001"},"reason":"Rollback-only shared DEV smoke"}'::jsonb;
+ r:=public.finance_pilot_dev_save_request(gen_random_uuid(),'policy',payload);
+ perform public.finance_pilot_dev_submit(r);
+ perform set_config('request.jwt.claim.sub',ceo::text,true);
+ perform public.finance_pilot_dev_review(r,'approve','Rollback-only DEV policy');
+ perform set_config('request.jwt.claim.sub',coo::text,true);
+ perform public.finance_pilot_dev_execute(r);
+ payload:=jsonb_build_object('date','2026-10-01','due_date','2026-10-07','client','DEV SYNTHETIC CLIENT','service_line_key','event_management','item_description','Synthetic milestone','quantity',1,'unit_price',1000000,'discount',0,'tax',0,'management_fee',0,'other_fees',0,'installment_scheme','full','percentages',jsonb_build_array(100),'milestone_evidence','Synthetic delivery','evidence_path',evidence);
+ r:=public.finance_pilot_dev_save_request(key,'invoice',payload);
+ if public.finance_pilot_dev_save_request(key,'invoice',payload)<>r then raise exception 'Save replay mismatch'; end if;
+ state:=public.finance_pilot_dev_submit(r);
+ if state<>'submitted' then raise exception 'Exact 1m did not require approval'; end if;
+ perform set_config('request.jwt.claim.sub',ceo::text,true);
+ perform public.finance_pilot_dev_review(r,'approve','Rollback-only DEV invoice');
+ perform set_config('request.jwt.claim.sub',coo::text,true);
+ inv:=public.finance_pilot_dev_execute(r);
+ if public.finance_pilot_dev_execute(r)<>inv then raise exception 'Execute replay mismatch'; end if;
+ payload:=jsonb_build_object('date','2026-10-02','invoice_id',inv,'amount',400000,'deposit_coa_code','FP-CASH','reference','ROLLBACK-DEV-PAY','evidence_path',evidence);
+ key:=gen_random_uuid();
+ rec:=public.finance_pilot_dev_save_request(key,'receipt',payload);
+ perform public.finance_pilot_dev_submit(rec);
+ if public.finance_pilot_dev_save_request(key,'receipt',payload)<>rec then raise exception 'Receipt replay mismatch'; end if;
+ s:=public.finance_pilot_dev_snapshot('MTD','2026-10-07');
+ if (s#>>'{totals,revenue}')::numeric<>1000000 or (s#>>'{cash,book_cash}')::numeric<>400000 or (s#>>'{totals,outstanding}')::numeric<>600000 or (s#>>'{quality,ledger_difference}')::numeric<>0 then raise exception 'Reconciliation failed'; end if;
+ if s#>>'{invoices,0,invoice_number}' not like 'DEV-INV-%' then raise exception 'Missing DEV number prefix'; end if;
+ if (public.finance_pilot_dev_snapshot('MTD','2026-10-07')#>>'{cash,book_cash}')::numeric<>400000 then raise exception 'Refresh differs'; end if;
+ s:=public.finance_pilot_dev_snapshot('Custom','2026-10-07','2026-10-02','2026-10-02');
+ if (s#>>'{totals,revenue}')::numeric<>0 then raise exception 'Period filter included invoice from earlier day'; end if;
+ denied:=false;
+ begin perform public.finance_pilot_dev_save_request(gen_random_uuid(),'receipt',payload||'{"amount":-1}'::jsonb); exception when others then denied:=true; end;
+ -- Input validation occurs on submit; a draft may be stored, so submit explicitly below.
+ if not denied then
+ r:=public.finance_pilot_dev_save_request(gen_random_uuid(),'receipt',payload||'{"amount":-1}'::jsonb);
+ begin perform public.finance_pilot_dev_submit(r); exception when others then denied:=true; end;
+ end if;
+ if not denied then raise exception 'Negative receipt accepted'; end if;
+ update storage.objects set name='overwrite.pdf' where bucket_id='finance-pilot-dev-evidence' and name=evidence;
+ get diagnostics cnt=row_count;
+ if cnt<>0 then raise exception 'Evidence overwrite allowed'; end if;
+ perform set_config('request.jwt.claim.sub',outsider::text,true);
+ select count(*) into cnt from storage.objects where bucket_id='finance-pilot-dev-evidence';
+ if cnt<>0 then raise exception 'Outsider read evidence'; end if;
+ perform set_config('role','postgres',true);
+end $$;
+rollback;
+select jsonb_build_object('status','passed','mode','hosted PostgreSQL role/JWT simulation; transaction rolled back','invoice',1000000,'receipt',400000,'cash',400000,'ar',600000,'trial_difference',0,'production_financial_writes',false,'real_auth_storage_http_test',false) smoke_result;

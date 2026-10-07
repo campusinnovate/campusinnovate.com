@@ -84,3 +84,8 @@ Organization subscription was verified as `free` (`tier_free`). Current Supabase
 ## Shared-project DEV proposal
 
 Owner selected use of the existing Ruang Kawan project with isolation. A concrete, generated DEV-only installer and recovery file now exist under supabase/dev/finance-pilot (outside automatic production migrations). Neither has been applied. Review finance-pilot-shared-dev-review.md for scope, risks, tests and the installation approval request. Namespace separation shares compute/Auth/Storage resources and is not equivalent to a separate Supabase development project.
+
+
+## Shared DEV installation checkpoint
+
+Owner approved installation; shared DEV package and Storage authorization fix are now applied to lxwqhtuhlddgwfxjtlas. Production migrations/website remain unapplied/undeployed. Hosted PostgreSQL role/JWT smoke tests passed and synthetic data rolled back; actual browser/Auth/Storage HTTP UAT remains pending. See [installation evidence](finance-pilot-shared-dev-installation.md) for current status, which supersedes earlier environment proposal notes.

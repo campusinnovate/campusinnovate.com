@@ -1254,6 +1254,12 @@ grant execute on function public.finance_pilot_dev_submit_scoped(uuid,text,uuid,
 create function public.finance_pilot_dev_review_scoped(p_id uuid,p_note text,p_accept boolean) returns void language sql security invoker set search_path='' as $$ select finance_pilot_dev.finance_pilot_review_scoped(p_id,p_note,p_accept); $$;
 revoke all on function public.finance_pilot_dev_review_scoped(uuid,text,boolean) from public,anon;
 grant execute on function public.finance_pilot_dev_review_scoped(uuid,text,boolean) to authenticated;
+create function finance_pilot_dev_private.can_upload() returns boolean language sql stable security definer set search_path='' as $$
+select exists(select 1 from finance_pilot_dev.memberships m join finance_pilot_dev.positions p on p.id=m.position_id where m.id=finance_pilot_dev.current_membership_id() and p.key='coo') and finance_pilot_dev.current_user_has_permission('finance_next.manage');
+$$;
+revoke all on function finance_pilot_dev_private.can_upload() from public,anon;
+grant execute on function finance_pilot_dev_private.can_upload() to authenticated;
+alter policy finance_pilot_dev_evidence_upload on storage.objects with check(bucket_id='finance-pilot-dev-evidence' and (storage.foldername(name))[1]=auth.uid()::text and finance_pilot_dev_private.can_upload());
 create policy finance_pilot_dev_storage_read_guard on storage.objects as restrictive for select to authenticated using(bucket_id<>'finance-pilot-dev-evidence' or (finance_pilot_dev.current_membership_id() is not null and ((storage.foldername(name))[1]=auth.uid()::text or finance_pilot_dev_private.can_view())));
 create policy finance_pilot_dev_storage_insert_guard on storage.objects as restrictive for insert to authenticated with check(bucket_id<>'finance-pilot-dev-evidence' or (finance_pilot_dev.current_membership_id() is not null and (storage.foldername(name))[1]=auth.uid()::text));
 create policy finance_pilot_dev_storage_update_guard on storage.objects as restrictive for update to authenticated using(bucket_id<>'finance-pilot-dev-evidence') with check(bucket_id<>'finance-pilot-dev-evidence');

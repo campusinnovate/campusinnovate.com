@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "isolated": true,
-  "hostedApplied": false,
+  "hostedApplied": true,
   "checks": [
     "Installer preserves every synthetic production table row and existing public function definition",
     "All DEV tables have RLS enabled; DEV namespace not exposed in Data API settings",
@@ -22,6 +22,8 @@
     "Existing office Storage remains accessible after DEV disable",
     "Recovery disable leaves production fingerprints unchanged"
   ],
+  "hostedEvidence": "finance-pilot-shared-dev-installation.md",
+  "hostedSmoke": "passed; PostgreSQL role/JWT simulation, rolled back; not real Auth/Storage HTTP/browser UAT",
   "adapter_checks": [
     "Default public transport remains unchanged",
     "Shared DEV binds allowlisted session and routes every finance RPC to distinct DEV endpoints",

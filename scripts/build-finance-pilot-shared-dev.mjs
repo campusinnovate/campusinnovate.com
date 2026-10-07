@@ -99,6 +99,14 @@ for(const [name,{args,type}] of signatures){
  const types=params.map(p=>args.match(new RegExp('\\b'+p+'\\s+(uuid|text|date|numeric|boolean|jsonb)\\b'))[1]).join(',');
  sql+=`revoke all on function public.${wrapper}(${types}) from public,anon;\ngrant execute on function public.${wrapper}(${types}) to authenticated;\n`;
 }
+// Storage policy subqueries run as caller: keep membership tables private and use a guarded helper.
+sql+=`create function ${priv}.can_upload() returns boolean language sql stable security definer set search_path='' as $$
+select exists(select 1 from ${ns}.memberships m join ${ns}.positions p on p.id=m.position_id where m.id=${ns}.current_membership_id() and p.key='coo') and ${ns}.current_user_has_permission('finance_next.manage');
+$$;
+revoke all on function ${priv}.can_upload() from public,anon;
+grant execute on function ${priv}.can_upload() to authenticated;
+alter policy finance_pilot_dev_evidence_upload on storage.objects with check(bucket_id='finance-pilot-dev-evidence' and (storage.foldername(name))[1]=auth.uid()::text and ${priv}.can_upload());
+`;
 // Existing broad Storage policies must not bypass isolation for this one new bucket.
 sql+=`create policy finance_pilot_dev_storage_read_guard on storage.objects as restrictive for select to authenticated using(bucket_id<>'finance-pilot-dev-evidence' or (${ns}.current_membership_id() is not null and ((storage.foldername(name))[1]=auth.uid()::text or ${priv}.can_view())));
 create policy finance_pilot_dev_storage_insert_guard on storage.objects as restrictive for insert to authenticated with check(bucket_id<>'finance-pilot-dev-evidence' or (${ns}.current_membership_id() is not null and (storage.foldername(name))[1]=auth.uid()::text));

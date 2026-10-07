@@ -18,7 +18,7 @@ grant usage on schema public,auth,storage to anon,authenticated;
 grant select,insert,update,delete on storage.objects to authenticated;
 -- Deliberately broad production-like policies: DEV restrictive guards must still isolate its bucket.
 create policy old_storage_select on storage.objects for select to authenticated using(true);
-create policy old_storage_insert on storage.objects for insert to authenticated with check(true);
+create policy old_storage_insert on storage.objects for insert to authenticated with check(bucket_id='office-documents');
 create policy old_storage_update on storage.objects for update to authenticated using(true) with check(true);
 create policy old_storage_delete on storage.objects for delete to authenticated using(true);`);
 const schema=JSON.parse(await read('scripts/finance-pilot-schema-fixture.json'));

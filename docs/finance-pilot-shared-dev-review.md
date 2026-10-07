@@ -1,4 +1,6 @@
-# Paket DEV terisolasi dalam proyek Ruang Kawan — menunggu approval pemasangan
+# Paket DEV terisolasi dalam proyek Ruang Kawan — review sebelum pemasangan
+
+**Update:** disetujui dan dipasang 7 Oktober 2026. Status/bukti aktual: [finance-pilot-shared-dev-installation.md](finance-pilot-shared-dev-installation.md). Bagian berikut mempertahankan proposal yang disetujui, bukan status terkini.
 
 Target: **lxwqhtuhlddgwfxjtlas**, Campus-Innovate/ruang-kawan. Ini database produksi bersama, bukan proyek/branch Supabase DEV mandiri. Tidak ada paket Pro/branch berbayar, perubahan billing, atau penggunaan Ruang Ayat. Installer belum dijalankan terhadap Supabase.
 
