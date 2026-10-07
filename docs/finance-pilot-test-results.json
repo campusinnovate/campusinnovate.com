@@ -26,6 +26,7 @@
     "Unknown policy blocks transaction",
     "COO cannot self approve policy",
     "CEO approves; COO applies policy",
+    "Invoice exactly Rp1,000,000 cannot execute before CEO approval",
     "Invoice draft persists, posting and request replay create one document/journal",
     "Natural payment reference duplicate rejected",
     "Overpayment rejected",
@@ -57,6 +58,20 @@
     "Claim cannot directly post without journal",
     "Split project costs cannot execute without CEO approval",
     "Aggregate project overrun approved by CEO then applied by COO",
+    "Routine amount 1000000 requires CEO approval",
+    "Routine amount 1000000.01 requires CEO approval",
+    "Routine Rp999,999.99 posts below inclusive threshold",
+    "Vendor bill 600,000 + payment 250,000 => AP 350,000; cash reduces once; expense not duplicated",
+    "Vendor overpayment rejected",
+    "Vendor/project substitution rejected",
+    "Vendor payment natural reference duplicate rolls back",
+    "AP historical as-of excludes later vendor payment",
+    "Bill reversal blocked until vendor payment reversed",
+    "Changed fully paid retry rejected",
+    "Fully settled vendor payment replay returns original request and never duplicates ledger",
+    "Vendor payment/bill reversals restore cash/AP then cancel liability without source edits",
+    "Project closure blocked with outstanding vendor AP",
+    "COO financially closes project only after AP obligations resolved",
     "Legacy RPC cannot rewrite pilot posted invoice",
     "Legacy non-pilot document update/delete still works"
   ],
@@ -71,5 +86,11 @@
     "result": "passed"
   },
   "browser_uat": "pending: cloud browser cannot reach local DEV server (ERR_CONNECTION_REFUSED)",
-  "production_changes": "none"
+  "production_changes": "none",
+  "owner_decisions": {
+    "approval_threshold": 1000000,
+    "threshold_comparator": ">=",
+    "fiscal_start": 1
+  },
+  "hosted_dev": "free project creation refused by Supabase active-project quota; paid branch not created"
 }

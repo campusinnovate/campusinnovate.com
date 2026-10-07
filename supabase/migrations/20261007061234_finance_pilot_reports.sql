@@ -30,7 +30,8 @@ begin
  with
  all_lines as (
  select l.*,e.entry_date,e.description as entry_description,e.source_type,e.source_id,e.reversal_of_id,c.name as account_name,c.account_class,c.cash_flow_category,
- coalesce(r.payload->>'business_event',orig.payload->>'business_event',case when coalesce(d.document_type,od.document_type)='receipt' then 'customer_receipt' when coalesce(d.document_type,od.document_type)='invoice' then 'client_invoice' end) as business_event
+ case when coalesce(r.payload->>'business_event',orig.payload->>'business_event')='vendor_payment' then (select bill.payload->>'business_event' from public.finance_next_requests bill where bill.id::text=coalesce(r.payload->>'vendor_bill_id',orig.payload->>'vendor_bill_id'))
+ else coalesce(r.payload->>'business_event',orig.payload->>'business_event',case when coalesce(d.document_type,od.document_type)='receipt' then 'customer_receipt' when coalesce(d.document_type,od.document_type)='invoice' then 'client_invoice' end) end as business_event
  from public.finance_next_journal_lines l join public.finance_next_journal_entries e on e.id=l.journal_entry_id
  join public.finance_coa c on c.code=l.coa_code
  left join public.finance_next_requests r on r.id::text=e.source_id and e.source_type='request'
@@ -80,6 +81,17 @@ begin
  ), selected_invoices as (select * from invoice_rows where p_payment is null or asof_status=p_payment),
  rec as (
  select r.* from public.finance_documents r join selected_invoices i on i.id=r.linked_invoice_id where r.finance_pilot is true and r.document_type='receipt' and r.pilot_journal_id is not null and r.document_date between v_start_date and v_end_date and not exists(select 1 from public.finance_next_journal_entries re where re.reversal_of_id=r.pilot_journal_id and re.entry_date<=v_end_date)
+ ), vendor_bills_all as (
+ select rq.id,rq.payload->>'reference' as reference,rq.payload->>'client' as vendor,(rq.payload->>'date')::date as bill_date,
+ (rq.payload->>'due_date')::date as due_date,nullif(rq.payload->>'project_id','')::uuid as project_id,
+ (select service_line_key from public.finance_next_project_controls where project_id=nullif(rq.payload->>'project_id','')::uuid) as service_line_key,
+ rq.result_id as journal_id,rq.payload->>'evidence_path' as evidence_path,
+ (select sum(l.credit-l.debit) from public.finance_next_journal_lines l where l.journal_entry_id=rq.result_id and l.coa_code=ac->>'payable') as amount,
+ finance_pilot_private.ap_balance(rq.id,v_end_date) as balance
+ from public.finance_next_requests rq where rq.kind='journal' and rq.state='posted' and rq.payload->>'business_event'<>'vendor_payment'
+ and (rq.payload->>'date')::date<=v_end_date and exists(select 1 from public.finance_next_journal_lines where journal_entry_id=rq.result_id and coa_code=ac->>'payable' and credit>0)
+ ), vendor_bills as (
+ select * from vendor_bills_all where (p_service is null or service_line_key=p_service) and (p_project is null or project_id=p_project) and (p_client is null or vendor=p_client)
  ), target as (
  select r.* from public.finance_next_requests r where r.kind='target' and r.state='posted' and (r.payload->>'fiscal_year')::int=v_fy order by reviewed_at desc,id limit 1
  ), original_target as (
@@ -123,7 +135,8 @@ begin
  'trial',coalesce((select jsonb_agg(jsonb_build_object('label',code||' · '||name,'value',closing,'coa_code',code,'opening',opening,'debit',debit,'credit',credit)) from balances),'[]'::jsonb),
  'cashflow',jsonb_build_array(jsonb_build_object('label','Operating activities','value',cf.operating),jsonb_build_object('label','Investing activities','value',cf.investing),jsonb_build_object('label','Financing activities','value',cf.financing),jsonb_build_object('label','Net cash movement','value',cf.operating+cf.investing+cf.financing)),
  'equity',coalesce((select jsonb_agg(jsonb_build_object('label',code||' · '||name,'value',-closing,'opening',-opening,'change',credit-debit,'coa_code',code)) from balances where account_class='Ekuitas'),'[]'::jsonb)||jsonb_build_array(jsonb_build_object('label','Period retained profit','value',revenue-hpp-opex-other-tax)),
- 'aging',coalesce((select jsonb_agg(jsonb_build_object('label',document_number||' · '||client,'value',asof_balance,'due_date',due_date,'days_overdue',greatest(v_end_date-due_date,0),'document_id',id)) from selected_invoices where asof_balance>0),'[]'::jsonb)
+ 'aging',coalesce((select jsonb_agg(jsonb_build_object('label','AR · '||document_number||' · '||client,'value',asof_balance,'due_date',due_date,'days_overdue',greatest(v_end_date-due_date,0),'aging_bucket',case when due_date>=v_end_date then 'Current' when v_end_date-due_date<=30 then '1–30' when v_end_date-due_date<=60 then '31–60' when v_end_date-due_date<=90 then '61–90' else '>90' end,'document_id',id,'coa_code',ac->>'receivable')) from selected_invoices where asof_balance>0),'[]'::jsonb)
+ ||coalesce((select jsonb_agg(jsonb_build_object('label','AP · '||reference||' · '||vendor,'value',balance,'due_date',due_date,'days_overdue',greatest(v_end_date-due_date,0),'aging_bucket',case when due_date>=v_end_date then 'Current' when v_end_date-due_date<=30 then '1–30' when v_end_date-due_date<=60 then '31–60' when v_end_date-due_date<=90 then '61–90' else '>90' end,'request_id',id,'journal_id',journal_id,'coa_code',ac->>'payable')) from vendor_bills where balance>0),'[]'::jsonb)
  ) as data from income cross join cashflow cf
  )
  select jsonb_build_object(
@@ -139,6 +152,7 @@ begin
  'periods',(select coalesce(jsonb_agg(to_jsonb(p) order by period_month desc),'[]'::jsonb) from public.finance_next_periods p),
  'requests',(select coalesce(jsonb_agg(to_jsonb(r) order by created_at desc),'[]'::jsonb) from public.finance_next_requests r where state in ('draft','submitted','approved','rejected') or (kind='target' and (payload->>'fiscal_year')::int=v_fy)),
  'invoices',(select coalesce(jsonb_agg(to_jsonb(d)||jsonb_build_object('invoice_number',document_number,'invoice_date',document_date,'service_line_key',pilot_service_line_key,'project_id',pilot_project_id,'management_fee',management_fee,'paid',asof_paid,'balance',asof_balance,'status',asof_status,'finance_next_invoice_items',(select jsonb_agg(a||jsonb_build_object('line_total',round((a->>'quantity')::numeric*(a->>'unit_price')::numeric,2))) from jsonb_array_elements(items) a))),'[]'::jsonb) from selected_invoices d),
+ 'vendor_bills',(select coalesce(jsonb_agg(to_jsonb(v) order by due_date,id),'[]'::jsonb) from vendor_bills v),
  'receipts',(select coalesce(jsonb_agg(to_jsonb(r)||jsonb_build_object('receipt_number',document_number,'invoice_id',linked_invoice_id,'receipt_date',document_date,'amount',total,'deposit_coa_code',pilot_deposit_coa_code,'payment_reference',reference_number)),'[]'::jsonb) from rec r),
  'totals',(select to_jsonb(i)||jsonb_build_object('gross_profit',revenue-hpp,'operating_profit',revenue-hpp-opex,'net_profit',revenue-hpp-opex-other-tax,
  'billed',(select coalesce(sum(total),0) from selected_invoices where document_date between v_start_date and v_end_date),'collected',(select coalesce(sum(debit-credit),0) from period_lines where coa_code=ac->>'cash' and business_event='customer_receipt'),'outstanding',(select coalesce(sum(asof_balance),0) from selected_invoices)) from income i),
@@ -149,7 +163,7 @@ begin
  'reports',(select data from report),
  'outcomes',(select coalesce(jsonb_agg(to_jsonb(o)),'[]'::jsonb) from selected_outcome o),
  'quality',jsonb_build_object('policy_configured',pol is not null,'unmapped_legacy_count',(select count(*) from public.finance_transactions t where not exists(select 1 from public.finance_next_legacy_mappings m where m.source_type='finance_transaction' and m.source_id=t.id::text)),
- 'ledger_difference',(select coalesce(sum(debit-credit),0) from all_lines),'unmapped_deals',(select count(*) from outcome where service_line_key is null or (stage in ('Won','Lost') and outcome_date is null)),
+ 'ledger_difference',(select coalesce(sum(debit-credit),0) from all_lines),'unallocated_ap',(select payables-(select coalesce(sum(balance),0) from vendor_bills_all) from liquidity),'unmapped_deals',(select count(*) from outcome where service_line_key is null or (stage in ('Won','Lost') and outcome_date is null)),
  'scope','Pilot ledger only; historical finance has not been converted or reconciled. No cutover.')
  ) into result;
  return result;

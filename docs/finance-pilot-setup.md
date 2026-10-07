@@ -17,12 +17,12 @@ Status: implementation in development; not a complete PRD release, not deployed.
 | Area / PRD | Handover frontend | Development implementation | Remaining before acceptance |
 | --- | --- | --- | --- |
 | ACC-001–004, SEC-001 | Simulated journals, mock role selection | Canonical existing pilot ledger; balanced server templates; evidence; COO operations; CEO approval; immutable posting; reversal; close/reopen | Hosted Auth/RLS/Storage tests, concurrent request tests, every approval event test |
-| Invoice/payment | Local simulation | Existing `finance_documents` identity reused; atomic invoice/receipt/journal; payment status; partial payment; request replay; reversal | Browser UAT, draft edit UX, complete vendor AP lifecycle/aging, advance settlement and all prescribed event templates |
+| Invoice/payment | Local simulation | Existing `finance_documents` identity reused; atomic invoice/receipt/journal; payment status; partial payment; request replay; reversal | Browser UAT, draft edit UX, hosted vendor/AP UAT, advance settlement and remaining prescribed event templates including advance settlement |
 | REV-001–004 | Example amounts | Posted ledger snapshot separates revenue, billed, collected, AR; six service lines; real totals | Complete service ranking and drill-down coverage, all global filters |
 | Projects | Example project metrics/buttons | Existing projects reused; approved service/contract/budget controls; actual HPP; overrun gate; CTO delivery and COO closure APIs | Full assigned-role delivery/closure UAT, source estimate-to-budget tooling, full project report parity |
-| CASH-001–002 | Hardcoded cash/reserves | Book cash from ledger; saved reconciliation fingerprint; explicit approved reserves; restricted/free cash calculations | Production account mappings, opening balance/cutover; multiple bank workflows; reserve coverage and full AP commitments |
+| CASH-001–002 | Hardcoded cash/reserves | Book cash from ledger; saved reconciliation fingerprint; explicit approved reserves; restricted/free cash calculations | Approved bank/account mappings, opening balance/cutover; multiple bank workflows; reserve coverage and full AP commitments |
 | DASH-001–005 | Hardcoded cards/filter subsets | MTD/QTD/YTD/custom and as-of snapshots; service/project/client/payment filters; report drill-down; ledger quality warnings | PIC/bank/outcome/source/lost reason filter parity; every KPI drill-down; complete budget/target comparisons |
-| Reports | Sample rows | Trial balance, P&L, financial position, equity, cashflow, AR aging; CSV and export audit | AP aging, complete statement/cashflow classification validation, XLSX/PDF (Should), complete filter/export browser UAT |
+| Reports | Sample rows | Trial balance, P&L, financial position, equity, cashflow, AR/AP aging; CSV and export audit | complete statement/cashflow classification validation, XLSX/PDF (Should), complete filter/export browser UAT |
 | TGT-001–003 | Example target/chart | Versioned annual target/month/service allocations; CEO approval; actual revenue | Complete pace/variance and filtered-target parity; forecast validation (Should) |
 | DEAL-001–005 | Sample outcome cards | Existing pipeline reused, real outcome summaries and links | Verified outcome-date semantics; mandatory Lost fields and approval/source integration; full value/owner filtering |
 | Settings | Placeholder actions | Explicit approval threshold/fiscal year/account mappings; approved additions to existing COA; immutable policy history | Business-approved configuration; comprehensive settings/version UX; full service master lifecycle |
@@ -58,7 +58,7 @@ This fixture is not a full hosted Supabase stack. Its HTTP adapter emulates Auth
 
 ## Material decisions pending
 
-Approval threshold; fiscal year start; approved account mappings; annual targets; reserve policy; opening balances and cutover; distribution ratios/eligible profit; formal tax/closing policy. No default business values are seeded. Unknown policy blocks financial posting. Decisions not specified by the PRD require user input.
+Owner has decided an inclusive Rp1,000,000 threshold and January–December fiscal year. Still pending: approved bank/account mappings; annual targets; reserve policy; opening balances and cutover; distribution ratios/eligible profit; formal tax/closing policy. No default business values are seeded. Unknown policy blocks financial posting. Decisions not specified by the PRD require user input.
 
 ## Production risks and recovery plan for later approval
 
@@ -70,3 +70,11 @@ Approval threshold; fiscal year start; approved account mappings; annual targets
 - Discovery also found RLS disabled on shared `pipeline_assignment_state`. This was not modified because it is outside the approved finance integration scope; separately review exposure before release.
 
 No production approval is requested by this document yet: isolated hosted validation and unresolved Must requirements remain.
+
+## Update after owner authorization — 7 October 2026
+
+Threshold is inclusive: Rp999,999.99 remains routine, Rp1,000,000 and Rp1,000,000.01 require CEO approval. Execution also rechecks the current policy so a stale routine request cannot bypass a newer threshold. Fiscal year January–December was confirmed by the owner. Settings prefill these confirmed values; no production policy was seeded. See finance-pilot-account-mapping.md for a concrete COA proposal.
+
+Vendor AP now reuses finance_next_requests and posted journal lines. Tagihan/payment source links, partial/full settlement, private evidence, natural reference uniqueness, historical as-of AP, AR/AP aging buckets, and payment/bill reversals are implemented. Cash/payment changes do not book expense twice. AP without a bill link is explicitly reported as unallocated. Fully paid identical request replays return the original request rather than recomputing the now-zero liability. This code still requires hosted/concurrent/browser validation.
+
+DEV project creation was attempted in the owner-selected Ruang Kawan organization after a tool cost quote of US$0/month. Supabase refused creation because the owner has reached the two-active-free-project limit. No new project was created, and no existing project was paused/deleted/upgraded. Branching was quoted at US$0.01344/hour; no paid branch was created pending explicit cost approval. Local synthetic validation continues.

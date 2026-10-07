@@ -2,12 +2,13 @@ import { createClient } from '@/lib/supabase/client';
 
 export type Payload = Record<string, unknown>;
 export type Request = { id: string; request_key: string; kind: string; state: string; payload: Payload; prepared_by: string; approved_by: string | null; review_note: string | null; created_at: string };
-export type ReportRow = { label: string; value: number; coa_code?: string; opening?: number; debit?: number; credit?: number; due_date?: string; days_overdue?: number; document_id?: string };
+export type ReportRow = { label: string; value: number; coa_code?: string; opening?: number; debit?: number; credit?: number; due_date?: string; days_overdue?: number; aging_bucket?: string; request_id?: string; journal_id?: string; document_id?: string };
 export type Snapshot = {
  period: { start: string | null; end: string; fiscal_year: number | null; fiscal_start: string | null; comparison_start: string | null; comparison_end: string | null };
  updated_at: string;
  policy: { approval_threshold: number; fiscal_start: number; accounts: Record<string, string> } | null;
  accounts: unknown[]; services: unknown[]; projects: unknown[]; project_options: unknown[]; journals: unknown[]; periods: unknown[]; invoices: unknown[]; receipts: unknown[];
+ vendor_bills: { id: string; reference: string; vendor: string; bill_date: string; due_date: string; project_id: string | null; journal_id: string; evidence_path: string; amount: number; balance: number }[];
  requests: Request[]; journal_count: number; posted_value: number;
  totals: { revenue: number; hpp: number; opex: number; gross_profit: number; operating_profit: number; net_profit: number; billed: number; collected: number; outstanding: number };
  comparison: { revenue: number; hpp: number; opex: number };
@@ -16,7 +17,7 @@ export type Snapshot = {
  cash: { book_cash: number; payables: number; taxes: number; distribution: number; reconciled: boolean; free_cash: number | null; restrictions: number; operating_target: number | null; buckets: { key: string; label: string; amount: number; restricted: boolean }[] };
  target: { latest: Request | null; original: Payload | null; actual: number; monthly: { month: number; target: number; actual: number }[] };
  outcomes: { id: string; lead_code: string; account_name: string; stage: string; proposal_value: number | null; won_value: number | null; outcome_date: string; win_loss_reason: string | null; project_id: string | null }[];
- quality: { policy_configured: boolean; unmapped_legacy_count: number; ledger_difference: number; unmapped_deals: number; scope: string };
+ quality: { policy_configured: boolean; unmapped_legacy_count: number; ledger_difference: number; unmapped_deals: number; unallocated_ap: number; scope: string };
 };
 export const writesEnabled = process.env.NEXT_PUBLIC_FINANCE_PILOT_WRITES_ENABLED === 'true';
 export async function rpc<T>(name: string, args: Payload = {}): Promise<T> {
@@ -63,5 +64,5 @@ export async function evidenceUrl(path: string): Promise<string> {
 export function reportCsv(rows: ReportRow[]): string {
  // Formula injection protection on text. Numeric negatives are legitimate accounting values.
  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[=+@\t\r-]/.test(s) && typeof v !== 'number') s = `'${s}`; return `"${s.replaceAll('"', '""')}"`; };
- return '\uFEFF' + [['Account / label', 'Amount', 'Opening', 'Debit', 'Credit'], ...rows.map(r => [r.label, r.value, r.opening ?? '', r.debit ?? '', r.credit ?? ''])].map(row => row.map(cell).join(',')).join('\r\n');
+ return '\uFEFF' + [['Account / label', 'Amount', 'Opening', 'Debit', 'Credit', 'Due date', 'Days overdue', 'Aging bucket', 'Document ID', 'Request ID', 'Journal ID'], ...rows.map(r => [r.label, r.value, r.opening ?? '', r.debit ?? '', r.credit ?? '', r.due_date ?? '', r.days_overdue ?? '', r.aging_bucket ?? '', r.document_id ?? '', r.request_id ?? '', r.journal_id ?? ''])].map(row => row.map(cell).join(',')).join('\r\n');
 }

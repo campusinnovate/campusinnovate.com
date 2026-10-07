@@ -211,10 +211,16 @@ declare actor uuid:=finance_pilot_private.actor('manage'); r public.finance_next
 begin
  if p_key is null or p_kind not in ('journal','invoice','receipt','target','policy','funds','budget','reversal','project_closure','account') or coalesce(jsonb_typeof(p_payload),'')<>'object' then raise exception 'Draft tidak valid.'; end if;
  if p_kind='target' and (p_payload->>'fiscal_year' is null or p_payload->>'fiscal_year' !~ '^[0-9]{4}$') then raise exception 'Tahun fiscal draft wajib empat digit.'; end if;
- if p_kind='journal' then p_payload:=p_payload||jsonb_build_object('lines',finance_pilot_private.template(p_payload)); end if;
  if length(p_payload::text)>100000 then raise exception 'Payload terlalu besar.'; end if;
  perform pg_advisory_xact_lock(hashtextextended('finance-request:'||p_key::text,0));
  select * into r from public.finance_next_requests where request_key=p_key for update;
+ -- Replay must not recalculate a payment against its already-reduced liability.
+ if r.id is not null and r.state<>'draft' and p_kind='journal' and p_payload->>'business_event' not in ('manual','opening_adjustment') then
+  if r.prepared_by<>actor or r.kind<>p_kind then raise exception 'Request key milik operasi lain.' using errcode='42501'; end if;
+  if r.payload-'lines'=p_payload-'lines' then return r.id; end if;
+  raise exception 'Payload request yang sudah submit tidak boleh berubah.';
+ end if;
+ if p_kind='journal' then p_payload:=p_payload||jsonb_build_object('lines',finance_pilot_private.template(p_payload)); end if;
  if r.id is not null then
    if r.prepared_by<>actor or r.kind<>p_kind then raise exception 'Request key milik operasi lain.' using errcode='42501'; end if;
    if r.state<>'draft' then
@@ -283,7 +289,7 @@ begin
   if jsonb_typeof(p->'lines')<>'array' or jsonb_array_length(p->'lines')<2 then raise exception 'Minimal dua baris.'; end if;
   select sum(coalesce((value->>'debit')::numeric,0)),sum(coalesce((value->>'credit')::numeric,0)) into amount,total from jsonb_array_elements(p->'lines');
   if amount is null or amount<=0 or amount<>total then raise exception 'Jurnal tidak seimbang.'; end if;
-  if p->>'business_event' not in ('customer_advance','project_expense','operating_expense','vendor_bill','owner_receivable','asset_purchase','opening_adjustment','profit_distribution','manual') then raise exception 'Business event wajib.'; end if;
+  if p->>'business_event' not in ('customer_advance','project_expense','operating_expense','vendor_bill','vendor_payment','owner_receivable','asset_purchase','opening_adjustment','profit_distribution','manual') then raise exception 'Business event wajib.'; end if;
   if exists(select 1 from jsonb_array_elements(p->'lines') a where a->>'coa_code'=ac->>'distribution_payable') then raise exception 'Kebijakan distribusi dan eligible profit belum diputuskan; diblokir.'; end if;
   if p->>'business_event'='profit_distribution' then raise exception 'Kebijakan distribusi dan eligible profit belum diputuskan; diblokir.'; end if;
  elsif p_kind='invoice' then
@@ -344,6 +350,20 @@ create or replace function finance_pilot_private.over_budget(p_lines jsonb) retu
 $$;
 revoke all on function finance_pilot_private.over_budget(jsonb) from public,anon,authenticated;
 
+-- Outstanding vendor liability is calculated from the one posted ledger, including reversals.
+create or replace function finance_pilot_private.ap_balance(p_bill uuid,p_asof date) returns numeric language sql stable security definer set search_path='' as $$
+ select coalesce(sum(l.credit-l.debit),0) from public.finance_next_journal_lines l
+ join public.finance_next_journal_entries e on e.id=l.journal_entry_id
+ left join public.finance_next_journal_entries original on original.id=e.reversal_of_id
+ join public.finance_next_requests r on r.id::text=case when e.reversal_of_id is not null then original.source_id else e.source_id end
+ where e.status='posted' and e.entry_date<=p_asof and l.coa_code=finance_pilot_private.policy()->'accounts'->>'payable'
+ and (case when e.reversal_of_id is not null then original.source_type else e.source_type end)='request'
+ and (r.id=p_bill or (r.payload->>'business_event'='vendor_payment' and r.payload->>'vendor_bill_id'=p_bill::text));
+$$;
+revoke all on function finance_pilot_private.ap_balance(uuid,date) from public,anon,authenticated;
+create unique index finance_next_vendor_payment_reference on public.finance_next_requests
+ ((payload->>'vendor_bill_id'),(payload->>'reference')) where kind='journal' and state='posted' and payload->>'business_event'='vendor_payment';
+
 -- Submit decides only documented routine versus approval events. Unknown policy blocks posting.
 create or replace function public.finance_pilot_submit(p_id uuid) returns text language plpgsql security definer set search_path='' as $$
 declare r public.finance_next_requests%rowtype; amt numeric; gated boolean;
@@ -353,7 +373,7 @@ begin
  if r.id is null or r.prepared_by<>public.current_membership_id() then raise exception 'Draft tidak ditemukan.'; end if;
  if r.state<>'draft' then return r.state; end if;
  amt:=finance_pilot_private.validate(r.kind,r.payload);
- gated:=r.kind in ('target','policy','funds','budget','reversal','account') or (r.kind in ('journal','invoice','receipt') and amt>(finance_pilot_private.policy()->>'approval_threshold')::numeric) or (r.kind='journal' and r.payload->>'business_event' in ('owner_receivable','opening_adjustment','manual'));
+ gated:=r.kind in ('target','policy','funds','budget','reversal','account') or (r.kind in ('journal','invoice','receipt') and amt>=(finance_pilot_private.policy()->>'approval_threshold')::numeric) or (r.kind='journal' and r.payload->>'business_event' in ('owner_receivable','opening_adjustment','manual'));
  if r.kind='journal' and exists(select 1 from jsonb_array_elements(r.payload->'lines') a where a->>'coa_code' in (finance_pilot_private.policy()->'accounts'->>'related_receivable',finance_pilot_private.policy()->'accounts'->>'retained_earnings')) then gated:=true; end if;
  if r.kind='journal' and exists(select 1 from public.finance_next_requests x where x.id<>r.id and x.kind='journal' and x.state in ('submitted','approved','posted') and x.payload->>'reference'=r.payload->>'reference' and x.payload->>'date'=r.payload->>'date') then
  if nullif(trim(r.payload->>'duplicate_reason'),'') is null then raise exception 'Potential duplicate: referensi/tanggal sama. Catat alasan dan minta approval.'; end if; gated:=true; end if;
@@ -404,9 +424,14 @@ begin
  if r.kind in ('claim','estimate') then raise exception 'Pengajuan sumber wajib ditautkan ke transaksi/budget, bukan diterapkan langsung.'; end if;
  if r.state<>'approved' then raise exception 'Request belum disetujui.'; end if;
  p:=r.payload; amt:=finance_pilot_private.validate(r.kind,p);
+ if r.kind in ('journal','invoice','receipt') and amt>=(finance_pilot_private.policy()->>'approval_threshold')::numeric and r.approved_by is null then raise exception 'Nominal mencapai threshold; diperlukan approval CEO.'; end if;
  if r.kind='account' then
  insert into public.finance_coa(code,name,account_class,cash_flow_category,default_flow,cost_nature,control_position,retained_earnings_impact) values(p->>'code',p->>'name',p->>'account_class',p->>'cash_flow_category','Non-Kas','Non-Beban','Normal','Tidak Langsung');
  elsif r.kind='journal' then
+ if p->>'business_event'='vendor_payment' then
+  perform 1 from public.finance_next_requests where id=(p->>'vendor_bill_id')::uuid for update;
+  if p->'lines' is distinct from finance_pilot_private.template(p) then raise exception 'Journal vendor payment tidak cocok sumber.'; end if;
+ end if;
  -- Serialize project cost postings and budget revisions. Recheck after waiting.
  perform 1 from public.finance_next_project_controls where project_id in
  (select nullif(value->>'project_id','')::uuid from jsonb_array_elements(p->'lines')) order by project_id for update;
@@ -446,9 +471,18 @@ begin
  values((p->>'project_id')::uuid,p->>'service_line_key',(p->>'contract_value')::numeric,(p->>'budgeted_hpp')::numeric,(p->>'committed_cost')::numeric,p_id)
  on conflict(project_id) do update set service_line_key=excluded.service_line_key,contract_value=excluded.contract_value,budgeted_hpp=excluded.budgeted_hpp,committed_cost=excluded.committed_cost,approved_request_id=p_id;
  elsif r.kind='project_closure' then
- if exists(select 1 from public.finance_documents where finance_pilot is true and pilot_project_id=(p->>'project_id')::uuid and document_type='invoice' and balance>0) then raise exception 'Project masih memiliki piutang; closure memerlukan penyelesaian atau write-off disetujui.'; end if;
+ if exists(select 1 from public.finance_documents d where finance_pilot is true and pilot_project_id=(p->>'project_id')::uuid and document_type='invoice' and balance>0 and not exists(select 1 from public.finance_next_journal_entries re where re.reversal_of_id=d.pilot_journal_id)) then raise exception 'Project masih memiliki piutang; closure memerlukan penyelesaian atau write-off disetujui.'; end if;
+ if exists(select 1 from public.finance_next_requests bill where bill.kind='journal' and bill.state='posted' and bill.payload->>'project_id'=p->>'project_id' and bill.payload->>'business_event'<>'vendor_payment' and finance_pilot_private.ap_balance(bill.id,'9999-12-31'::date)>0) then raise exception 'Project masih memiliki outstanding vendor AP.'; end if;
  update public.finance_next_project_controls set handover_evidence=p->>'handover_evidence',financially_closed_at=now(),financially_closed_by=actor where project_id=(p->>'project_id')::uuid;
  elsif r.kind='reversal' then
+ perform 1 from public.finance_next_requests bill where bill.id in (
+  select case when rq.payload->>'business_event'='vendor_payment' then (rq.payload->>'vendor_bill_id')::uuid else rq.id end
+  from public.finance_next_journal_entries source join public.finance_next_requests rq on source.source_type='request' and rq.id::text=source.source_id where source.id=(p->>'journal_id')::uuid
+ ) order by bill.id for update;
+ if exists(select 1 from public.finance_next_journal_entries source join public.finance_next_requests bill on bill.id::text=source.source_id and source.source_type='request'
+  join public.finance_next_requests payment on payment.payload->>'vendor_bill_id'=bill.id::text and payment.payload->>'business_event'='vendor_payment' and payment.state='posted'
+  join public.finance_next_journal_entries pe on pe.id=payment.result_id
+  where source.id=(p->>'journal_id')::uuid and not exists(select 1 from public.finance_next_journal_entries re where re.reversal_of_id=pe.id)) then raise exception 'Balikkan pembayaran vendor dahulu sebelum bill.'; end if;
  if exists(select 1 from public.finance_next_journal_entries where reversal_of_id=(p->>'journal_id')::uuid) then raise exception 'Jurnal sudah dibalik.'; end if;
  select jsonb_agg(jsonb_build_object('coa_code',coa_code,'description',description,'debit',credit,'credit',debit,'project_id',project_id,'service_line_key',service_line_key,'client',client) order by line_number) into ls from public.finance_next_journal_lines where journal_entry_id=(p->>'journal_id')::uuid;
  eid:=finance_pilot_private.post((p->>'date')::date,'Reversal: '||(p->>'reason'),ls,'reversal',r.id::text,(p->>'journal_id')::uuid);
@@ -540,11 +574,20 @@ do $$ declare f record; begin
 end $$;
 
 create or replace function finance_pilot_private.template(p jsonb) returns jsonb language plpgsql security definer set search_path='' as $$
-declare a jsonb:=finance_pilot_private.policy()->'accounts'; ev text:=p->>'business_event'; d text; c text; amt numeric(18,2):=(p->>'amount')::numeric; cl text; sk text; pr uuid:=nullif(p->>'project_id','')::uuid;
+declare a jsonb:=finance_pilot_private.policy()->'accounts'; ev text:=p->>'business_event'; d text; c text; amt numeric(18,2):=(p->>'amount')::numeric; cl text; sk text; pr uuid:=nullif(p->>'project_id','')::uuid; bill public.finance_next_requests%rowtype; remaining numeric;
 begin
  if ev in ('manual','opening_adjustment') then return p->'lines'; end if;
  if amt is null or amt<=0 or amt::text in ('NaN','Infinity','-Infinity') then raise exception 'Nominal business event harus positif.'; end if;
- if ev='customer_advance' then d:=a->>'cash';c:=a->>'advance';
+ if ev='vendor_payment' then
+  if nullif(p->>'vendor_bill_id','') is null then raise exception 'Sumber vendor bill wajib.'; end if;
+  select * into bill from public.finance_next_requests where id=(p->>'vendor_bill_id')::uuid and kind='journal' and state='posted';
+  if bill.id is null or bill.payload->>'business_event'='vendor_payment' or not exists(select 1 from public.finance_next_journal_lines where journal_entry_id=bill.result_id and coa_code=a->>'payable' and credit>0) then raise exception 'Sumber AP posted tidak ditemukan.'; end if;
+  if p->>'date' is null or (p->>'date')::date<(bill.payload->>'date')::date then raise exception 'Tanggal payment harus setelah atau sama dengan bill.'; end if;
+  remaining:=least(finance_pilot_private.ap_balance(bill.id,(p->>'date')::date),finance_pilot_private.ap_balance(bill.id,'9999-12-31'::date));
+  if amt>remaining then raise exception 'Payment melebihi outstanding vendor %.',remaining; end if;
+  if p->>'client' is distinct from bill.payload->>'client' or nullif(p->>'project_id','') is distinct from nullif(bill.payload->>'project_id','') then raise exception 'Vendor/project harus cocok bill sumber.'; end if;
+  d:=a->>'payable'; c:=a->>'cash';
+ elsif ev='customer_advance' then d:=a->>'cash';c:=a->>'advance';
  elsif ev='owner_receivable' then d:=a->>'related_receivable';c:=a->>'cash';
    if nullif(trim(p->>'client'),'') is null or p->>'due_date' is null then raise exception 'Owner dan due date wajib untuk piutang pihak terkait.'; end if;
  elsif ev='asset_purchase' then d:=a->>'fixed_asset';c:=p->>'settlement_account';
@@ -556,6 +599,7 @@ begin
  else raise exception 'Business event belum didukung.'; end if;
  if c is null or (ev in ('project_expense','operating_expense','vendor_bill','asset_purchase') and c not in (a->>'cash',a->>'payable')) or d is null then raise exception 'Mapping settlement tidak valid.'; end if;
  if c=a->>'payable' and (nullif(trim(p->>'client'),'') is null or nullif(p->>'due_date','') is null) then raise exception 'Vendor dan jatuh tempo wajib untuk AP.'; end if;
+ if c=a->>'payable' and (p->>'due_date')::date<(p->>'date')::date then raise exception 'Jatuh tempo vendor sebelum tanggal bill.'; end if;
  if pr is not null then select service_line_key into sk from public.finance_next_project_controls where project_id=pr; end if;
  if ev in ('project_expense','customer_advance') and pr is null then raise exception 'Project wajib untuk advance/biaya langsung.'; end if;
  return jsonb_build_array(jsonb_build_object('coa_code',d,'description',p->>'description','debit',amt,'credit',0,'project_id',pr,'service_line_key',sk,'client',p->>'client'),jsonb_build_object('coa_code',c,'description',p->>'description','debit',0,'credit',amt,'project_id',pr,'service_line_key',sk,'client',p->>'client'));

@@ -62,7 +62,7 @@ await as(1);
 await denied('Unknown policy blocks transaction',async()=>{ const id=await request('journal',{date:'2026-10-01',description:'x',lines:[],evidence_path:evidence}); await submit(id); });
 // Test-only accounts: deliberately not seeded by the production migration.
 await owner(async()=>{for(const [code,cl] of [['FP-CASH','Aset'],['FP-AP','Kewajiban'],['FP-ADV','Kewajiban'],['FP-TAX','Kewajiban'],['FP-RE','Ekuitas'],['FP-DIST','Kewajiban']]) await db.query("insert into finance_coa(code,name,account_class,cash_flow_category,default_flow) values($1,$1,$2,'Operasional','Non-Kas')",[code,cl]);});
-const policy={approval_threshold:10000000,fiscal_start:1,accounts:{cash:'FP-CASH',receivable:'2000',payable:'FP-AP',advance:'FP-ADV',tax_payable:'FP-TAX',retained_earnings:'FP-RE',distribution_payable:'FP-DIST',fixed_asset:'7000',related_receivable:'2001'},reason:'Test policy only'};
+const policy={approval_threshold:1000000,fiscal_start:1,accounts:{cash:'FP-CASH',receivable:'2000',payable:'FP-AP',advance:'FP-ADV',tax_payable:'FP-TAX',retained_earnings:'FP-RE',distribution_payable:'FP-DIST',fixed_asset:'7000',related_receivable:'2001'},reason:'Test policy only'};
 const pid=await request('policy',policy); assert.equal((await submit(pid)).state,'submitted');
 await denied('COO cannot self approve policy',()=>rpc("select finance_pilot_review($1,'approve','self')",[pid]));
 await approveApply(pid); checks.push('CEO approves; COO applies policy');
@@ -70,7 +70,7 @@ const line=(coa,d,c,extra={})=>({coa_code:coa,debit:d,credit:c,...extra});
 const invPayload={date:'2026-10-01',due_date:'2026-10-05',client:'Isolated Client',project_id:null,service_line_key:'event_management',item_description:'Completed milestone',quantity:'1',unit_price:'1000000',discount:'0',tax:'0',management_fee:'0',other_fees:'0',installment_scheme:'50-50',percentages:[50,50],milestone_evidence:'Signed milestone test',evidence_path:evidence};
 const invKey=crypto.randomUUID(); const iid=(await rpc('select finance_pilot_save_request($1,$2,$3) as id',[invKey,'invoice',invPayload])).id;
 assert.equal((await rpc('select finance_pilot_save_request($1,$2,$3) as id',[invKey,'invoice',invPayload])).id,iid);
-await submit(iid); await submit(iid); const invId=(await rpc('select result_id from finance_next_requests where id=$1',[iid])).result_id;
+assert.equal((await submit(iid)).state,'submitted'); await denied('Invoice exactly Rp1,000,000 cannot execute before CEO approval',()=>rpc('select finance_pilot_execute($1)',[iid])); await approveApply(iid); await submit(iid); const invId=(await rpc('select result_id from finance_next_requests where id=$1',[iid])).result_id;
 assert.equal((await rpc('select count(*)::int as n from finance_documents where id=$1',[invId])).n,1);
 checks.push('Invoice draft persists, posting and request replay create one document/journal');
 const rpayload={date:'2026-10-02',invoice_id:invId,amount:'400000',deposit_coa_code:'FP-CASH',reference:'UAT-PAYMENT-1',evidence_path:evidence};
@@ -157,6 +157,64 @@ await as(1);
 assert.equal((await submit(splitCost)).state,'submitted');
 await denied('Split project costs cannot execute without CEO approval',()=>rpc('select finance_pilot_execute($1)',[splitCost]));
 await approveApply(splitCost);checks.push('Aggregate project overrun approved by CEO then applied by COO');
+
+// User-approved threshold: inclusive at Rp1,000,000, with explicit boundary tests.
+await as(1);
+for (const amount of ['1000000','1000000.01']) {
+ const thresholdId=await request('journal',{...base,date:'2026-10-07',reference:'THRESHOLD-'+amount,amount});
+ assert.equal((await submit(thresholdId)).state,'submitted');
+ await denied('Routine amount '+amount+' requires CEO approval',()=>rpc('select finance_pilot_execute($1)',[thresholdId]));
+ await as(2);await rpc("select finance_pilot_review($1,'reject','Boundary test only')",[thresholdId]);await as(1);
+}
+const below=await request('journal',{...base,date:'2026-10-07',reference:'THRESHOLD-BELOW',amount:'999999.99'});
+assert.equal((await submit(below)).state,'posted');checks.push('Routine Rp999,999.99 posts below inclusive threshold');
+const belowJournal=(await rpc('select result_id from finance_next_requests where id=$1',[below])).result_id;
+const belowReverse=await request('reversal',{date:'2026-10-07',journal_id:belowJournal,evidence_path:evidence,reason:'Remove isolated boundary fixture through reversal'});await submit(belowReverse);await approveApply(belowReverse);
+// Vendor bills/payments use the existing requests + ledger; no separate AP balance.
+const beforeAP=(await rpc("select finance_pilot_snapshot('MTD','2026-10-07') as data")).data;
+const vendorBill=await request('journal',{...base,business_event:'vendor_bill',amount:'600000',reference:'UAT-VENDOR-BILL',date:'2026-10-01',due_date:'2026-10-02'});await submit(vendorBill);
+const vbSnap=(await rpc("select finance_pilot_snapshot('MTD','2026-10-07') as data")).data;
+assert.equal(Number(vbSnap.cash.payables),600000);assert.equal(Number(vbSnap.cash.book_cash),Number(beforeAP.cash.book_cash));
+assert.equal(Number(vbSnap.totals.opex)-Number(beforeAP.totals.opex),600000);
+assert.equal(vbSnap.reports.aging.find(r=>r.request_id===vendorBill).aging_bucket,'1–30');
+const vp={...base,business_event:'vendor_payment',vendor_bill_id:vendorBill,amount:'250000',reference:'UAT-VENDOR-PAY',date:'2026-10-03',due_date:'2026-10-02'};
+const vk=crypto.randomUUID();const vpId=(await rpc('select finance_pilot_save_request($1,$2,$3) as id',[vk,'journal',vp])).id;
+assert.equal((await submit(vpId)).state,'posted');await submit(vpId);
+assert.equal((await rpc('select finance_pilot_save_request($1,$2,$3) as id',[vk,'journal',vp])).id,vpId);
+const paidAP=(await rpc("select finance_pilot_snapshot('MTD','2026-10-07') as data")).data;
+assert.equal(Number(paidAP.cash.payables),350000);assert.equal(Number(paidAP.vendor_bills.find(b=>b.id===vendorBill).balance),350000);
+assert.equal(Number(paidAP.cash.book_cash),Number(beforeAP.cash.book_cash)-250000);assert.equal(Number(paidAP.totals.opex),Number(vbSnap.totals.opex));
+assert.equal(Number(paidAP.quality.unallocated_ap),0);assert.equal(Number(paidAP.quality.ledger_difference),0);
+checks.push('Vendor bill 600,000 + payment 250,000 => AP 350,000; cash reduces once; expense not duplicated');
+await denied('Vendor overpayment rejected',async()=>{const id=await request('journal',{...vp,amount:'350001',reference:'AP-OVER'});await submit(id);});
+await denied('Vendor/project substitution rejected',()=>request('journal',{...vp,client:'Different Vendor',reference:'AP-OTHER'}));
+await denied('Vendor payment natural reference duplicate rolls back',async()=>{const id=await request('journal',{...vp,date:'2026-10-04',amount:'10'});await submit(id);});
+const APasof=(await rpc("select finance_pilot_snapshot('Custom','2026-10-07','2026-10-01','2026-10-02') as data")).data;
+assert.equal(Number(APasof.cash.payables),600000);assert.equal(Number(APasof.vendor_bills.find(b=>b.id===vendorBill).balance),600000);checks.push('AP historical as-of excludes later vendor payment');
+const vendorBillJournal=(await rpc('select result_id from finance_next_requests where id=$1',[vendorBill])).result_id;
+await denied('Bill reversal blocked until vendor payment reversed',async()=>{const id=await request('reversal',{date:'2026-10-07',journal_id:vendorBillJournal,evidence_path:evidence,reason:'Test blocked bill reversal'});await submit(id);await approveApply(id);});
+const vpJournal=(await rpc('select result_id from finance_next_requests where id=$1',[vpId])).result_id;
+const vpr=await request('reversal',{date:'2026-10-07',journal_id:vpJournal,evidence_path:evidence,reason:'Vendor payment correction'});await submit(vpr);await approveApply(vpr);
+assert.equal(Number((await rpc("select finance_pilot_snapshot('MTD','2026-10-07') as data")).data.cash.payables),600000);
+// A fully settled payable still accepts an identical retry key without posting twice.
+const fullPayload={...vp,amount:'600000',reference:'UAT-VENDOR-FULL',date:'2026-10-07'};
+const fullKey=crypto.randomUUID();const fullId=(await rpc('select finance_pilot_save_request($1,$2,$3) as id',[fullKey,'journal',fullPayload])).id;
+await submit(fullId);assert.equal(Number((await rpc("select finance_pilot_snapshot('MTD','2026-10-07') as data")).data.cash.payables),0);
+assert.equal((await rpc('select finance_pilot_save_request($1,$2,$3) as id',[fullKey,'journal',fullPayload])).id,fullId);
+await submit(fullId);await denied('Changed fully paid retry rejected',()=>rpc('select finance_pilot_save_request($1,$2,$3)',[fullKey,'journal',{...fullPayload,amount:'1'}]));
+const fullJournal=(await rpc('select result_id from finance_next_requests where id=$1',[fullId])).result_id;
+const fullReversal=await request('reversal',{date:'2026-10-07',journal_id:fullJournal,evidence_path:evidence,reason:'Reverse isolated full settlement'});await submit(fullReversal);await approveApply(fullReversal);
+checks.push('Fully settled vendor payment replay returns original request and never duplicates ledger');
+const vbr=await request('reversal',{date:'2026-10-07',journal_id:vendorBillJournal,evidence_path:evidence,reason:'Vendor bill correction'});await submit(vbr);await approveApply(vbr);
+assert.equal(Number((await rpc("select finance_pilot_snapshot('MTD','2026-10-07') as data")).data.cash.payables),0);checks.push('Vendor payment/bill reversals restore cash/AP then cancel liability without source edits');
+
+// Financial project closure cannot abandon ledger-backed vendor obligations.
+await as(1);
+const projectBill=await request('journal',{...base,business_event:'vendor_bill',amount:'100',reference:'UAT-PROJECT-BILL',date:'2026-10-07',due_date:'2026-10-08',project_id:uid(90)});await submit(projectBill);
+await denied('Project closure blocked with outstanding vendor AP',async()=>{const id=await request('project_closure',{project_id:uid(90),handover_evidence:'Isolated signed handover',reason:'UAT closure'});await submit(id);});
+const projectBillJournal=(await rpc('select result_id from finance_next_requests where id=$1',[projectBill])).result_id;
+const projectBillReverse=await request('reversal',{date:'2026-10-07',journal_id:projectBillJournal,evidence_path:evidence,reason:'Reverse isolated project bill'});await submit(projectBillReverse);await approveApply(projectBillReverse);
+const closedProject=await request('project_closure',{project_id:uid(90),handover_evidence:'Isolated signed handover',reason:'UAT settled closure'});assert.equal((await submit(closedProject)).state,'posted');checks.push('COO financially closes project only after AP obligations resolved');
 
 // Legacy document guard applies only to pilot records.
 await owner(async()=>{
