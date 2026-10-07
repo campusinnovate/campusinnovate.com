@@ -3,10 +3,10 @@ export type MetricLead = {
   stage: string; proposal_value: number | null; won_value: number | null;
   extra_data?: Record<string, unknown>;
 };
-export function leadsInPeriod<T extends { date_added: string }>(leads: T[], period: 'month' | 'year' | 'all', month: string, year: string): T[] {
+export function leadsInPeriod<T extends { date_added: string; extra_data?: Record<string, unknown> }>(leads: T[], period: 'month' | 'year' | 'all', month: string, year: string): T[] {
   if (period === 'all') return leads;
   if (period === 'year') return leads.filter(lead => lead.date_added.slice(0, 4) === year);
-  return leads.filter(lead => lead.date_added.startsWith(month));
+  return leads.filter(lead => lead.extra_data?.historical_date_precision !== 'year' && lead.date_added.startsWith(month));
 }
 export const isWon = (lead: MetricLead) => ['Won', 'Closed Won', 'Deal', 'Paid/Booked'].includes(lead.stage);
 // Legacy deal_value represented GM. Only explicitly entered amounts are revenue.
@@ -41,14 +41,17 @@ export function monthlyMetrics(leads: MetricLead[], startMonth: string, endMonth
   const byMonth = new Map(rows.map(row=>[row.month,row]));
   for (const lead of leads) {
     const historicalYearOnly=lead.extra_data?.historical_date_precision==='year';
+    // All funnel values belong to the cohort month when the lead entered Pipeline.
+    // Year-only imports are counted in annual totals below, never assigned to January.
     const entered = historicalYearOnly ? undefined : byMonth.get(lead.date_added.slice(0,7));
-    if (entered) entered.leads++;
-    const proposedMonth=lead.proposal_date?.slice(0,7) || (typeof lead.extra_data?.proposal_month==='number' && typeof lead.extra_data?.proposal_year==='number' ? `${lead.extra_data.proposal_year}-${String(lead.extra_data.proposal_month).padStart(2,'0')}` : '');
-    const proposal = byMonth.get(proposedMonth);
-    if (proposal) proposal.proposal += confirmedValue(lead,'proposal_value')??0;
-    const wonMonth=dealDate(lead)?.slice(0,7) ?? (typeof lead.extra_data?.won_month==='number' && typeof lead.extra_data?.won_year==='number' ? `${lead.extra_data.won_year}-${String(lead.extra_data.won_month).padStart(2,'0')}` : '');
-    const won = byMonth.get(wonMonth);
-    if (won && isWon(lead)) { won.projects++; won.won += confirmedValue(lead,'won_value')??0; }
+    if (entered) {
+      entered.leads++;
+      entered.proposal += confirmedValue(lead,'proposal_value')??0;
+      if (isWon(lead)) {
+        entered.projects++;
+        entered.won += confirmedValue(lead,'won_value')??0;
+      }
+    }
   }
   return rows;
 }
@@ -56,12 +59,14 @@ export function monthlyMetrics(leads: MetricLead[], startMonth: string, endMonth
 export function yearOnlyMetrics(leads: MetricLead[], startYear: string, endYear: string) {
   const total={leads:0,proposal:0,won:0,projects:0};
   for(const lead of leads){
-    if(lead.extra_data?.historical_date_precision==='year' && lead.date_added.slice(0,4)>=startYear && lead.date_added.slice(0,4)<=endYear) total.leads++;
-    const proposalYear=lead.extra_data?.proposal_year;
-    if(lead.extra_data?.proposal_month==null && typeof proposalYear==='number' && String(proposalYear)>=startYear && String(proposalYear)<=endYear) total.proposal+=confirmedValue(lead,'proposal_value')??0;
-    const wonYear=lead.extra_data?.won_year;
-    if(lead.extra_data?.won_month==null && typeof wonYear==='number' && String(wonYear)>=startYear && String(wonYear)<=endYear && isWon(lead)){
-      total.projects++;total.won+=confirmedValue(lead,'won_value')??0;
+    if(lead.extra_data?.historical_date_precision!=='year') continue;
+    const entryYear=lead.date_added.slice(0,4);
+    if(entryYear<startYear || entryYear>endYear) continue;
+    total.leads++;
+    total.proposal+=confirmedValue(lead,'proposal_value')??0;
+    if(isWon(lead)){
+      total.projects++;
+      total.won+=confirmedValue(lead,'won_value')??0;
     }
   }
   return total;
