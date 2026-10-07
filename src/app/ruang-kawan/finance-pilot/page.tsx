@@ -11,7 +11,7 @@ import styles from './finance-pilot.module.css';
 
 type Account = { code: string; name: string; account_class: string };
 type ServiceLine = { service_line_key: string; label: string };
-type Project = { id: string; project_code: string; name: string; client_name: string | null };
+type Project = { id: string; project_code: string; name: string; client_name: string | null; service_line_key: string; contract_value: number; recognized_revenue: number; billed_amount: number; cash_collected: number; budgeted_hpp: number; committed_cost: number; actual_hpp: number; status: string };
 type Line = { coa_code: string; description: string; debit: string; credit: string; project_id: string; client: string; service_line_key: string };
 type JournalLine = { line_number: number; coa_code: string; description: string; debit: number; credit: number; project_name: string | null; client: string | null; service_line_key: string | null };
 type Journal = { id: string; entry_date: string; description: string; status: string; finance_next_journal_lines: JournalLine[] };
@@ -22,6 +22,9 @@ type Receipt = { id: string; receipt_number: string; invoice_id: string; receipt
 type InvoiceForm = { invoiceDate: string; dueDate: string; client: string; clientAddress: string; projectId: string; serviceLineKey: string; itemDescription: string; quantity: string; unitPrice: string; discount: string; tax: string; managementFee: string; otherFees: string; installmentScheme: string; customPercentages: string; notes: string };
 type Section = 'overview' | 'transactions' | 'revenue' | 'projects' | 'cash' | 'reports' | 'planning' | 'settings' | 'periods';
 type PreviewRole = 'operator' | 'approver' | 'viewer';
+type PeriodView = 'MTD' | 'QTD' | 'YTD' | 'Custom';
+type FundBucket = { key: string; label: string; amount: number; restricted: boolean };
+type TargetPlan = { fiscalYear: number; annualTarget: number; approvedTarget: number; forecast: number; status: 'draft' | 'approval_requested' | 'approved'; version: number };
 
 const emptyLine = (): Line => ({ coa_code: '', description: '', debit: '', credit: '', project_id: '', client: '', service_line_key: '' });
 const money = (amount: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount || 0);
@@ -37,15 +40,26 @@ const demoAccounts: Account[] = [
   { code: '6101', name: 'Beban Operasional', account_class: 'Beban' },
 ];
 const demoServices: ServiceLine[] = [
-  { service_line_key: 'event', label: 'Event & Experience' },
-  { service_line_key: 'training', label: 'Training & Development' },
+  { service_line_key: 'event', label: 'Event Management' },
   { service_line_key: 'digital', label: 'Digital System' },
-  { service_line_key: 'creative', label: 'Creative & Media' },
+  { service_line_key: 'coreva', label: 'COREVA' },
+  { service_line_key: 'program', label: 'Program Development' },
+  { service_line_key: 'stripmate', label: 'Stripmate' },
+  { service_line_key: 'creative', label: 'Creative & Media Production' },
 ];
 const demoProjects: Project[] = [
-  { id: 'project-lidar', project_code: 'PRJ-2609-014', name: 'LiDAR Batch 3', client_name: 'PT Geo Investama Mandiri' },
-  { id: 'project-ylos', project_code: 'PRJ-2608-009', name: 'Youth Leader Organization Summit', client_name: 'YLOS 2026' },
+  { id: 'project-lidar', project_code: 'PRJ-2609-014', name: 'LiDAR Batch 3', client_name: 'PT Geo Investama Mandiri', service_line_key: 'event', contract_value: 36792000, recognized_revenue: 14716800, billed_amount: 14716800, cash_collected: 7358400, budgeted_hpp: 21500000, committed_cost: 3100000, actual_hpp: 8420000, status: 'active' },
+  { id: 'project-ylos', project_code: 'PRJ-2608-009', name: 'Youth Leader Organization Summit', client_name: 'YLOS 2026', service_line_key: 'digital', contract_value: 9935000, recognized_revenue: 0, billed_amount: 0, cash_collected: 0, budgeted_hpp: 5600000, committed_cost: 1200000, actual_hpp: 0, status: 'preparation' },
+  { id: 'project-wunproq', project_code: 'PRJ-2607-004', name: 'WUNPROQ 2026', client_name: 'World University Network', service_line_key: 'creative', contract_value: 28500000, recognized_revenue: 28500000, billed_amount: 28500000, cash_collected: 28500000, budgeted_hpp: 17000000, committed_cost: 0, actual_hpp: 15800000, status: 'closure_review' },
 ];
+const demoFunds: FundBucket[] = [
+  { key: 'project', label: 'Project Funds', amount: 9200000, restricted: true },
+  { key: 'tax', label: 'Tax Reserve', amount: 2750000, restricted: true },
+  { key: 'operating', label: 'Next Month Operating Reserve', amount: 11800000, restricted: true },
+  { key: 'emergency', label: 'Emergency Reserve', amount: 5000000, restricted: true },
+  { key: 'distribution', label: 'Owner Distribution Payable', amount: 0, restricted: true },
+];
+const monthlyTarget = [12000000, 14000000, 15000000, 16000000, 18000000, 20000000, 22000000, 22000000, 24000000, 26000000, 28000000, 33000000];
 const demoJournals: Journal[] = [
   { id: 'journal-1', entry_date: '2026-10-05', description: 'DP supporting LiDAR Batch 3', status: 'posted', finance_next_journal_lines: [
     { line_number: 1, coa_code: '1001', description: 'Dana diterima', debit: 7358400, credit: 0, project_name: 'LiDAR Batch 3', client: 'PT Geo Investama Mandiri', service_line_key: 'event' },
@@ -66,15 +80,15 @@ const demoInvoices: Invoice[] = [
 ];
 const demoReceipts: Receipt[] = [{ id: 'receipt-1', receipt_number: 'RCPT-202610-0001', invoice_id: 'invoice-1', receipt_date: '2026-10-05', amount: 7358400, deposit_coa_code: '1001', payment_reference: '202610051545913206' }];
 
-const navigation: { key: Section; label: string; icon: typeof FiGrid; ready: boolean }[] = [
-  { key: 'overview', label: 'Overview', icon: FiGrid, ready: true },
-  { key: 'transactions', label: 'Transactions', icon: FiActivity, ready: true },
-  { key: 'revenue', label: 'Revenue', icon: FiTrendingUp, ready: true },
-  { key: 'projects', label: 'Projects', icon: FiBriefcase, ready: false },
-  { key: 'cash', label: 'Cash & Funds', icon: FiDollarSign, ready: false },
-  { key: 'reports', label: 'Reports', icon: FiBarChart2, ready: false },
-  { key: 'planning', label: 'Planning', icon: FiFileText, ready: false },
-  { key: 'settings', label: 'Settings', icon: FiSettings, ready: false },
+const navigation: { key: Section; label: string; icon: typeof FiGrid }[] = [
+  { key: 'overview', label: 'Overview', icon: FiGrid },
+  { key: 'transactions', label: 'Transactions', icon: FiActivity },
+  { key: 'revenue', label: 'Revenue', icon: FiTrendingUp },
+  { key: 'projects', label: 'Projects', icon: FiBriefcase },
+  { key: 'cash', label: 'Cash & Funds', icon: FiDollarSign },
+  { key: 'reports', label: 'Reports', icon: FiBarChart2 },
+  { key: 'planning', label: 'Planning', icon: FiFileText },
+  { key: 'settings', label: 'Settings', icon: FiSettings },
 ];
 
 export default function FinancePilotPage() {
@@ -101,6 +115,18 @@ export default function FinancePilotPage() {
   const [receiptAmount, setReceiptAmount] = useState('');
   const [receiptAccount, setReceiptAccount] = useState('1001');
   const [receiptReference, setReceiptReference] = useState('');
+  const [periodView, setPeriodView] = useState<PeriodView>('YTD');
+  const [comparison, setComparison] = useState('Previous Year');
+  const [serviceFilter, setServiceFilter] = useState('all');
+  const [projectFilter, setProjectFilter] = useState('all');
+  const [reportView, setReportView] = useState('income');
+  const [funds, setFunds] = useState<FundBucket[]>(demoFunds);
+  const [reconciledCash, setReconciledCash] = useState(42750000);
+  const [bankStatementBalance, setBankStatementBalance] = useState('42750000');
+  const [targetPlan, setTargetPlan] = useState<TargetPlan>({ fiscalYear: 2026, annualTarget: 250000000, approvedTarget: 250000000, forecast: 238000000, status: 'approved', version: 1 });
+  const [targetInput, setTargetInput] = useState('250000000');
+  const [approvalThreshold, setApprovalThreshold] = useState('10000000');
+  const [fiscalStart, setFiscalStart] = useState('01');
 
   const canManage = previewRole === 'operator';
   const canApprove = previewRole === 'approver';
@@ -112,6 +138,23 @@ export default function FinancePilotPage() {
   const billedValue = issuedInvoices.reduce((sum, item) => sum + Number(item.total), 0);
   const collectedValue = issuedInvoices.reduce((sum, item) => sum + Number(item.paid), 0);
   const outstandingValue = issuedInvoices.reduce((sum, item) => sum + Number(item.balance), 0);
+  const filteredProjects = projects.filter((project) => (serviceFilter === 'all' || project.service_line_key === serviceFilter) && (projectFilter === 'all' || project.id === projectFilter));
+  const recognizedRevenue = filteredProjects.reduce((sum, project) => sum + project.recognized_revenue, 0);
+  const actualHpp = filteredProjects.reduce((sum, project) => sum + project.actual_hpp, 0);
+  const grossProfit = recognizedRevenue - actualHpp;
+  const opex = 503000 + 751200 + 1784703;
+  const operatingProfit = grossProfit - opex;
+  const restrictedCash = funds.filter((fund) => fund.restricted).reduce((sum, fund) => sum + fund.amount, 0);
+  const payablesAndAccruals = 3100000;
+  const freeCash = reconciledCash - restrictedCash - payablesAndAccruals;
+  const operatingReserve = funds.find((fund) => fund.key === 'operating')?.amount ?? 0;
+  const operatingReserveTarget = 15000000;
+  const reserveCoverage = operatingReserveTarget ? operatingReserve / operatingReserveTarget * 100 : 0;
+  const targetActual = demoProjects.reduce((sum, project) => sum + project.recognized_revenue, 0);
+  const annualGap = Math.max(targetPlan.approvedTarget - targetActual, 0);
+  const requiredMonthlyPace = annualGap / 3;
+  const targetAchievement = targetPlan.approvedTarget ? targetActual / targetPlan.approvedTarget * 100 : 0;
+  const bankDifference = Number(bankStatementBalance || 0) - reconciledCash;
 
   function resetDemo() {
     setJournals(demoJournals);
@@ -124,6 +167,13 @@ export default function FinancePilotPage() {
     setLines([emptyLine(), emptyLine()]);
     setInvoiceForm(emptyInvoice());
     setReceiptInvoiceId('');
+    setFunds(demoFunds);
+    setReconciledCash(42750000);
+    setBankStatementBalance('42750000');
+    setTargetPlan({ fiscalYear: 2026, annualTarget: 250000000, approvedTarget: 250000000, forecast: 238000000, status: 'approved', version: 1 });
+    setTargetInput('250000000');
+    setApprovalThreshold('10000000');
+    setFiscalStart('01');
   }
 
   function changeLine(index: number, key: keyof Line, value: string) {
@@ -221,11 +271,39 @@ export default function FinancePilotPage() {
     setError(''); setNotice(''); setSection(next);
   }
 
+  function saveFund(key: string, value: string) {
+    setFunds((current) => current.map((fund) => fund.key === key ? { ...fund, amount: Math.max(Number(value) || 0, 0) } : fund));
+    setNotice('Alokasi dana diperbarui pada simulasi frontend. Free Cash dihitung ulang otomatis.');
+  }
+
+  function reconcileBank() {
+    if (bankDifference !== 0) { setError(`Selisih rekonsiliasi masih ${money(bankDifference)}. Tambahkan reconciling item sebelum finalisasi.`); return; }
+    setError(''); setNotice('Rekonsiliasi bank seimbang Rp0 pada simulasi frontend.');
+  }
+
+  function submitTarget() {
+    const value = Number(targetInput);
+    if (value <= 0) { setError('Target tahunan harus lebih besar dari nol.'); return; }
+    setError('');
+    setTargetPlan((current) => ({ ...current, annualTarget: value, status: 'approval_requested', version: current.version + 1 }));
+    setNotice('Versi target baru dikirim COO ke antrean approval CEO.');
+  }
+
+  function decideTarget(approve: boolean) {
+    setTargetPlan((current) => ({ ...current, approvedTarget: approve ? current.annualTarget : current.approvedTarget, status: approve ? 'approved' : 'draft' }));
+    setTargetInput(String(approve ? Number(targetInput) : targetPlan.approvedTarget));
+    setNotice(approve ? 'Target versi terbaru disetujui pada simulasi frontend.' : 'Perubahan target ditolak dan dikembalikan ke draft.');
+  }
+
+  function previewExport(label: string) {
+    setNotice(`${label} disiapkan dengan filter ${periodView}, ${comparison}. Ekspor file akan aktif setelah backend report terhubung.`);
+  }
+
   return <main className={styles.page}>
     <header className={styles.header}>
       <div><Link href="/ruang-kawan/finance/"><FiArrowLeft /> Finance lama</Link><small>FINANCE WORKSPACE · PILOT</small><h1>Finance Pilot</h1><p>Satu alur dari transaksi, approval, posting, rekonsiliasi, sampai laporan.</p></div>
       <div className={styles.headerActions}>
-        <label className={styles.rolePreview}><FiShield /><span>Preview sebagai</span><select value={previewRole} onChange={(event) => setPreviewRole(event.target.value as PreviewRole)}><option value="operator">Finance operator</option><option value="approver">Approver / CEO</option><option value="viewer">Viewer</option></select></label>
+        <label className={styles.rolePreview}><FiShield /><span>Preview sebagai</span><select value={previewRole} onChange={(event) => setPreviewRole(event.target.value as PreviewRole)}><option value="operator">COO / Finance Owner</option><option value="approver">CEO / Approver</option><option value="viewer">Viewer</option></select></label>
         <button onClick={resetDemo}><FiRefreshCw /> Reset demo</button>
       </div>
     </header>
@@ -233,8 +311,16 @@ export default function FinancePilotPage() {
     {error ? <p className={styles.alert} role="alert">{error}</p> : null}{notice ? <p className={styles.notice} role="status">{notice}</p> : null}
 
     <nav className={styles.workspaceNav} aria-label="Finance Pilot">
-      {navigation.map((item) => <button key={item.key} data-active={section === item.key} onClick={() => openSection(item.key)}><item.icon /><span>{item.label}</span>{item.ready ? null : <small>Next</small>}</button>)}
+      {navigation.map((item) => <button key={item.key} data-active={section === item.key} onClick={() => openSection(item.key)}><item.icon /><span>{item.label}</span></button>)}
     </nav>
+
+    <section className={styles.globalControls} aria-label="Filter laporan global">
+      <label>Periode<select value={periodView} onChange={(event) => setPeriodView(event.target.value as PeriodView)}><option>MTD</option><option>QTD</option><option>YTD</option><option>Custom</option></select></label>
+      <label>Perbandingan<select value={comparison} onChange={(event) => setComparison(event.target.value)}><option>Previous Period</option><option>Previous Year</option><option>Budget</option><option>Target</option></select></label>
+      <label>Service line<select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}><option value="all">Semua service line</option>{services.map((service) => <option key={service.service_line_key} value={service.service_line_key}>{service.label}</option>)}</select></label>
+      <label>Project<select value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)}><option value="all">Semua project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.project_code} · {project.name}</option>)}</select></label>
+      <div className={styles.dataState}><b>Accrual</b><span>{periodView} · {comparison}</span><small>Closed through Aug 2026 · Reconciled · updated 07 Oct 2026 09:42 WIB</small></div>
+    </section>
 
     {section === 'overview' ? <>
       <section className={styles.overviewHero}>
@@ -262,7 +348,7 @@ export default function FinancePilotPage() {
             <span data-ready="true"><FiCheck /><b>Double-entry ledger</b><small>Prototype siap</small></span>
             <span data-ready="true"><FiCheck /><b>Period lock & approval</b><small>Prototype siap</small></span>
             <span data-ready="true"><FiCheck /><b>Invoice & payment receipt</b><small>Prototype siap</small></span>
-            <span><FiClock /><b>Bank reconciliation</b><small>Tahap berikutnya</small></span>
+            <span data-ready={bankDifference === 0}><FiCheck /><b>Bank reconciliation</b><small>{bankDifference === 0 ? 'Seimbang · selisih Rp0' : `Perlu ditinjau · ${money(bankDifference)}`}</small></span>
           </div>
         </section>
       </div>
@@ -336,6 +422,110 @@ export default function FinancePilotPage() {
       </section> : null}
     </> : null}
 
+    {section === 'projects' ? <>
+      <section className={styles.moduleHero}><div><small>PROJECT ACCOUNTING</small><h2>Profitabilitas dan kontrol biaya per proyek</h2><p>Contract value, revenue, billing, collection, budget, committed cost, dan actual HPP dipisahkan sesuai definisi PRD.</p></div><span>{filteredProjects.length} project · {periodView}</span></section>
+      <section className={styles.metrics}>
+        <article><small>Contract value</small><strong>{money(filteredProjects.reduce((sum, item) => sum + item.contract_value, 0))}</strong><span>Nilai kontrak disetujui</span></article>
+        <article><small>Recognized revenue</small><strong>{money(recognizedRevenue)}</strong><span>Bukan nilai invoice atau kas</span></article>
+        <article><small>Actual HPP</small><strong>{money(actualHpp)}</strong><span>Direct cost dengan Project ID</span></article>
+        <article><small>Gross profit</small><strong>{money(grossProfit)}</strong><span>{recognizedRevenue ? (grossProfit / recognizedRevenue * 100).toFixed(1) : '0.0'}% gross margin</span></article>
+      </section>
+      <section className={styles.projectGrid}>{filteredProjects.map((project) => {
+        const margin = project.recognized_revenue ? (project.recognized_revenue - project.actual_hpp) / project.recognized_revenue * 100 : 0;
+        const budgetUse = project.budgeted_hpp ? (project.actual_hpp + project.committed_cost) / project.budgeted_hpp * 100 : 0;
+        return <article key={project.id} className={styles.projectCard}>
+          <header><div><small>{project.project_code} · {services.find((item) => item.service_line_key === project.service_line_key)?.label}</small><h3>{project.name}</h3><p>{project.client_name}</p></div><b data-status={budgetUse > 100 ? 'risk' : project.status}>{project.status.replaceAll('_', ' ')}</b></header>
+          <div className={styles.projectNumbers}><span>Contract<b>{money(project.contract_value)}</b></span><span>Recognized<b>{money(project.recognized_revenue)}</b></span><span>Billed<b>{money(project.billed_amount)}</b></span><span>Collected<b>{money(project.cash_collected)}</b></span><span>Budgeted HPP<b>{money(project.budgeted_hpp)}</b></span><span>Committed<b>{money(project.committed_cost)}</b></span><span>Actual HPP<b>{money(project.actual_hpp)}</b></span><span>Gross margin<b>{margin.toFixed(1)}%</b></span></div>
+          <div className={styles.progress}><span style={{ width: `${Math.min(budgetUse, 100)}%` }} /><b>{budgetUse.toFixed(1)}% budget terpakai</b></div>
+          <footer><button onClick={() => setNotice(`Drill-down ${project.name}: journal, invoice, receipt, dan source document akan mempertahankan filter aktif.`)}>Drill down sumber</button>{canManage ? <button onClick={() => setNotice(`${project.name} dikirim untuk review penutupan finansial pada mode preview.`)}>Ajukan closure</button> : null}</footer>
+        </article>;
+      })}</section>
+    </> : null}
+
+    {section === 'cash' ? <>
+      <section className={styles.moduleHero}><div><small>CASH & FUND CONTROL</small><h2>Kas bank tidak sama dengan kas yang aman dipakai</h2><p>Free Cash mengikuti formula PRD setelah restricted funds, payables, reserve, dan distribusi yang sudah disetujui.</p></div><span>Asia/Jakarta · {periodView}</span></section>
+      <section className={styles.metrics}>
+        <article><small>Reconciled cash</small><strong>{money(reconciledCash)}</strong><span>Book cash setelah rekonsiliasi</span></article>
+        <article><small>Restricted funds</small><strong>{money(restrictedCash)}</strong><span>Tidak termasuk Free Cash</span></article>
+        <article><small>Payables & accruals</small><strong>{money(payablesAndAccruals)}</strong><span>Komitmen yang belum dibayar</span></article>
+        <article><small>Free Cash</small><strong className={freeCash < 0 ? styles.negative : ''}>{money(freeCash)}</strong><span>Reconciled cash dikurangi seluruh pembatasan</span></article>
+      </section>
+      <div className={styles.columns}>
+        <section className={styles.panel}><header><div><small>FUND BUCKETS</small><h2>Alokasi dana terikat</h2><p>Perubahan COO memperbarui Free Cash, tetapi tidak mengubah saldo bank.</p></div></header>
+          <div className={styles.fundList}>{funds.map((fund) => <label key={fund.key}><span><b>{fund.label}</b><small>{fund.restricted ? 'Restricted · tidak masuk Free Cash' : 'Unrestricted'}</small></span><input type="number" min="0" value={fund.amount} disabled={!canManage} onChange={(event) => saveFund(fund.key, event.target.value)} /></label>)}</div>
+          <div className={styles.formula}>Free Cash = {money(reconciledCash)} − {money(restrictedCash)} − {money(payablesAndAccruals)} = <b>{money(freeCash)}</b></div>
+        </section>
+        <section className={styles.stack}>
+          <section className={styles.panel}><header><div><small>BANK RECONCILIATION</small><h2>Mandiri Operasional</h2><p>Target selisih tidak terjelaskan adalah Rp0.</p></div></header>
+            <div className={styles.reconciliation}><span>Book balance<b>{money(reconciledCash)}</b></span><label>Bank statement<input type="number" value={bankStatementBalance} disabled={!canManage} onChange={(event) => setBankStatementBalance(event.target.value)} /></label><span>Difference<b className={bankDifference ? styles.negative : ''}>{money(bankDifference)}</b></span></div>
+            {canManage ? <button className={styles.primary} onClick={reconcileBank}><FiCheck /> Finalisasi rekonsiliasi</button> : <p className={styles.muted}>CEO dan viewer hanya melihat status rekonsiliasi.</p>}
+          </section>
+          <section className={styles.panel}><header><div><small>OPERATING RESERVE</small><h2>Coverage bulan berikutnya</h2><p>Distribusi laba diblokir sampai coverage mencapai 100%.</p></div></header>
+            <div className={styles.coverage}><strong>{reserveCoverage.toFixed(0)}%</strong><span data-status={reserveCoverage >= 100 ? 'funded' : reserveCoverage >= 75 ? 'attention' : 'critical'}>{reserveCoverage >= 100 ? 'Funded' : reserveCoverage >= 75 ? 'Attention' : 'Critical'}</span><small>{money(operatingReserve)} dari target {money(operatingReserveTarget)}</small></div>
+          </section>
+        </section>
+      </div>
+    </> : null}
+
+    {section === 'reports' ? <>
+      <section className={styles.moduleHero}><div><small>ACCOUNTING REPORTS</small><h2>Laporan formal dari jurnal posted</h2><p>Dashboard manajemen tidak menggantikan laporan akuntansi. Nilai memakai filter global dan dapat ditelusuri ke General Ledger.</p></div><button onClick={() => previewExport('Ekspor laporan')}>Export XLSX / CSV / PDF</button></section>
+      <div className={styles.reportTabs}>{[
+        ['income', 'Income Statement'], ['position', 'Financial Position'], ['cashflow', 'Cash Flow'], ['equity', 'Changes in Equity'], ['trial', 'Trial Balance'], ['aging', 'AR / AP Aging'],
+      ].map(([key, label]) => <button key={key} data-active={reportView === key} onClick={() => setReportView(key)}>{label}</button>)}</div>
+      <div className={styles.columns}>
+        <section className={styles.panel}><header><div><small>{periodView} · {comparison}</small><h2>{reportView === 'income' ? 'Laporan Laba Rugi' : reportView === 'position' ? 'Laporan Posisi Keuangan' : reportView === 'cashflow' ? 'Laporan Arus Kas' : reportView === 'equity' ? 'Laporan Perubahan Ekuitas' : reportView === 'trial' ? 'Neraca Saldo' : 'Aging Receivables & Payables'}</h2><p>Accrual basis · posted entries only.</p></div></header>
+          <div className={styles.statement}>{(reportView === 'income' ? [
+            ['Recognized Revenue', recognizedRevenue], ['Direct Project Cost / HPP', -actualHpp], ['Gross Profit', grossProfit], ['Operating Expense', -opex], ['Operating Profit', operatingProfit],
+          ] : reportView === 'position' ? [
+            ['Cash and Bank', reconciledCash], ['Trade Receivables', outstandingValue], ['Total Assets', reconciledCash + outstandingValue], ['Payables and Accruals', -payablesAndAccruals], ['Equity', -(reconciledCash + outstandingValue - payablesAndAccruals)],
+          ] : reportView === 'cashflow' ? [
+            ['Operating activities', collectedValue - actualHpp - opex], ['Investing activities', 0], ['Financing activities', 0], ['Net change in cash', collectedValue - actualHpp - opex], ['Closing cash', reconciledCash],
+          ] : reportView === 'equity' ? [
+            ['Opening equity', 30000000], ['Current period profit', operatingProfit], ['Owner distribution', 0], ['Closing equity', 30000000 + operatingProfit],
+          ] : reportView === 'trial' ? [
+            ['1001 · Bank Mandiri Operasional', reconciledCash], ['1101 · Piutang Usaha', outstandingValue], ['4001 · Pendapatan Jasa', -recognizedRevenue], ['5101 · Beban Langsung Proyek', actualHpp], ['6101 · Beban Operasional', opex],
+          ] : [
+            ['AR Current', outstandingValue], ['AR 1–30 days', 0], ['AR 31–60 days', 0], ['AR > 60 days', 0], ['AP outstanding', payablesAndAccruals],
+          ]).map(([label, value], index) => <button key={String(label)} data-total={index >= 2 && reportView !== 'trial'} onClick={() => setNotice(`Drill-down ${label} mempertahankan filter ${periodView} dan menuju jurnal sumber.`)}><span>{label}</span><b className={Number(value) < 0 ? styles.negative : ''}>{money(Number(value))}</b></button>)}</div>
+        </section>
+        <section className={styles.panel}><header><div><small>CONTROL & TRACEABILITY</small><h2>Status laporan</h2><p>Setiap kontrol menandai apakah laporan siap dipakai.</p></div></header>
+          <div className={styles.controlList}><span data-ready="true"><FiCheck /><b>Jurnal posted seimbang</b><small>Rp0 difference</small></span><span data-ready="true"><FiCheck /><b>Bank reconciled</b><small>{money(bankDifference)} difference</small></span><span data-ready="true"><FiCheck /><b>Periode aktif</b><small>{periodView} · closing Aug 2026</small></span><span data-ready="true"><FiCheck /><b>Source drill-down</b><small>Journal, invoice, receipt, project</small></span></div>
+          <button className={styles.secondary} onClick={() => openSection('transactions')}>Buka General Ledger <FiChevronRight /></button>
+        </section>
+      </div>
+    </> : null}
+
+    {section === 'planning' ? <>
+      <section className={styles.moduleHero}><div><small>BUDGET · TARGET · FORECAST</small><h2>Rencana tahunan dengan versi dan approval</h2><p>Actual memakai recognized revenue. Cash collected tetap menjadi indikator pendamping dan tidak menggantikan pencapaian target.</p></div><span>FY {targetPlan.fiscalYear} · v{targetPlan.version}</span></section>
+      <section className={styles.metrics}>
+        <article><small>Approved annual target</small><strong>{money(targetPlan.approvedTarget)}</strong><span>Original target tetap tersimpan</span></article>
+        <article><small>YTD actual</small><strong>{money(targetActual)}</strong><span>{targetAchievement.toFixed(1)}% achievement</span></article>
+        <article><small>Annual gap</small><strong>{money(annualGap)}</strong><span>Required pace {money(requiredMonthlyPace)} / bulan</span></article>
+        <article><small>Forecast</small><strong>{money(targetPlan.forecast)}</strong><span>{targetPlan.approvedTarget ? (targetPlan.forecast / targetPlan.approvedTarget * 100).toFixed(1) : '0'}% forecast achievement</span></article>
+      </section>
+      <div className={styles.columns}>
+        <section className={styles.panel}><header><div><small>TARGET GOVERNANCE</small><h2>Annual Revenue Target</h2><p>COO menyiapkan perubahan. CEO menyetujui setiap versi baru.</p></div></header>
+          <div className={styles.targetStatus}><b data-status={targetPlan.status}>{targetPlan.status.replaceAll('_', ' ')}</b><span>Original {money(250000000)} · Latest approved {money(targetPlan.approvedTarget)}</span></div>
+          {canManage ? <div className={styles.form}><label>Target tahunan<input type="number" min="1" value={targetInput} onChange={(event) => setTargetInput(event.target.value)} /></label><button className={styles.primary} onClick={submitTarget}>Kirim versi untuk approval</button></div> : null}
+          {canApprove && targetPlan.status === 'approval_requested' ? <div className={styles.approvalBox}><p>Perubahan target: {money(targetPlan.approvedTarget)} → {money(targetPlan.annualTarget)}</p><button onClick={() => decideTarget(true)}><FiCheck /> Setujui</button><button onClick={() => decideTarget(false)}>Tolak</button></div> : null}
+          {!canManage && !canApprove ? <p className={styles.muted}>Viewer hanya dapat melihat target yang telah disetujui.</p> : null}
+        </section>
+        <section className={styles.panel}><header><div><small>MONTHLY ALLOCATION</small><h2>Actual vs target bulanan</h2><p>Alokasi harus merekonsiliasi ke annual target.</p></div></header>
+          <div className={styles.monthBars}>{monthlyTarget.map((target, index) => { const actual = index < 9 ? Math.round(target * (.72 + index * .035)) : 0; return <div key={index}><span>{new Date(2026, index, 1).toLocaleDateString('id-ID', { month: 'short' })}</span><i><em style={{ width: `${Math.min(actual / target * 100, 100)}%` }} /></i><b>{money(actual)} / {money(target)}</b></div>; })}</div>
+        </section>
+      </div>
+    </> : null}
+
+    {section === 'settings' ? <>
+      <section className={styles.moduleHero}><div><small>CONTROLLED CONFIGURATION</small><h2>Master data dan aturan finance</h2><p>Pengaturan teknis tidak memberi hak approval. COO mengelola konfigurasi operasional; keputusan gated tetap milik CEO.</p></div><span>Audit trail aktif</span></section>
+      <div className={styles.settingsGrid}>
+        <section className={styles.panel}><header><div><small>CHART OF ACCOUNTS</small><h2>Akun pilot</h2><p>Kode, nama, dan klasifikasi laporan.</p></div></header><div className={styles.masterList}>{accounts.map((account) => <span key={account.code}><b>{account.code}</b><strong>{account.name}</strong><small>{account.account_class}</small></span>)}</div>{canManage ? <button className={styles.secondary} onClick={() => setNotice('Form tambah akun dibuka pada simulasi; posting tetap memerlukan mapping report.')}>Tambah akun</button> : null}</section>
+        <section className={styles.panel}><header><div><small>SERVICE LINES</small><h2>Enam taxonomy resmi</h2><p>Revenue wajib memakai salah satu service line PRD.</p></div></header><div className={styles.masterList}>{services.map((service, index) => <span key={service.service_line_key}><b>{String(index + 1).padStart(2, '0')}</b><strong>{service.label}</strong><small>{service.service_line_key}</small></span>)}</div></section>
+        <section className={styles.panel}><header><div><small>APPROVAL RULES</small><h2>Material transaction</h2><p>Transaksi di atas threshold memerlukan approval CEO.</p></div></header><div className={styles.form}><label>Threshold<input type="number" min="0" value={approvalThreshold} disabled={!canManage} onChange={(event) => setApprovalThreshold(event.target.value)} /></label><label>Approver<input value="CEO" disabled /></label>{canManage ? <button className={styles.primary} onClick={() => setNotice(`Threshold ${money(Number(approvalThreshold))} disimpan pada simulasi dan menunggu penerapan backend.`)}>Simpan aturan</button> : null}</div></section>
+        <section className={styles.panel}><header><div><small>FISCAL PERIOD</small><h2>Kalender dan closing</h2><p>Posting ke periode tertutup memerlukan approved reopening.</p></div></header><div className={styles.form}><label>Awal tahun fiskal<select value={fiscalStart} disabled={!canManage} onChange={(event) => setFiscalStart(event.target.value)}>{Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1).padStart(2, '0')}>{new Date(2026, index, 1).toLocaleDateString('id-ID', { month: 'long' })}</option>)}</select></label><button className={styles.secondary} onClick={() => openSection('periods')}>Kelola closing & reopening</button></div></section>
+      </div>
+    </> : null}
+
     {section === 'periods' ? <div className={styles.columns}>
       <section className={styles.panel}><header><div><small>MONTH-END CONTROL</small><h2>Ajukan penutupan periode</h2><p>Finance menyiapkan permintaan. Approver menyetujui atau menolak; pemohon tidak dapat menyetujui permintaannya sendiri.</p></div></header>
         {canManage ? <form className={styles.form} onSubmit={requestPeriod}><label>Bulan<input type="month" value={periodDate.slice(0, 7)} onChange={(event) => setPeriodDate(`${event.target.value}-01`)} required /></label><label>Alasan<textarea value={reason} onChange={(event) => setReason(event.target.value)} minLength={4} required /></label><button className={styles.primary} disabled={saving}><FiClock /> Ajukan penutupan</button></form> : <p className={styles.muted}>Izin Finance Pilot kelola dibutuhkan untuk mengajukan penutupan.</p>}
@@ -346,13 +536,6 @@ export default function FinancePilotPage() {
         </article>)}</div> : <p className={styles.empty}>Belum ada permintaan perubahan periode.</p>}
       </section>
     </div> : null}
-
-    {!['overview', 'transactions', 'revenue', 'periods'].includes(section) ? <section className={styles.roadmap}>
-      <span className={styles.roadmapIcon}>{(() => { const ItemIcon = navigation.find((item) => item.key === section)?.icon ?? FiGrid; return <ItemIcon />; })()}</span>
-      <small>PRD MODULE · BELUM DIAKTIFKAN</small><h2>{navigation.find((item) => item.key === section)?.label}</h2>
-      <p>Struktur modul ini sudah disiapkan, tetapi belum menampilkan angka atau formulir semu. Implementasinya akan memakai source of truth, approval, audit trail, dan drill-down sesuai PRD.</p>
-      <div><button onClick={() => openSection('overview')}>Kembali ke overview</button>{section === 'settings' ? <button onClick={() => openSection('periods')}>Buka kontrol periode</button> : null}</div>
-    </section> : null}
 
     <footer className={styles.footer}>Finance Pilot · Frontend preview only · <button onClick={() => openSection('periods')}>Kontrol periode</button> · <Link href="/ruang-kawan/finance/">Finance lama</Link></footer>
   </main>;
