@@ -80,3 +80,7 @@ Vendor AP now reuses finance_next_requests and posted journal lines. Tagihan/pay
 DEV project creation was attempted in the owner-selected Ruang Kawan organization after a tool cost quote of US$0/month. Supabase refused creation because the owner has reached the two-active-free-project limit. No new project was created, and no existing project was paused/deleted/upgraded. Branching was quoted at US$0.01344/hour; no paid branch was created pending explicit cost approval. Local synthetic validation continues.
 
 Organization subscription was verified as `free` (`tier_free`). Current Supabase deployment docs require Pro for branching, so the quoted US$0.01344/hour is not an all-inclusive upgrade price. No plan upgrade was attempted. Hosted DEV requires an available existing DEV project or separately approved paid-plan/branch costs.
+
+## Shared-project DEV proposal
+
+Owner selected use of the existing Ruang Kawan project with isolation. A concrete, generated DEV-only installer and recovery file now exist under supabase/dev/finance-pilot (outside automatic production migrations). Neither has been applied. Review finance-pilot-shared-dev-review.md for scope, risks, tests and the installation approval request. Namespace separation shares compute/Auth/Storage resources and is not equivalent to a separate Supabase development project.

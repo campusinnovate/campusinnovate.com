@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { getSupabaseConfig } from '@/lib/supabase/config';
 
 export type Payload = Record<string, unknown>;
 export type Request = { id: string; request_key: string; kind: string; state: string; payload: Payload; prepared_by: string; approved_by: string | null; review_note: string | null; created_at: string };
@@ -20,8 +21,24 @@ export type Snapshot = {
  quality: { policy_configured: boolean; unmapped_legacy_count: number; ledger_difference: number; unmapped_deals: number; unallocated_ap: number; scope: string };
 };
 export const writesEnabled = process.env.NEXT_PUBLIC_FINANCE_PILOT_WRITES_ENABLED === 'true';
+const pilotTarget = process.env.NEXT_PUBLIC_FINANCE_PILOT_TARGET ?? 'public';
+export const sharedDev = pilotTarget === 'shared-dev';
+const evidenceBucket = sharedDev ? 'finance-pilot-dev-evidence' : 'finance-pilot-evidence';
+function assertTarget() {
+ if (!['public', 'shared-dev'].includes(pilotTarget)) throw new Error('Target Finance Pilot tidak valid; akses diblokir.');
+ if (sharedDev && getSupabaseConfig().supabaseUrl.replace(/\/$/, '') !== 'https://lxwqhtuhlddgwfxjtlas.supabase.co') throw new Error('Project shared DEV tidak cocok.');
+}
 export async function rpc<T>(name: string, args: Payload = {}): Promise<T> {
- const { data, error } = await createClient().rpc(name, args);
+ assertTarget();
+ if (!/^finance_(pilot|next)_[a-z_]+$/.test(name)) throw new Error('RPC di luar scope Finance Pilot.');
+ const client = createClient();
+ let targetName = name;
+ if (sharedDev) {
+  const bound = await client.rpc('finance_pilot_dev_bind');
+  if (bound.error) throw new Error(bound.error.message);
+  targetName = name.startsWith('finance_pilot_') ? name.replace('finance_pilot_', 'finance_pilot_dev_') : name.replace('finance_next_', 'finance_pilot_dev_next_');
+ }
+ const { data, error } = await client.rpc(targetName, args);
  if (error) throw new Error(error.message);
  return data as T;
 }
@@ -35,7 +52,7 @@ export async function operationKey(scope: string, payload: Payload): Promise<str
  const serialized = JSON.stringify(payload);
  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(serialized));
  const hash = Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2, '0')).join('');
- const storageKey = `finance-pilot:operation:${scope}:${hash}`;
+ const storageKey = `finance-pilot:${sharedDev ? 'shared-dev:' : ''}operation:${scope}:${hash}`;
  const saved = sessionStorage.getItem(storageKey);
  if (saved) return saved;
  const key = crypto.randomUUID(); sessionStorage.setItem(storageKey, key); return key;
@@ -46,18 +63,22 @@ export async function saveRequest(kind: string, payload: Payload, submit = false
  return id;
 }
 export async function uploadEvidence(file: File): Promise<string> {
+ assertTarget();
  if (!writesEnabled) throw new Error('Write gate belum aktif.');
  if (file.size > 10485760 || !['application/pdf', 'image/png', 'image/jpeg'].includes(file.type)) throw new Error('Bukti harus PDF/PNG/JPEG maksimum 10 MB.');
+ if (sharedDev) await rpc('finance_pilot_identity');
  const client = createClient(); const { data, error } = await client.auth.getUser();
  if (error || !data.user) throw new Error('Sesi aktif diperlukan.');
  const ext = file.type === 'application/pdf' ? 'pdf' : file.type === 'image/png' ? 'png' : 'jpg';
  const path = `${data.user.id}/${crypto.randomUUID()}.${ext}`;
- const result = await client.storage.from('finance-pilot-evidence').upload(path, file, { upsert: false, contentType: file.type });
+ const result = await client.storage.from(evidenceBucket).upload(path, file, { upsert: false, contentType: file.type });
  if (result.error) throw new Error(result.error.message);
  return path;
 }
 export async function evidenceUrl(path: string): Promise<string> {
- const { data, error } = await createClient().storage.from('finance-pilot-evidence').createSignedUrl(path, 60);
+ assertTarget();
+ if (sharedDev) await rpc('finance_pilot_identity');
+ const { data, error } = await createClient().storage.from(evidenceBucket).createSignedUrl(path, 60);
  if (error || !data) throw new Error(error?.message || 'Bukti tidak tersedia.');
  return data.signedUrl;
 }

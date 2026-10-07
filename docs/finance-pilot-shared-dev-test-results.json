@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "isolated": true,
+  "hostedApplied": false,
+  "checks": [
+    "Installer preserves every synthetic production table row and existing public function definition",
+    "All DEV tables have RLS enabled; DEV namespace not exposed in Data API settings",
+    "Only 18 distinctly prefixed public DEV endpoints added",
+    "Anon cannot bind/read DEV",
+    "Non-allowlisted CTO cannot bind DEV",
+    "Broad old Storage policies cannot expose DEV evidence to outsider",
+    "COO binds to separate DEV membership without changing real production membership",
+    "Client cannot directly write DEV table",
+    "DEV evidence cannot overwrite even with broad old UPDATE policy",
+    "CEO cannot operate DEV despite real logged-in session",
+    "Public DEV RPCs reconcile invoice 1,000,000/receipt 400,000/AR 600,000, with DEV document prefix",
+    "DEV posting, approvals and evidence preserve all synthetic production rows/RPCs",
+    "Production membership deactivation immediately blocks DEV",
+    "Repeated install refuses namespace/RPC/bucket collision without overwrite",
+    "Disable revokes DEV RPC access",
+    "Disable blocks DEV Storage without deleting evidence",
+    "Existing office Storage remains accessible after DEV disable",
+    "Recovery disable leaves production fingerprints unchanged"
+  ],
+  "adapter_checks": [
+    "Default public transport remains unchanged",
+    "Shared DEV binds allowlisted session and routes every finance RPC to distinct DEV endpoints",
+    "Upload/signing use DEV-only bucket",
+    "DEV idempotency keys persist separately from production",
+    "Wrong project or invalid target fails before RPC or Storage, without fallback",
+    "Participant denial never falls back to production API",
+    "Legacy Finance RPC outside pilot scope rejected"
+  ],
+  "build": {
+    "mode": "shared-dev static export",
+    "result": "passed"
+  },
+  "verified_at_utc": "2026-10-07",
+  "limits": "PGlite and mocked client transport; not hosted Supabase/browser/concurrency UAT"
+}

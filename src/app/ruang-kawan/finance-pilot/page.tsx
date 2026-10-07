@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Snapshot, Payload, rpc, write, saveRequest, uploadEvidence, evidenceUrl, reportCsv, operationKey, writesEnabled } from '@/lib/finance-pilot/api';
+import { Snapshot, Payload, rpc, write, saveRequest, uploadEvidence, evidenceUrl, reportCsv, operationKey, writesEnabled, sharedDev } from '@/lib/finance-pilot/api';
 import {
   FiActivity, FiArrowLeft, FiBarChart2, FiBriefcase, FiCheck, FiChevronRight,
   FiClock, FiDollarSign, FiFileText, FiGrid, FiPlus, FiRefreshCw, FiSend,
@@ -328,7 +328,7 @@ export default function FinancePilotPage() {
         <button disabled={saving || loadState === 'loading'} onClick={() => void load()}><FiRefreshCw /> Refresh data</button>
       </div>
     </header>
-    <div className={styles.preservation}><strong>Ledger pilot · belum cutover</strong><span>{snapshot?.quality.scope} · {snapshot?.quality.unmapped_legacy_count} transaksi historis belum dikonversi. {writesEnabled ? "Write gate DEV aktif." : "Write gate belum aktif."}</span></div>
+    <div className={styles.preservation}><strong>{sharedDev ? 'DEV terisolasi · data uji' : 'Ledger pilot · belum cutover'}</strong><span>{snapshot?.quality.scope} · {snapshot?.quality.unmapped_legacy_count} transaksi historis belum dikonversi. {writesEnabled ? "Write gate DEV aktif." : "Write gate belum aktif."}</span></div>
     {error ? <p className={styles.alert} role="alert">{error}</p> : null}{notice ? <p className={styles.notice} role="status">{notice}</p> : null}
 
     <nav className={styles.workspaceNav} aria-label="Finance Pilot">
