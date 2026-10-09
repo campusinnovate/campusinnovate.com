@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   title,
   description,
   alternates: { canonical: '/event-management/' },
-  openGraph: { type: 'website', url: '/event-management/', siteName: 'Campus Innovate', title, description, locale: 'id_ID' },
-  twitter: { title, description },
+  openGraph: { type: 'website', url: '/event-management/', siteName: 'Campus Innovate', title, description, locale: 'id_ID', images: [{ url: '/images/workfolio/wunproq/gallery-07.webp', width: 1800, height: 1202, alt: 'Konferensi WUNPROQ 2026' }] },
+  twitter: { card: 'summary_large_image', title, description, images: ['/images/workfolio/wunproq/gallery-07.webp'] },
 };
 
 const whatsappMessage = 'Halo Campus Innovate, saya ingin konsultasi kebutuhan event. Jenis kegiatan: ____. Perkiraan peserta: ____. Waktu/tanggal: ____.';
