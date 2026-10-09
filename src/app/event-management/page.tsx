@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { FiArrowRight, FiCheck, FiMapPin, FiMessageCircle, FiPlus } from 'react-icons/fi';
 import { BrandLogo } from '@/components/public/BrandLogo';
-import { workfolioProjects } from '@/data/homepage';
+import { clientMarks, workfolioProjects } from '@/data/homepage';
 import styles from './event-management.module.css';
 
 const title = 'Event Management untuk Kampus & Instansi';
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 const whatsappMessage = 'Halo Campus Innovate, saya ingin konsultasi kebutuhan event. Jenis kegiatan: ____. Perkiraan peserta: ____. Waktu/tanggal: ____.';
 const whatsappHref = `https://wa.me/6285882514394?text=${encodeURIComponent(whatsappMessage)}`;
 
-function WhatsAppCTA({ placement, compact = false }: { placement: string; compact?: boolean }) {
-  return <a className={`${styles.cta} ${compact ? styles.compact : ''}`} href={whatsappHref} target="_blank" rel="noopener noreferrer" data-cta-placement={placement} data-service="event-management"><FiMessageCircle aria-hidden="true" /><span>{compact ? 'Diskusikan Event' : 'Diskusikan Event via WhatsApp'}</span><FiArrowRight aria-hidden="true" /></a>;
+function WhatsAppCTA({ placement, compact = false, label }: { placement: string; compact?: boolean; label?: string }) {
+  return <a className={`${styles.cta} ${compact ? styles.compact : ''}`} href={whatsappHref} target="_blank" rel="noopener noreferrer" data-cta-placement={placement} data-service="event-management"><FiMessageCircle aria-hidden="true" /><span>{label || (compact ? 'Diskusikan Event' : 'Diskusikan Event via WhatsApp')}</span><FiArrowRight aria-hidden="true" /></a>;
 }
 
 const selectedProjects = [
@@ -79,8 +79,12 @@ export default function EventManagementPage() {
           </figure>
         </div>
       </section>
-      <section className={styles.trust} aria-label="Proyek event terpilih">
-        <div className={`${styles.container} ${styles.trustInner}`}><p>Pengalaman nyata.<br /><strong>Kegiatan institusi yang beragam.</strong></p><div className={styles.marks}>{selectedProjects.map(({ project }) => <div key={project.slug}><Image src={project.logo!} width={100} height={60} alt={`Logo ${project.client}`} /><span>{project.client === 'Kementerian Lingkungan Hidup dan Kehutanan' ? 'KLHK' : project.client}</span></div>)}</div></div>
+      <section className={styles.trust} aria-label="Institusi dan organisasi dalam portofolio Campus Innovate">
+        <div className={`${styles.container} ${styles.trustInner}`}>
+          <p>Pengalaman kolaborasi Campus Innovate<br /><strong>Institusi & organisasi dalam portofolio kami.</strong></p>
+          <div className={styles.marks} role="list" aria-label="Logo institusi dan organisasi">{clientMarks.map((client) => <div key={client.name} role="listitem"><Image src={client.logo} width={132} height={64} alt={client.name} title={client.name} sizes="(max-width: 540px) 25vw, 132px" /></div>)}</div>
+          <div className={styles.trustCTA}><p><strong>Sedang menyiapkan acara?</strong> Ceritakan kebutuhan Anda. Brief belum lengkap pun boleh mulai chat.</p><WhatsAppCTA placement="after-logos" label="Chat Kebutuhan Event" /></div>
+        </div>
       </section>
       <section className={`${styles.section} ${styles.problem}`} aria-labelledby="problem-title">
         <div className={`${styles.container} ${styles.problemGrid}`}>
@@ -102,6 +106,7 @@ export default function EventManagementPage() {
             <div className={styles.projectPhoto}><Image src={photo} alt={alt} fill sizes="(max-width: 700px) 100vw, (max-width: 1000px) 45vw, 32vw" /><span>{format}</span></div>
             <div className={styles.projectBody}><div className={styles.projectMeta}><span>{project.client === 'Kementerian Lingkungan Hidup dan Kehutanan' ? 'KLHK' : project.client}</span><span>{project.year}</span></div><h3>{project.title}</h3><p><strong>Peran Campus Innovate</strong>{role}</p></div>
           </article>)}</div>
+          <div className={styles.workfolioRow}><p>Jelajahi proyek dan kolaborasi Campus Innovate lainnya.</p><a className={styles.workfolioCTA} href="/home/#workfolio">Lihat Semua Workfolio <FiArrowRight aria-hidden="true" /></a></div>
           <div className={styles.proofCTA}><div><strong>Ada kegiatan serupa yang sedang Anda siapkan?</strong><p>Diskusikan kebutuhan dan area bantuan yang paling relevan.</p></div><WhatsAppCTA placement="portfolio" /></div>
         </div>
       </section>
@@ -112,6 +117,7 @@ export default function EventManagementPage() {
       <section className={styles.closing} aria-labelledby="closing-title"><div className={styles.container}><p className={styles.eyebrow}>MARI SIAPKAN ACARA ANDA</p><h2 id="closing-title">Ceritakan rencananya.<br /><em>Kita bahas kebutuhan event Anda.</em></h2><p>Jenis kegiatan, perkiraan peserta, dan waktu pelaksanaan.<br />Tiga informasi sederhana untuk memulai percakapan.</p><WhatsAppCTA placement="closing" /><small>Anda bisa mengedit pesan awal sebelum mengirimnya.</small></div></section>
     </main>
     <footer className={styles.footer}><div className={`${styles.container} ${styles.footerGrid}`}><div><a href="/home/#home" aria-label="Campus Innovate — halaman utama"><BrandLogo /></a><p>Building Systems. Developing Leaders.</p></div><div><strong>Campus Innovate</strong><p>Jl. Duta Pelita B2 No.5, Tanah Sareal<br />Kota Bogor, Jawa Barat 16164</p></div><div><strong>Hubungi kami</strong><a href={whatsappHref} target="_blank" rel="noopener noreferrer" data-cta-placement="footer" data-service="event-management">+62 858-8251-4394</a><a href="mailto:innovatecampus@gmail.com">innovatecampus@gmail.com</a><a href="/privacy/">Kebijakan privasi</a></div></div><div className={`${styles.container} ${styles.copyright}`}>© {new Date().getFullYear()} Campus Innovate</div></footer>
-    <div className={styles.mobileCTA}><WhatsAppCTA placement="sticky-mobile" /></div>
+    <div className={styles.mobileCTA}><span>Belum punya brief lengkap? Mulai dari chat.</span><WhatsAppCTA placement="sticky-mobile" label="Chat Kebutuhan Event" /></div>
+    <aside className={styles.desktopWhatsApp} aria-label="Konsultasi event melalui WhatsApp"><p>Menyiapkan acara?</p><WhatsAppCTA placement="floating-desktop" label="Chat Kebutuhan Event" /></aside>
   </div>;
 }

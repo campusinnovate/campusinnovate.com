@@ -17,3 +17,11 @@ Use the same traffic source and comparable dates for baseline versus landing. Re
 Record real inquiries in the existing sales workflow with the date, institution, event need, qualification and known source. Do not infer that a conversation came from an ad just because it arrived after publication. Standard wa.me links do not automatically put gclid or UTM into the WhatsApp conversation.
 
 The Ads campaign, budget and destination settings are not modified by this release. Use the dedicated landing URL as the final URL when the campaign owner updates its destination. Legacy event links remain supported.
+
+## Logo collection and Workfolio follow-up
+
+The landing imports `clientMarks`, the same 17-item source as Home, rather than keeping a second list. The logo heading describes Campus Innovate's broader portfolio; it does not imply that every organization bought Event Management. The portfolio section includes a secondary CTA to `/home/#workfolio`.
+
+WhatsApp also appears after the logos, in a green floating desktop control, and in the mobile sticky bar with a short invitation to chat without a complete brief. These reuse the same message and delegated conversion listener.
+
+Validation on 9 October 2026: rendered the static production export at 360, 390, 540, 768 and 1440 px. Verified no horizontal overflow, all 17 logo items, non-overlapping mobile header controls, the correct mobile/desktop WhatsApp control, and the Workfolio link. At 390 px, also verified FAQ disclosure, one conversion for a WhatsApp click (zero on load), and navigation to the visible Workfolio slide. External Google and WhatsApp requests were blocked during these tests to avoid production conversions. Inspected mobile hero, logo and portfolio screenshots.

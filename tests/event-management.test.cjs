@@ -25,7 +25,7 @@ test('WhatsApp conversion only fires once per delegated click, including nested 
   click({ target: {} });
   click({ target: new Element(null) });
   assert.equal(events.length, 0, 'non-WhatsApp clicks must not be conversions');
-  for (const placement of ['header', 'hero', 'portfolio', 'closing', 'footer', 'sticky-mobile']) {
+  for (const placement of ['header', 'hero', 'portfolio', 'closing', 'footer', 'sticky-mobile', 'after-logos', 'floating-desktop']) {
     click({ target: new Element({ dataset: { service: 'event-management', ctaPlacement: placement } }) });
     const event = events.at(-1);
     assert.equal(event[0], 'event');
@@ -33,7 +33,7 @@ test('WhatsApp conversion only fires once per delegated click, including nested 
     assert.equal(event[2].send_to, 'AW-18473450758/iaLBCN-i35AdEIb66ehE');
     assert.equal(event[2].event_label, placement);
   }
-  assert.equal(events.length, 6);
+  assert.equal(events.length, 8);
 });
 
 test('legacy event URLs preserve all ad attribution parameters when redirecting', () => {
