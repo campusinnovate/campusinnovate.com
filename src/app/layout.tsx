@@ -61,7 +61,9 @@ export default function RootLayout({
               var link = event.target.closest('a[href*="wa.me/6285882514394"]');
               if (!link) return;
               gtag('event', 'conversion', {
-                'send_to': 'AW-18473450758/iaLBCN-i35AdEIb66ehE'
+                'send_to': 'AW-18473450758/iaLBCN-i35AdEIb66ehE',
+                'event_category': link.dataset.service || 'whatsapp',
+                'event_label': link.dataset.ctaPlacement || 'general'
               });
             });
           `}

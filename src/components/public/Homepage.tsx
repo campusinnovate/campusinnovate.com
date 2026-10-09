@@ -379,6 +379,11 @@ export default function Homepage() {
   useEffect(() => {
     const syncFromHash = () => {
       const id = window.location.hash.replace('#', '') || 'home';
+      // Legacy ad URLs must land on the focused event page, with attribution intact.
+      if (id === 'event-experience') {
+        window.location.replace(`/event-management/${window.location.search}`);
+        return;
+      }
       if (serviceDetailIds.includes(id as (typeof serviceDetailIds)[number])) {
         const servicesIndex = pages.findIndex((page) => page.id === 'services');
         setActive(servicesIndex);
@@ -622,7 +627,7 @@ export default function Homepage() {
                     <div className="service-need-top"><span className="service-need-icon"><Icon /></span><small>0{index + 1}</small></div>
                     <div className="service-need-copy"><span>{need.category}</span><h3>{need.title}</h3><p>{need.description}</p></div>
                     <div className="service-need-examples">{need.examples.map((example) => <span key={example}>{example}</span>)}</div>
-                    <a href={`#${need.id}`} onClick={(event) => scrollToServiceDetail(event, need.id)}>Explore this solution <FiArrowRight /></a>
+                    <a href={need.id === 'event-experience' ? '/event-management/' : `#${need.id}`} onClick={need.id === 'event-experience' ? undefined : (event) => scrollToServiceDetail(event, need.id)}>Explore this solution <FiArrowRight /></a>
                   </article>;
                 })}
               </div>

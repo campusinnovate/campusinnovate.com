@@ -17,6 +17,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
+      url: 'https://campusinnovate.com/event-management/',
+      lastModified: new Date('2026-10-09'),
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
       url: 'https://campusinnovate.com/privacy',
       lastModified: new Date('2026-08-24'),
       changeFrequency: 'yearly',
