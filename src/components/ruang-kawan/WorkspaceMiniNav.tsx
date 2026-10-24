@@ -3,16 +3,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FiActivity,FiBarChart2,FiBell,FiBookOpen,FiBriefcase,FiChevronDown,FiDollarSign,FiFileText,FiGrid,FiLogOut,FiMessageCircle,FiMoreHorizontal,FiSettings,FiTag,FiTrendingUp,FiUser } from 'react-icons/fi';
+import { FiActivity,FiBarChart2,FiBell,FiBookOpen,FiBriefcase,FiChevronDown,FiDollarSign,FiFileText,FiGrid,FiLogOut,FiMessageCircle,FiMoreHorizontal,FiSettings,FiTrendingUp,FiUser } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
 type Access={membership_status:string;permissions:string[];full_name?:string|null;position_name?:string|null};
 const items=[
  {label:'Dashboard',href:'/ruang-kawan/dashboard/',icon:FiGrid,any:[]},
  {label:'My Activity',href:'/ruang-kawan/activity/',icon:FiActivity,any:['activity.view_self']},
- {label:'Marketing',href:'/ruang-kawan/marketing/',icon:FiTrendingUp,any:['marketing.view','content_plan.view','pipeline.view']},
+ {label:'Marketing',href:'/ruang-kawan/marketing/',icon:FiTrendingUp,any:['marketing.view','content_plan.view','pipeline.view','ticketing.view']},
  {label:'Project',href:'/ruang-kawan/projects/',icon:FiBriefcase,any:['projects.view']},
- {label:'Ticket',href:'/ruang-kawan/ticketing/',icon:FiTag,any:['ticketing.view']},
  {label:'KPI',href:'/ruang-kawan/kpi/',icon:FiBarChart2,any:['kpi.view_self']},
  {label:'Digital Office',href:'/ruang-kawan/digital-office/',icon:FiFileText,any:[]},
  {label:'Documents',href:'/ruang-kawan/documents/',icon:FiBookOpen,any:['documents.view']},
@@ -31,9 +30,9 @@ export default function WorkspaceMiniNav(){
  useEffect(()=>{function onScroll(){const next=window.scrollY;if(window.innerWidth>760)setHidden(next>lastScroll.current&&next>110);lastScroll.current=next}function onMove(event:MouseEvent){if(event.clientY<18)setHidden(false)}function onKey(event:KeyboardEvent){if(event.key==='Escape'){setProfileOpen(false);setMoreOpen(false)}}function onClick(event:MouseEvent){if(navRef.current&&!navRef.current.contains(event.target as Node)){setProfileOpen(false);setMoreOpen(false)}}window.addEventListener('scroll',onScroll,{passive:true});window.addEventListener('mousemove',onMove);window.addEventListener('keydown',onKey);document.addEventListener('mousedown',onClick);return()=>{window.removeEventListener('scroll',onScroll);window.removeEventListener('mousemove',onMove);window.removeEventListener('keydown',onKey);document.removeEventListener('mousedown',onClick)}},[]);
  const visible=useMemo(()=>items.filter(item=>item.any.length===0||item.any.some(permission=>access?.permissions?.includes(permission))),[access]);
  if(!access||pathname==='/ruang-kawan'||pathname.startsWith('/ruang-kawan/callback'))return null;
- const activeFor=(href:string)=>href==='/ruang-kawan/dashboard/'?pathname.startsWith('/ruang-kawan/dashboard'):href==='/ruang-kawan/marketing/'?['/ruang-kawan/marketing','/ruang-kawan/content-plan','/ruang-kawan/pipeline','/ruang-kawan/prospects','/ruang-kawan/prospect-inbox','/ruang-kawan/tickets'].some(route=>pathname.startsWith(route)):pathname.startsWith(href.slice(0,-1));
+ const activeFor=(href:string)=>href==='/ruang-kawan/dashboard/'?pathname.startsWith('/ruang-kawan/dashboard'):href==='/ruang-kawan/marketing/'?['/ruang-kawan/marketing','/ruang-kawan/content-plan','/ruang-kawan/pipeline','/ruang-kawan/prospects','/ruang-kawan/prospect-inbox','/ruang-kawan/tickets','/ruang-kawan/ticketing'].some(route=>pathname.startsWith(route)):pathname.startsWith(href.slice(0,-1));
  async function signOut(){await createClient().auth.signOut();window.location.replace('/ruang-kawan/')}
- const primary=visible.filter(item=>['Dashboard','My Activity','Marketing','Project','Ticket','KPI'].includes(item.label));const secondary=visible.filter(item=>['Digital Office','Documents','Reports','Finance','Finance Pilot'].includes(item.label));const mobile=primary.filter(item=>['Dashboard','My Activity','Marketing','Ticket'].includes(item.label));
+ const primary=visible.filter(item=>['Dashboard','My Activity','Marketing','Project','KPI'].includes(item.label));const secondary=visible.filter(item=>['Digital Office','Documents','Reports','Finance','Finance Pilot'].includes(item.label));const mobile=primary.filter(item=>['Dashboard','My Activity','Marketing'].includes(item.label));
  return <><nav ref={navRef} className="rk-mini-nav" data-hidden={hidden} aria-label="Navigasi utama Ruang Kawan"><div className="rk-mini-nav-inner">
   <div className="rk-nav-modules">{primary.map(item=>{const Icon=item.icon;return <Link key={item.href} href={item.href} data-active={activeFor(item.href)}><Icon/><span>{item.label}</span></Link>})}<div className="rk-more-wrap"><button className="rk-nav-more" data-active={secondary.some(item=>activeFor(item.href))||pathname.startsWith('/ruang-kawan/admin')} aria-expanded={moreOpen} onClick={()=>{setMoreOpen(value=>!value);setProfileOpen(false)}}><FiMoreHorizontal/><span>Lainnya</span></button>{moreOpen?<div className="rk-more-dropdown">{secondary.map(item=>{const Icon=item.icon;return <Link key={item.href} href={item.href} data-active={activeFor(item.href)} onClick={()=>setMoreOpen(false)}><Icon/><span><strong>{item.label}</strong><small>{item.label==='Digital Office'?'Tanda tangan & kredensial QR':item.label==='Documents'?'Pusat dokumen kerja':item.label==='Reports'?'Laporan dan analisis':item.label==='Finance Pilot'?'Pilot double entry dan kontrol periode':'Kontrol keuangan'}</small></span></Link>})}{access.permissions.includes('access.manage')?<Link href="/ruang-kawan/admin/" data-active={pathname.startsWith('/ruang-kawan/admin')} onClick={()=>setMoreOpen(false)}><FiSettings/><span><strong>Admin</strong><small>Anggota dan hak akses</small></span></Link>:null}</div>:null}</div></div>
   <div className="rk-nav-account">
