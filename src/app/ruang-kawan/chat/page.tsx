@@ -422,7 +422,7 @@ export default function KawanChatPage() {
           <section className="rk-chat-timeline">
             {detail.messages.map((item, index) => <Fragment key={item.id}>
               {index === 0 || dayKey(item.created_at) !== dayKey(detail.messages[index - 1].created_at) ? <div className="rk-chat-day"><time dateTime={dayKey(item.created_at)}>{dayLabel(item.created_at, clockNow)}</time></div> : null}
-              <article className="rk-chat-message" data-ticket-space={Boolean(detail.conversation.name.startsWith("Ticket ·"))} data-pinned={item.pinned} onContextMenu={event => { event.preventDefault(); showMenu(item.id, event.clientX, event.clientY); }}>
+              <article className="rk-chat-message" data-ticket-space={isTicketSpaceName(detail.conversation.name)} data-pinned={item.pinned} onContextMenu={event => { event.preventDefault(); showMenu(item.id, event.clientX, event.clientY); }}>
 
               <button className="rk-chat-profile-trigger" onClick={() => showProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={onlineIds.has(item.sender.id)} /></button>
               <div><header><button className="rk-chat-sender" onClick={() => showProfile(item.sender)}>{item.sender.name}</button><time title={`${dayLabel(item.created_at)} · WIB`}>{formatTime(item.created_at)}</time>{item.edited_at ? <small>diedit</small> : null}<button onClick={event => { if (menuMessageId === item.id) setMenuMessageId(null); else { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); } }} aria-label="Aksi pesan" aria-expanded={menuMessageId === item.id}><FiMoreVertical /></button></header>
