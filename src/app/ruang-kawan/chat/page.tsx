@@ -229,7 +229,7 @@ export default function KawanChatPage() {
     const result = await createClient().rpc('chat_thread', { target_message_id: messageId });
     if (result.error) { setError('Thread belum dapat dimuat.'); return; }
     await createClient().rpc('mark_chat_thread_read',{target_message_id:messageId});
-    setThread(result.data as ThreadPayload);setThreadUnread(current=>({...current,[messageId]:0}));setThreadOpen(true); setDetailOpen(true); setMenuMessageId(null);
+    setThread(result.data as ThreadPayload);setThreadUnread(current=>({...current,[messageId]:0}));void loadWorkspace();setThreadOpen(true); setDetailOpen(true); setMenuMessageId(null);
   }
 
   function selectConversation(id:string){setCeoOpen(false);setSidebarActionId(null);setSelectedId(id);if(window.innerWidth<=900)setSidebarOpen(false);}
@@ -239,6 +239,21 @@ export default function KawanChatPage() {
   async function openCommercialThread(){if(!linkedTicketParent)return;const parent=linkedTicketParent;setThreadOpen(false);setThread(null);setSelectedId(parent.conversation_id);setDetailOpen(true);await loadConversation(parent.conversation_id);await loadThread(parent.message_id);}
 
   useEffect(() => { void loadWorkspace(); }, []);
+  useEffect(() => {
+    if (!workspace.me?.id) return;
+    const supabase = createClient();
+    let refreshTimer: number | null = null;
+    const channel = supabase.channel(`kawan-chat-unread:${workspace.me.id}`).on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'chat_messages',
+    }, () => {
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => { void loadWorkspace(); }, 120);
+    }).subscribe();
+    return () => {
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, [workspace.me?.id]);
   useEffect(() => { if (!requestedThread.current || requestedThreadOpened.current || !selectedId || detail?.conversation.id !== selectedId) return; requestedThreadOpened.current = true; void loadThread(requestedThread.current); }, [selectedId, detail]);
    useEffect(()=>{let active=true;if(!detail||!isTicketSpaceName(detail.conversation.name)){setLinkedTicketParent(null);return;}void createClient().rpc('ticket_discussion_parent',{target_conversation_id:detail.conversation.id}).then(result=>{if(active)setLinkedTicketParent(result.error?null:(result.data as {conversation_id:string;message_id:string}|null));});return()=>{active=false}},[detail?.conversation.id]);
   useEffect(() => { if (selectedId) void loadConversation(selectedId); else setDetail(null);const refresh=()=>{if(selectedId&&document.visibilityState==='visible')void loadConversation(selectedId,false);};const timer=setInterval(refresh,60000);window.addEventListener('focus',refresh);return()=>{++conversationRequest.current;clearInterval(timer);window.removeEventListener('focus',refresh);}; }, [selectedId]);
@@ -405,7 +420,7 @@ export default function KawanChatPage() {
   if (status === 'denied') return <main className="rk-chat-foundation"><section className="rk-chat-loading"><FiMessageCircle /><h1>Kawan Chat belum tersedia</h1><p>Akun ini belum memiliki keanggotaan internal aktif.</p></section></main>;
 
   return <main className={`rk-chat-foundation ${ticketChatStyles.ticketChat}`}>
-    <section className="rk-chat-shell" data-sidebar={sidebarOpen} data-detail={detailOpen}>
+    <section className="rk-chat-shell" data-sidebar={sidebarOpen} data-detail={detailOpen} data-ticket-space={isTicketSpaceName(detail?.conversation.name??'')} data-commercial-space={isCommercialSpaceName(detail?.conversation.name??'')} data-project-space={detail?.conversation.kind==='project'}>
       <aside className="rk-chat-sidebar">
         <header><div><FiMessageCircle /><span><small>Ruang Kawan</small><strong>Kawan Chat</strong></span></div><button onClick={() => setSidebarOpen(false)} aria-label="Tutup daftar percakapan"><FiX /></button></header>
         <button className="rk-chat-new" onClick={() => setCreateOpen(true)} disabled={backendPending}><FiPlus /> Percakapan baru</button>
@@ -415,9 +430,9 @@ export default function KawanChatPage() {
         <ConversationGroup title="Percakapan" items={conversations} selectedId={selectedId} openMenuId={sidebarActionId} onSelect={selectConversation} onToggleMenu={id=>setSidebarActionId(current=>current===id?null:id)} onArchive={setConversationArchive} onHide={hideConversation} onPin={toggleConversationPin} />
       </aside>
 
-      <section className="rk-chat-main" data-ticket-space={isTicketSpaceName(detail?.conversation.name??'')} data-commercial-space={isCommercialSpaceName(detail?.conversation.name??'')}>
+      <section className="rk-chat-main" data-ticket-space={isTicketSpaceName(detail?.conversation.name??'')} data-commercial-space={isCommercialSpaceName(detail?.conversation.name??'')} data-project-space={detail?.conversation.kind==='project'}>
         {ceoOpen ? <CeoAssistantPanel onBack={() => setSidebarOpen(true)} /> : detail ? <>
-          <header className="rk-chat-conversation-head" data-meeting={hasMeeting} data-ticket-space={isTicketSpaceName(detail.conversation.name)} data-commercial-space={isCommercialSpaceName(detail.conversation.name)}>
+          <header className="rk-chat-conversation-head" data-meeting={hasMeeting} data-ticket-space={isTicketSpaceName(detail.conversation.name)} data-commercial-space={isCommercialSpaceName(detail.conversation.name)} data-project-space={detail.conversation.kind==='project'}>
             <button className="rk-chat-mobile-back" onClick={() => setSidebarOpen(true)} aria-label="Buka daftar percakapan"><FiArrowLeft /></button>
             <Avatar name={detail.conversation.name} url={detail.conversation.avatar_url} />
             <div><h1>{isTicketSpaceName(detail.conversation.name)?<FiBriefcase/>:detail.conversation.kind !== 'direct' ? '# ' : ''}{detail.conversation.name}</h1><span><FiUsers /> {detail.members.length || detail.conversation.member_count || 0} anggota</span>{hasMeeting ? <span className="rk-chat-meeting-badge"><FiVideo /> Meeting tersedia</span> : null}</div>
@@ -426,7 +441,7 @@ export default function KawanChatPage() {
           <section className="rk-chat-timeline">
             {detail.messages.map((item, index) => <Fragment key={item.id}>
               {index === 0 || dayKey(item.created_at) !== dayKey(detail.messages[index - 1].created_at) ? <div className="rk-chat-day"><time dateTime={dayKey(item.created_at)}>{dayLabel(item.created_at, clockNow)}</time></div> : null}
-              <article className="rk-chat-message" data-ticket-space={isTicketSpaceName(detail.conversation.name)} data-commercial-space={isCommercialSpaceName(detail.conversation.name)} data-pinned={item.pinned} onContextMenu={event => { event.preventDefault(); showMenu(item.id, event.clientX, event.clientY); }}>
+              <article className="rk-chat-message" data-ticket-space={isTicketSpaceName(detail.conversation.name)} data-commercial-space={isCommercialSpaceName(detail.conversation.name)} data-project-space={detail.conversation.kind==='project'} data-pinned={item.pinned} onContextMenu={event => { event.preventDefault(); showMenu(item.id, event.clientX, event.clientY); }}>
 
               <button className="rk-chat-profile-trigger" onClick={() => showProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={onlineIds.has(item.sender.id)} /></button>
               <div><header><button className="rk-chat-sender" onClick={() => showProfile(item.sender)}>{item.sender.name}</button><time title={`${dayLabel(item.created_at)} · WIB`}>{formatTime(item.created_at)}</time>{item.edited_at ? <small>diedit</small> : null}<button onClick={event => { if (menuMessageId === item.id) setMenuMessageId(null); else { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); } }} aria-label="Aksi pesan" aria-expanded={menuMessageId === item.id}><FiMoreVertical /></button></header>
@@ -567,7 +582,8 @@ function isTicketSpaceName(name:string){return name.startsWith('Ticket ·')||/ -
 function isCommercialSpaceName(name:string){return name.trim().toLowerCase()==='commercial & handover'}
 function Avatar({ name, url, online }: { name: string; url: string | null; online?: boolean }) {
   const ticketSpace = isTicketSpaceName(name);
-  return <span className="rk-chat-avatar" data-ticket-space={ticketSpace}>{url ? <img src={url} alt="" /> : ticketSpace ? <i><FiBriefcase/></i> : <i>{initials(name)}</i>}{online ? <b /> : null}</span>;
+  const commercialSpace = isCommercialSpaceName(name);
+  return <span className="rk-chat-avatar" data-ticket-space={ticketSpace} data-commercial-space={commercialSpace}>{url ? <img src={url} alt="" /> : ticketSpace ? <i><FiBriefcase/></i> : commercialSpace ? <i><FiUsers/></i> : <i>{initials(name)}</i>}{online ? <b /> : null}</span>;
 }
 
 const ticketHeadings = [
