@@ -75,6 +75,8 @@ export default function KawanChatPage() {
   const [thread, setThread] = useState<ThreadPayload | null>(null);
   const [threadOpen, setThreadOpen] = useState(false);
   const [threadMessage, setThreadMessage] = useState('');
+  const [threadMentionIds, setThreadMentionIds] = useState<string[]>([]);
+  const [threadMentionTerm, setThreadMentionTerm] = useState<string | null>(null);
   const [threadSending, setThreadSending] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -304,7 +306,7 @@ export default function KawanChatPage() {
     const body = message.trim();
     if (!selectedId || (!body && !pendingAttachments.length) || sending) return;
     setSending(true); setError('');
-    const activeMentions = mentionIds.filter((id) => {
+    const activeMentions = Array.from(new Set([...mentionIds, ...mentionIdsForBody(body, detail?.members ?? [], workspace.me?.id)])).filter((id) => {
       const member = detail?.members.find((item) => item.id === id);
       return member ? body.includes(`@${member.name}`) : false;
     });
@@ -344,13 +346,25 @@ export default function KawanChatPage() {
     setUploading(false); if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
+  function updateThreadMessage(value: string) {
+    setThreadMessage(value);
+    const at = value.lastIndexOf('@'); const query = at >= 0 ? value.slice(at + 1) : '';
+    const isMention = at >= 0 && !query.includes('@') && !query.includes('\n') && (at === 0 || /\s/.test(value[at - 1]));
+    setThreadMentionTerm(isMention ? query.toLowerCase() : null);
+  }
+
+  function selectThreadMention(member: Member) {
+    setThreadMessage(value => { const at = value.lastIndexOf('@'); return value.slice(0, at) + '@' + member.name + ' '; });
+    setThreadMentionIds(items => items.includes(member.id) ? items : [...items, member.id]);
+    setThreadMentionTerm(null);
+  }
   async function sendThread(event: FormEvent) {
     event.preventDefault(); const body = threadMessage.trim();
     if (!selectedId || !thread?.parent.id || !body || threadSending) return;
-    const mentions=(detail?.members??[]).filter(member=>member.id!==workspace.me?.id&&body.includes(`@${member.name}`)).map(member=>member.id);
+    const mentions = Array.from(new Set([...threadMentionIds, ...mentionIdsForBody(body, detail?.members ?? [], workspace.me?.id)])).filter(id => { const member=(detail?.members??[]).find(item=>item.id===id); return member ? body.includes(`@${member.name}`) : false; });
     setThreadSending(true); const result = await createClient().rpc('send_chat_message', { target_conversation_id: selectedId, message_body: body, reply_to_message_id: thread.parent.id, attachment_ids: [], mention_membership_ids: mentions }); setThreadSending(false);
     if (result.error) { setError('Balasan belum berhasil dikirim.'); return; }
-    setThreadMessage('');
+    setThreadMessage(''); setThreadMentionIds([]); setThreadMentionTerm(null);
     const branch=await createClient().rpc('ensure_ticket_discussion_for_thread_reply',{target_reply_id:result.data as string});
     if(branch.error){setError('Balasan tersimpan, tetapi ruang PIC belum berhasil dibuka. Coba muat ulang thread.');await loadThread(thread.parent.id);return;}
     if(branch.data){setThreadOpen(false);setThread(null);setSelectedId(branch.data as string);await loadWorkspace();await loadConversation(branch.data as string);return;}
@@ -446,7 +460,7 @@ export default function KawanChatPage() {
               <button className="rk-chat-profile-trigger" onClick={() => showProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={onlineIds.has(item.sender.id)} /></button>
               <div><header><button className="rk-chat-sender" onClick={() => showProfile(item.sender)}>{item.sender.name}</button><time title={`${dayLabel(item.created_at)} · WIB`}>{formatTime(item.created_at)}</time>{item.edited_at ? <small>diedit</small> : null}<button onClick={event => { if (menuMessageId === item.id) setMenuMessageId(null); else { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); } }} aria-label="Aksi pesan" aria-expanded={menuMessageId === item.id}><FiMoreVertical /></button></header>
                 {renderMessageMenu(item)}
-                {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : isTicketAnnouncement(item.body)?<TicketAnnouncement body={item.body}/>:<p><LinkedText body={item.body}/></p>}
+                {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : isTicketAnnouncement(item.body)?<TicketAnnouncement body={item.body}/>:<p><MentionText body={item.body} members={detail?.members ?? []}/></p>}
                 {!item.deleted_at ? item.attachments?.map(file => <AttachmentPreview file={file} key={file.id} />) : null}
                 <footer>{item.reactions?.map((reaction) => <button data-active={reaction.reacted_by_me} onClick={() => void react(item.id, reaction.emoji)} key={reaction.emoji}>{reaction.emoji} {reaction.count}</button>)}<button disabled={Boolean(item.deleted_at)} onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); }} aria-label="Pilih reaksi"><FiSmile /></button><button className="rk-chat-replies" onClick={() => void loadThread(item.id)}><FiMessageCircle /> {item.reply_count ? `${item.reply_count} balasan` : 'Balas'}{threadUnread[item.id]?<b>{threadUnread[item.id]}</b>:null}</button>{item.sender.id === workspace.me?.id ? <small className="rk-chat-delivery">{item.read_count ? `Dibaca ${item.read_count}` : 'Terkirim'}</small> : null}</footer>
               </div>
@@ -467,8 +481,8 @@ export default function KawanChatPage() {
       <aside className="rk-chat-detail">
         {threadOpen && thread ? <>
           <header className={ticketChatStyles.threadPanelHead}><div><strong>Balasan percakapan</strong><small>{thread.replies.length} balasan{detail?.conversation.name ? ' · ' + detail.conversation.name : ''}</small></div><button onClick={() => { setThreadOpen(false); setThread(null); }} aria-label="Tutup thread"><FiX /></button></header>
-          <section className="rk-chat-thread"><div className="rk-chat-day"><time>{dayLabel(thread.parent.created_at, clockNow)}</time></div><MessageExcerpt menu={renderMessageMenu} onMenu={showMenu} onReact={react} onProfile={showProfile} item={thread.parent} online={onlineIds.has(thread.parent.sender.id)} />{thread.replies.map((item, index) => <Fragment key={item.id}>{dayKey(item.created_at) !== dayKey((index ? thread.replies[index - 1] : thread.parent).created_at) ? <div className="rk-chat-day"><time>{dayLabel(item.created_at, clockNow)}</time></div> : null}<MessageExcerpt menu={renderMessageMenu} onMenu={showMenu} onReact={react} onProfile={showProfile} item={item} online={onlineIds.has(item.sender.id)} /></Fragment>)}{!thread.replies.length ? <div className="rk-chat-detail-empty"><FiCornerUpLeft /><p>Belum ada balasan. Jadikan percakapan panjang tetap rapi lewat thread.</p></div> : null}</section>
-          <form className="rk-chat-thread-composer" onSubmit={sendThread}><textarea value={threadMessage} onChange={(event) => setThreadMessage(event.target.value)} placeholder="Balas di thread" /><button disabled={!threadMessage.trim() || threadSending}>{threadSending ? <FiLoader /> : <FiSend />} Kirim</button></form>
+          <section className="rk-chat-thread"><div className="rk-chat-day"><time>{dayLabel(thread.parent.created_at, clockNow)}</time></div><MessageExcerpt menu={renderMessageMenu} onMenu={showMenu} onReact={react} onProfile={showProfile} item={thread.parent} online={onlineIds.has(thread.parent.sender.id)} members={detail?.members ?? []} />{thread.replies.map((item, index) => <Fragment key={item.id}>{dayKey(item.created_at) !== dayKey((index ? thread.replies[index - 1] : thread.parent).created_at) ? <div className="rk-chat-day"><time>{dayLabel(item.created_at, clockNow)}</time></div> : null}<MessageExcerpt menu={renderMessageMenu} onMenu={showMenu} onReact={react} onProfile={showProfile} item={item} online={onlineIds.has(item.sender.id)} members={detail?.members ?? []} /></Fragment>)}{!thread.replies.length ? <div className="rk-chat-detail-empty"><FiCornerUpLeft /><p>Belum ada balasan. Jadikan percakapan panjang tetap rapi lewat thread.</p></div> : null}</section>
+          <form className="rk-chat-thread-composer" onSubmit={sendThread}>{threadMentionTerm !== null ? <div className="rk-chat-mention-menu">{(detail?.members ?? []).filter(member => member.id !== workspace.me?.id && member.name.toLowerCase().includes(threadMentionTerm)).slice(0, 6).map(member => <button type="button" key={member.id} onClick={() => selectThreadMention(member)}><Avatar name={member.name} url={member.avatar_url} online={onlineIds.has(member.id)} /><span><strong>{member.name}</strong><small>{member.position_name || 'Anggota'}</small></span></button>)}{!(detail?.members ?? []).some(member => member.id !== workspace.me?.id && member.name.toLowerCase().includes(threadMentionTerm)) ? <p>Tidak ada anggota yang cocok.</p> : null}</div> : null}<textarea value={threadMessage} onChange={event => updateThreadMessage(event.target.value)} placeholder="Balas di thread" /><button disabled={!threadMessage.trim() || threadSending}>{threadSending ? <FiLoader /> : <FiSend />} Kirim</button></form>
         </> : <>
           <header><strong>Terkait</strong><button onClick={() => setDetailOpen(false)} aria-label="Tutup detail"><FiX /></button></header>
           <nav className="rk-chat-related-tabs"><button data-active={relatedTab==='active'} onClick={()=>setRelatedTab('active')}>Aktif</button><button data-active={relatedTab==='history'} onClick={()=>setRelatedTab('history')}>Riwayat</button><button data-active={relatedTab==='archive'} onClick={()=>setRelatedTab('archive')}>File & tautan</button></nav>
@@ -612,12 +626,32 @@ function TicketAnnouncement({body}:{body:string}){
     <footer>Commercial <b>→</b> Proposal & Deal <b>→</b> Handover <b>→</b> Delivery <b>→</b> Report & Close</footer>
   </section>;
 }
-function MessageExcerpt({ item, online, onProfile, menu, onMenu, onReact }: { item: Message; online: boolean; onProfile: (member: Member) => void; menu: (item: Message) => React.ReactNode; onMenu: (id: string, x: number, y: number) => void; onReact: (id: string, emoji: string) => Promise<void> }) {
+function mentionIdsForBody(body: string, members: Member[], excludedId?: string) {
+  const normalized = body.toLocaleLowerCase();
+  return members.filter(member => member.id !== excludedId && normalized.includes('@' + member.name.toLocaleLowerCase())).map(member => member.id);
+}
+function MentionText({ body, members }: { body: string; members: Member[] }) {
+  const names = Array.from(new Set(members.map(member => member.name).filter(Boolean))).sort((a, b) => b.length - a.length);
+  const parts: React.ReactNode[] = []; let cursor = 0;
+  while (cursor < body.length) {
+    const at = body.indexOf('@', cursor);
+    if (at < 0) { parts.push(<LinkedText key={'text-' + cursor} body={body.slice(cursor)}/>); break; }
+    if (at > cursor) parts.push(<LinkedText key={'text-' + cursor} body={body.slice(cursor, at)}/>);
+    const isBoundary = (index: number) => index >= body.length || body[index] <= ' ' || '.,!?;:)}]'.includes(body[index]);
+    const matchedName = names.find(name => body.slice(at + 1, at + 1 + name.length).toLocaleLowerCase() === name.toLocaleLowerCase() && isBoundary(at + name.length + 1));
+    const isAll = body.slice(at + 1, at + 4).toLocaleLowerCase() === 'all' && isBoundary(at + 4);
+    const matched = matchedName || (isAll ? 'all' : null);
+    if (matched) { parts.push(<span className="rk-chat-mention-highlight" key={'mention-' + at}>@{matched}</span>); cursor = at + matched.length + 1; }
+    else { parts.push(<LinkedText key={'text-' + at} body="@"/>); cursor = at + 1; }
+  }
+  return <>{parts}</>;
+}
+function MessageExcerpt({ item, online, members, onProfile, menu, onMenu, onReact }: { item: Message; online: boolean; members: Member[]; onProfile: (member: Member) => void; menu: (item: Message) => React.ReactNode; onMenu: (id: string, x: number, y: number) => void; onReact: (id: string, emoji: string) => Promise<void> }) {
   return <article className="rk-chat-thread-message" onContextMenu={event => { event.preventDefault(); onMenu(item.id, event.clientX, event.clientY); }}>
     <button className="rk-chat-profile-trigger" onClick={() => onProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={online} /></button>
     <div><header><button className="rk-chat-sender" onClick={() => onProfile(item.sender)}>{item.sender.name}</button><time>{formatTime(item.created_at)}</time><button aria-label="Aksi pesan" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); onMenu(item.id, rect.left, rect.bottom); }}><FiMoreVertical /></button></header>
       {item.parent_id ? menu(item) : null}
-      {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : isTicketAnnouncement(item.body)?<TicketAnnouncement body={item.body}/>:<p><LinkedText body={item.body}/></p>}
+      {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : isTicketAnnouncement(item.body) ? <TicketAnnouncement body={item.body}/> : <p><MentionText body={item.body} members={members}/></p>}
       {!item.deleted_at ? <>{item.attachments?.map(file => <AttachmentPreview file={file} key={file.id} />)}<footer>{item.reactions?.map(reaction => <button key={reaction.emoji} data-active={reaction.reacted_by_me} onClick={() => void onReact(item.id, reaction.emoji)}>{reaction.emoji} {reaction.count}</button>)}</footer></> : null}
     </div>
   </article>;
