@@ -8,7 +8,7 @@ begin
   'service_main',t.service_main,'phase_owner_membership_id',t.phase_owner_membership_id,'phase_deadline',t.phase_deadline,
   'next_action',t.next_action,'next_action_due',t.next_action_due,'blocker',t.blocker,'conversation_id',t.conversation_id,'project_id',t.project_id,'project_conversation_id',t.project_conversation_id,
   'account_name',pl.account_name,'lead_code',pl.lead_code,'stage',pl.stage,'lead_source',pl.lead_source,'deal_value',pl.deal_value,
-  'proposal_value',pl.proposal_value,'won_value',pl.won_value,
+  'proposal_value',pl.proposal_value,'won_value',pl.won_value,'extra_data',pl.extra_data,
   'owner_name',coalesce(m.full_name,m.email::text),
   'can_accept_handover',t.phase='handover' and public.current_user_has_permission('projects.create') and exists(select 1 from public.memberships me join public.positions pos on pos.id=me.position_id where me.id=actor and (pos.key=case when t.service_main='Event Management' then 'coo' when t.service_main='Digital System' then 'cto' else pos.key end)),
   'can_contribute',public.current_user_has_permission('ticketing.manage') or (public.current_user_has_permission('ticketing.contribute') and (t.phase_owner_membership_id=actor or exists(select 1 from public.commercial_ticket_members own where own.ticket_id=t.id and own.membership_id=actor and own.member_role in('assignee','approver')))),
