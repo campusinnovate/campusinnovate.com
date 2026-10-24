@@ -5,7 +5,7 @@ import { Fragment, FormEvent, useEffect, useMemo, useRef, useState } from 'react
 import {
   FiArrowLeft, FiArchive, FiAtSign, FiBell, FiBriefcase, FiCalendar, FiCheckCircle,
   FiChevronDown, FiCornerUpLeft, FiDownload, FiEdit3, FiFile, FiHash, FiInfo, FiLink, FiLoader,
-  FiMail, FiMessageCircle, FiMoreVertical, FiPaperclip, FiPlus, FiSearch, FiSend,
+  FiMail, FiMapPin, FiMessageCircle, FiMoreVertical, FiPaperclip, FiPlus, FiSearch, FiSend,
   FiSmile, FiStar, FiTrash2, FiUploadCloud, FiUsers, FiVideo, FiX, FiZap,
 } from 'react-icons/fi';
 import ChatArchive from '@/components/ruang-kawan/ChatArchive';
@@ -96,6 +96,7 @@ export default function KawanChatPage() {
   const [canManageSelected,setCanManageSelected]=useState(false);
   const [memberOpen,setMemberOpen]=useState(false);
   const [threadUnread,setThreadUnread]=useState<Record<string,number>>({});
+  const [linkedTicketParent,setLinkedTicketParent]=useState<{conversation_id:string;message_id:string}|null>(null);
   const [meetings,setMeetings]=useState<ChatMeeting[]>([]);
   const [relatedTab,setRelatedTab]=useState<'active'|'history'|'archive'>('active');
   const [selectedRelation,setSelectedRelation]=useState<RelatedItem|null>(null);
@@ -234,6 +235,8 @@ export default function KawanChatPage() {
   function selectConversation(id:string){setCeoOpen(false);setSidebarActionId(null);setSelectedId(id);if(window.innerWidth<=900)setSidebarOpen(false);}
   async function setConversationArchive(item:Conversation,archived:boolean){setSidebarActionId(null);const result=await createClient().rpc('set_chat_conversation_archived',{target_conversation_id:item.id,should_archive:archived});if(result.error){setError('Status arsip percakapan belum berhasil diperbarui.');return}setNotice(archived?'Percakapan dipindahkan ke Arsip.':'Percakapan dikembalikan ke Semua.');await loadWorkspace();}
   async function hideConversation(item:Conversation){setSidebarActionId(null);if(!window.confirm(`Hapus “${item.name}” dari daftar chat kamu? Riwayat dan anggota lain tidak akan dihapus.`))return;const result=await createClient().rpc('hide_chat_conversation_for_me',{target_conversation_id:item.id});if(result.error){setError('Percakapan belum berhasil dihapus dari daftar.');return}if(selectedId===item.id){setSelectedId(null);setDetail(null);setThread(null);setThreadOpen(false)}setNotice('Percakapan dihapus dari daftar kamu. Riwayat chat tetap tersimpan.');await loadWorkspace();}
+  async function toggleConversationPin(item:Conversation){setSidebarActionId(null);const result=await createClient().rpc('toggle_chat_star',{target_conversation_id:item.id});if(result.error){setError(result.error.message);return}setNotice(item.starred?'Sematan chat dilepas.':'Chat disematkan di bagian atas.');await loadWorkspace();}
+  async function openCommercialThread(){if(!linkedTicketParent)return;const parent=linkedTicketParent;setThreadOpen(false);setThread(null);setSelectedId(parent.conversation_id);setDetailOpen(true);await loadConversation(parent.conversation_id);await loadThread(parent.message_id);}
 
   useEffect(() => { void loadWorkspace(); }, []);
   useEffect(() => { if (!requestedThread.current || requestedThreadOpened.current || !selectedId || detail?.conversation.id !== selectedId) return; requestedThreadOpened.current = true; void loadThread(requestedThread.current); }, [selectedId, detail]);
@@ -278,8 +281,7 @@ export default function KawanChatPage() {
     const matchesMode = listMode === 'archived' ? Boolean(item.archived) : listMode === 'all' ? !item.archived : listMode === 'unread' ? !item.archived && item.unread_count > 0 : listMode === 'mentions' ? !item.archived && Boolean(item.mention_count) : !item.archived && Boolean(item.starred);
     return matchesMode && (!term || item.name.toLowerCase().includes(term) || item.last_message?.toLowerCase().includes(term));
   }), [workspace.conversations, query, listMode]);
-  const direct = conversations.filter((item) => item.kind === 'direct' || item.kind === 'group');
-  const spaces = conversations.filter((item) => !['direct', 'group'].includes(item.kind));
+  conversations.sort((a,b)=>Number(Boolean(b.starred))-Number(Boolean(a.starred))||new Date(b.last_message_at??0).getTime()-new Date(a.last_message_at??0).getTime());
 
   async function send(event: FormEvent) {
     event.preventDefault();
@@ -560,6 +562,7 @@ function MeetingCard({meeting,now,onRespond}:{meeting:ChatMeeting;now:number;onR
 function ManageMembers({conversationId,current,available,onClose,onSaved}:{conversationId:string;current:Member[];available:Member[];onClose:()=>void;onSaved:()=>Promise<void>}){const[selected,setSelected]=useState<string[]>([]);const[saving,setSaving]=useState(false);const[error,setError]=useState('');const choices=available.filter(member=>!current.some(item=>item.id===member.id));async function save(event:FormEvent){event.preventDefault();setSaving(true);const result=await createClient().rpc('add_chat_members',{target_conversation_id:conversationId,member_ids:selected});setSaving(false);if(result.error){setError(result.error.message);return;}await onSaved();}return <div className="rk-chat-modal" role="dialog" aria-modal="true"><form onSubmit={save}><header><div><small>Kawan Chat</small><h2>Tambah anggota</h2></div><button type="button" onClick={onClose}><FiX/></button></header><fieldset><legend>Anggota aktif</legend>{choices.map(member=><label key={member.id}><input type="checkbox" checked={selected.includes(member.id)} onChange={()=>setSelected(items=>items.includes(member.id)?items.filter(id=>id!==member.id):[...items,member.id])}/><Avatar name={member.name} url={member.avatar_url}/><span><strong>{member.name}</strong><small>{member.position_name||member.email}</small></span></label>)}{!choices.length?<p>Semua anggota aktif sudah masuk.</p>:null}</fieldset>{error?<p className="rk-chat-modal-error">{error}</p>:null}<footer><button type="button" onClick={onClose}>Batal</button><button data-primary disabled={saving||!selected.length}>Tambah</button></footer></form></div>}
 
 function isTicketSpaceName(name:string){return name.startsWith('Ticket ·')||/ - CI-TKT-\d{4}-\d{6}$/.test(name)}
+function isCommercialSpaceName(name:string){return name.trim().toLowerCase()==='commercial & handover'}
 function Avatar({ name, url, online }: { name: string; url: string | null; online?: boolean }) {
   const ticketSpace = isTicketSpaceName(name);
   return <span className="rk-chat-avatar" data-ticket-space={ticketSpace}>{url ? <img src={url} alt="" /> : ticketSpace ? <i><FiBriefcase/></i> : <i>{initials(name)}</i>}{online ? <b /> : null}</span>;
