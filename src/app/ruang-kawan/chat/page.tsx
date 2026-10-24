@@ -637,7 +637,10 @@ function MentionText({ body, members }: { body: string; members: Member[] }) {
     const at = body.indexOf('@', cursor);
     if (at < 0) { parts.push(<LinkedText key={'text-' + cursor} body={body.slice(cursor)}/>); break; }
     if (at > cursor) parts.push(<LinkedText key={'text-' + cursor} body={body.slice(cursor, at)}/>);
-    const matched = names.find(name => body.slice(at + 1, at + 1 + name.length).toLocaleLowerCase() === name.toLocaleLowerCase() && (at + name.length + 1 === body.length || ' \\t\\n.,!?;:)}]'.includes(body[at + name.length + 1])) || (body.slice(at + 1, at + 4).toLocaleLowerCase() === 'all' && (at + 4 === body.length || ' \\t\\n.,!?;:)}]'.includes(body[at + 4])) ? 'all' : null;
+    const isBoundary = (index: number) => index >= body.length || body[index] <= ' ' || '.,!?;:)}]'.includes(body[index]);
+    const matchedName = names.find(name => body.slice(at + 1, at + 1 + name.length).toLocaleLowerCase() === name.toLocaleLowerCase() && isBoundary(at + name.length + 1));
+    const isAll = body.slice(at + 1, at + 4).toLocaleLowerCase() === 'all' && isBoundary(at + 4);
+    const matched = matchedName || (isAll ? 'all' : null);
     if (matched) { parts.push(<span className="rk-chat-mention-highlight" key={'mention-' + at}>@{matched}</span>); cursor = at + matched.length + 1; }
     else { parts.push(<LinkedText key={'text-' + at} body="@"/>); cursor = at + 1; }
   }
