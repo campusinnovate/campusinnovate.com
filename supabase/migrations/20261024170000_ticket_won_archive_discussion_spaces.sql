@@ -62,8 +62,8 @@ begin
      'proposal_value',coalesce(pl.proposal_value,case when coalesce(pl.extra_data->>'proposal_value','') ~ '^[0-9]+([.][0-9]+)?$' then (pl.extra_data->>'proposal_value')::numeric else null end),
      'won_value',coalesce(pl.won_value,pl.deal_value,case when coalesce(pl.extra_data->>'won_value','') ~ '^[0-9]+([.][0-9]+)?$' then (pl.extra_data->>'won_value')::numeric else null end)
    ) order by coalesce(case when coalesce(pl.extra_data->>'won_date','') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then (pl.extra_data->>'won_date')::date end,timezone('Asia/Jakarta',pl.won_at)::date,pl.date_added) desc),'[]'::jsonb)
-   from public.pipeline_leads pl join public.activities a on a.id=pl.activity_id
-   where lower(trim(pl.stage)) in ('won','closed won','deal','paid/booked') and public.can_access_activity(a.id)),
+   from public.pipeline_leads pl
+   where lower(trim(pl.stage)) in ('won','closed won','deal','paid/booked')),
   'conversation_id',(select conversation_id from public.commercial_ticket_chat_config where singleton),
   'can_create',public.current_user_has_permission('ticketing.manage')
  ) into result;
@@ -146,7 +146,7 @@ begin
     when 'account_manager' then 'AM' when 'operations' then 'Ops' when 'sales' then 'Sales'
     when 'marketing' then 'Marketing' when 'social_media_specialist' then 'Sosmed Specialist'
     when 'coo' then 'COO' when 'cto' then 'CTO' when 'hr' then 'HR PIC' else 'PIC' end||': @'||pic_name;
-  mentions:=array_append(mentions,pic_id);
+  if not pic_id=any(mentions) then mentions:=array_append(mentions,pic_id); end if;
  end loop;
 
  update public.commercial_ticket_records set discussion_conversation_id=discussion where id=ticket_uuid;
