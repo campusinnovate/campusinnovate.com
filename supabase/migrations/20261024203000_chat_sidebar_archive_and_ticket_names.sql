@@ -132,6 +132,7 @@ begin
   perform public.update_commercial_ticket_record_legacy(target_ticket_id,payload);
   select * into ticket from public.commercial_ticket_records where id=target_ticket_id and deleted_at is null;
   if ticket.id is null or ticket.chat_message_id is null then return; end if;
+  update public.chat_conversations set name=ticket.client_name||' - '||ticket.ticket_code where id=ticket.discussion_conversation_id;
   select conversation_id into announcement_room from public.chat_messages where id=ticket.chat_message_id;
 
   delete from public.chat_message_mentions where message_id=ticket.chat_message_id;
@@ -157,6 +158,28 @@ begin
   end loop;
 end;
 $$;
+
+
+create or replace function public.sync_ticket_discussion_room_name()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $
+begin
+  if new.discussion_conversation_id is not null then
+    update public.chat_conversations
+    set name=new.client_name||' - '||new.ticket_code
+    where id=new.discussion_conversation_id;
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists commercial_ticket_discussion_name_sync on public.commercial_ticket_records;
+create trigger commercial_ticket_discussion_name_sync
+after update of discussion_conversation_id on public.commercial_ticket_records
+for each row execute function public.sync_ticket_discussion_room_name();
 
 revoke all on function public.chat_workspace_legacy() from public,anon,authenticated;
 revoke all on function public.update_commercial_ticket_record_legacy(uuid,jsonb) from public,anon,authenticated;
