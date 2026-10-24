@@ -52,18 +52,31 @@ begin
   'pipeline_options',(select coalesce(jsonb_agg(jsonb_build_object('id',pl.id,'lead_code',pl.lead_code,'client_name',pl.account_name,'stage',pl.stage,'proposal_value',pl.proposal_value,'won_value',coalesce(pl.won_value,pl.deal_value)) order by pl.date_added desc),'[]'::jsonb)
                       from public.pipeline_leads pl join public.activities a on a.id=pl.activity_id where public.can_access_activity(a.id)),
   'won_projects',(select coalesce(jsonb_agg(jsonb_build_object(
-     'id',pl.id,'lead_code',pl.lead_code,'client_name',pl.account_name,
-     'service_name',coalesce(nullif(pl.business_unit,''),nullif(pl.extra_data->>'service_name',''),nullif(pl.extra_data->>'service','')),
-     'stage',pl.stage,
-     'won_date',case
-       when coalesce(pl.extra_data->>'won_date','') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then (pl.extra_data->>'won_date')::date
-       else coalesce(timezone('Asia/Jakarta',pl.won_at)::date,pl.date_added)
-      end,
-     'proposal_value',coalesce(pl.proposal_value,case when coalesce(pl.extra_data->>'proposal_value','') ~ '^[0-9]+([.][0-9]+)?$' then (pl.extra_data->>'proposal_value')::numeric else null end),
-     'won_value',coalesce(pl.won_value,pl.deal_value,case when coalesce(pl.extra_data->>'won_value','') ~ '^[0-9]+([.][0-9]+)?$' then (pl.extra_data->>'won_value')::numeric else null end)
-   ) order by coalesce(case when coalesce(pl.extra_data->>'won_date','') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then (pl.extra_data->>'won_date')::date end,timezone('Asia/Jakarta',pl.won_at)::date,pl.date_added) desc),'[]'::jsonb)
-   from public.pipeline_leads pl
-   where lower(trim(pl.stage)) in ('won','closed won','deal','paid/booked')),
+     'id',w.id,'lead_code',w.lead_code,'client_name',w.client_name,
+     'service_name',w.service_name,'stage',w.stage,'won_date',w.won_date,
+     'proposal_value',w.proposal_value,'won_value',w.won_value
+   ) order by w.won_date desc),'[]'::jsonb)
+   from (
+    select pl.id,pl.lead_code,pl.account_name client_name,
+     coalesce(nullif(pl.business_unit,''),nullif(pl.extra_data->>'service_name',''),nullif(pl.extra_data->>'service','')) service_name,
+     pl.stage,
+     case
+      when coalesce(pl.extra_data->>'won_date','') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then (pl.extra_data->>'won_date')::date
+      when pl.extra_data->>'won_year' ~ '^(19|20|21)[0-9]{2}$' and pl.extra_data->>'won_month' ~ '^(0?[1-9]|1[0-2])$'
+       then make_date((pl.extra_data->>'won_year')::int,(pl.extra_data->>'won_month')::int,1)
+      when pl.extra_data->>'won_year' ~ '^(19|20|21)[0-9]{2}$'
+       then make_date((pl.extra_data->>'won_year')::int,1,1)
+      when pl.extra_data->>'historical_year' ~ '^(19|20|21)[0-9]{2}$' and pl.extra_data->>'historical_month' ~ '^(0?[1-9]|1[0-2])$'
+       then make_date((pl.extra_data->>'historical_year')::int,(pl.extra_data->>'historical_month')::int,1)
+      when pl.extra_data->>'historical_year' ~ '^(19|20|21)[0-9]{2}$'
+       then make_date((pl.extra_data->>'historical_year')::int,1,1)
+      else coalesce(timezone('Asia/Jakarta',pl.won_at)::date,pl.date_added)
+     end won_date,
+     coalesce(pl.proposal_value,case when coalesce(pl.extra_data->>'proposal_value','') ~ '^[0-9]+([.][0-9]+)?$' then (pl.extra_data->>'proposal_value')::numeric else null end) proposal_value,
+     coalesce(pl.won_value,pl.deal_value,case when coalesce(pl.extra_data->>'won_value','') ~ '^[0-9]+([.][0-9]+)?$' then (pl.extra_data->>'won_value')::numeric else null end) won_value
+    from public.pipeline_leads pl
+    where lower(trim(pl.stage)) in ('won','closed won','deal','paid/booked')
+   ) w),
   'conversation_id',(select conversation_id from public.commercial_ticket_chat_config where singleton),
   'can_create',public.current_user_has_permission('ticketing.manage')
  ) into result;
