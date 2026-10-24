@@ -381,6 +381,8 @@ begin
 end $$;
 
 -- Preserve the requested sequence: Finku is 21, so the next issued ticket is 22.
-select setval('public.commercial_ticket_record_seq', greatest(21, (select coalesce(max(case when ticket_code ~ '-[0-9]{6}
- then substring(ticket_code from '([0-9]{6})
-)::bigint end),0) from public.commercial_ticket_records)), true);
+select setval(
+  'public.commercial_ticket_record_seq',
+  greatest(21, (select coalesce(max(right(ticket_code,6)::bigint),0) from public.commercial_ticket_records)),
+  true
+);
