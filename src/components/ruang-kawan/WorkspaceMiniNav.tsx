@@ -10,7 +10,7 @@ type Access={membership_status:string;permissions:string[];full_name?:string|nul
 const items=[
  {label:'Dashboard',href:'/ruang-kawan/dashboard/',icon:FiGrid,any:[]},
  {label:'My Activity',href:'/ruang-kawan/activity/',icon:FiActivity,any:['activity.view_self']},
- {label:'Marketing',href:'/ruang-kawan/marketing/',icon:FiTrendingUp,any:['marketing.view','content_plan.view','pipeline.view']},
+ {label:'Marketing',href:'/ruang-kawan/marketing/',icon:FiTrendingUp,any:['marketing.view','content_plan.view','pipeline.view','ticketing.view']},
  {label:'Project',href:'/ruang-kawan/projects/',icon:FiBriefcase,any:['projects.view']},
  {label:'KPI',href:'/ruang-kawan/kpi/',icon:FiBarChart2,any:['kpi.view_self']},
  {label:'Digital Office',href:'/ruang-kawan/digital-office/',icon:FiFileText,any:[]},
