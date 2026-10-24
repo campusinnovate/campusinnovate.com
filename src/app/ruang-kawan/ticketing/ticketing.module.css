@@ -28,3 +28,17 @@
 .cardFooter button{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #dce4ef;border-radius:9px;background:#fff;color:#455a73;font-size:11px;font-weight:750;cursor:pointer}.cardFooter button:hover{background:#f3f7fc;border-color:#b9cbe0}.cardFooter button[data-danger]{color:#a33f53;border-color:#f0d2d8}.cardFooter button[data-danger]:hover{background:#fff3f5;border-color:#e5a8b4}
 
 .discussionReady{display:inline-flex;align-items:center;gap:6px;color:#5f7894;font-size:10px;font-weight:750}.cardFooter>div{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+
+.documentPicker{display:grid;gap:10px;padding:16px;border:1px solid #dce8f0;border-radius:16px;background:linear-gradient(135deg,#f8fcff,#f5fbf9)}
+.documentPicker h3{display:flex;align-items:center;gap:8px;margin:0;color:#233f58;font-size:14px}
+.documentPicker p{margin:5px 0 0;color:#738296;font-size:12px}
+.linkRow{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(180px,1.3fr) auto;gap:8px}
+.linkRow input{min-width:0;padding:10px 12px;border:1px solid #d9e4ec;border-radius:10px;background:#fff}
+.linkRow button{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;border:0;border-radius:10px;background:#e2f2ed;color:#24715e;font-weight:750}
+.documentChip{display:flex;align-items:center;gap:8px;min-width:0;padding:8px 10px;border-radius:10px;background:#fff;border:1px solid #e3ebf0;color:#3e596d;font-size:12px}
+.documentChip span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.documentChip button{display:grid;place-items:center;border:0;background:transparent;color:#7f8e9b}
+.fileDrop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:74px;padding:12px;border:1px dashed #a9c6d1;border-radius:12px;background:rgba(255,255,255,.75);color:#39766f;font-size:12px;font-weight:750;cursor:pointer}
+.fileDrop small{font-size:10px;font-weight:500;color:#7e8e9c}
+.fileDrop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+@media(max-width:640px){.linkRow{grid-template-columns:1fr}.linkRow button{min-height:40px}}
