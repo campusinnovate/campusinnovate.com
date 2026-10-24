@@ -568,10 +568,10 @@ const ticketHeadings = [
 ] as const;
 function isTicketAnnouncement(body:string){return body.includes('TICKET BARU')||body.includes('TICKET DIHAPUS')}
 function TicketAnnouncement({body}:{body:string}){
-  const lines=body.split(/\\r?\\n/);const title=lines.find(line=>line.includes('TICKET BARU')||line.includes('TICKET DIHAPUS'))??'Ticket';
+  const lines=body.split(/\r?\n/);const title=lines.find(line=>line.includes('TICKET BARU')||line.includes('TICKET DIHAPUS'))??'Ticket';
   const fields:Array<{label:string;value:string}>=[];
   let current:string|null=null, values:string[]=[];
-  const finish=()=>{if(current&&values.length)fields.push({label:current,value:values.join('\\n').trim()});};
+  const finish=()=>{if(current&&values.length)fields.push({label:current,value:values.join('\n').trim()});};
   let skipping=false;
   for(const line of lines){
     const heading=ticketHeadings.find(([prefix])=>line.trim().startsWith(prefix));
