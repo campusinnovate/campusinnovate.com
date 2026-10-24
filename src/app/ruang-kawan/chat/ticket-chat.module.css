@@ -81,3 +81,16 @@
  .ticketChat :global(.rk-chat-shell[data-detail=false] .rk-chat-detail){display:none}
  .ticketChat :global(.rk-chat-shell[data-detail=true] .rk-chat-detail){transform:none}
 }
+
+
+/* Softer message gutters and distinct, restrained group treatments. */
+.ticketChat :global(.rk-chat-timeline){padding:18px clamp(16px,2.6vw,34px)}
+.ticketChat :global(.rk-chat-detail){background:rgba(246,249,252,.78);backdrop-filter:blur(14px)}
+.ticketChat :global(.rk-chat-shell[data-ticket-space=true] .rk-chat-detail){background:rgba(247,249,252,.76)}
+.ticketChat :global(.rk-chat-shell[data-commercial-space=true] .rk-chat-detail){background:rgba(239,245,246,.76)}
+.ticketChat :global(.rk-chat-message[data-ticket-space=true]>div){border-color:rgba(206,219,232,.78);border-left-color:rgba(131,169,194,.68);background:linear-gradient(140deg,rgba(255,255,255,.82),rgba(246,249,253,.68));box-shadow:0 12px 28px rgba(22,43,68,.12),inset 0 1px 0 rgba(255,255,255,.76)}
+.ticketChat :global(.rk-chat-message[data-commercial-space=true]>div){padding:10px 13px;border:1px solid rgba(207,218,226,.58);border-left:0;border-radius:14px;background:rgba(255,255,255,.42);box-shadow:0 10px 26px rgba(23,43,60,.09),inset 0 1px 0 rgba(255,255,255,.56)}
+.ticketChat :global(.rk-chat-message[data-project-space=true]>div){padding:4px 0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.ticketChat :global(.rk-chat-avatar[data-commercial-space=true]){background:linear-gradient(145deg,rgba(214,229,241,.74),rgba(226,218,240,.68));border:1px solid rgba(187,202,220,.72);color:#526b88;box-shadow:0 5px 16px rgba(49,70,98,.12)}
+.ticketChat :global(.rk-chat-avatar[data-commercial-space=true] i){display:grid;place-items:center;font-style:normal}
+.ticketChat :global(.rk-chat-group button:has(.rk-chat-avatar[data-commercial-space=true])){background:linear-gradient(110deg,rgba(221,235,245,.1),rgba(225,219,241,.08));border-color:rgba(189,209,224,.12)}
