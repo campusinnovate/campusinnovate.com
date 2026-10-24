@@ -3,7 +3,7 @@
 import { createPortal } from 'react-dom';
 import { Fragment, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  FiArrowLeft, FiAtSign, FiBell, FiBriefcase, FiCalendar, FiCheckCircle,
+  FiArrowLeft, FiArchive, FiAtSign, FiBell, FiBriefcase, FiCalendar, FiCheckCircle,
   FiChevronDown, FiCornerUpLeft, FiDownload, FiEdit3, FiFile, FiHash, FiInfo, FiLink, FiLoader,
   FiMail, FiMessageCircle, FiMoreVertical, FiPaperclip, FiPlus, FiSearch, FiSend,
   FiSmile, FiStar, FiTrash2, FiUploadCloud, FiUsers, FiVideo, FiX, FiZap,
@@ -20,7 +20,7 @@ type Member = { id: string; name: string; email?: string | null; avatar_url: str
 type Conversation = {
   id: string; name: string; kind: 'direct' | 'group' | 'team' | 'project' | 'private';
   avatar_url: string | null; last_message: string | null; last_message_at: string | null;
-  unread_count: number; mention_count?: number; starred?: boolean; member_count?: number;
+  unread_count: number; mention_count?: number; starred?: boolean; member_count?: number; archived?: boolean;
 };
 type Attachment = { id: string; name: string; url: string; mime_type?: string | null; size_label?: string | null; size_bytes?: number | null };
 type Reaction = { emoji: string; count: number; reacted_by_me?: boolean };
@@ -64,7 +64,7 @@ export default function KawanChatPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ConversationPayload | null>(null);
   const [query, setQuery] = useState('');
-  const [listMode, setListMode] = useState<'all' | 'unread' | 'mentions' | 'starred'>('all');
+  const [listMode, setListMode] = useState<'all' | 'unread' | 'mentions' | 'starred' | 'archived'>('all');
   const [message, setMessage] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -91,6 +91,7 @@ export default function KawanChatPage() {
   const [actionSeed, setActionSeed] = useState<Record<string, unknown>>({});
   const [menuPoint, setMenuPoint] = useState({ x: 16, y: 16 });
   const [menuMessageId, setMenuMessageId] = useState<string | null>(null);
+  const [sidebarActionId,setSidebarActionId]=useState<string|null>(null);
   const [notice, setNotice] = useState('');
   const [canManageSelected,setCanManageSelected]=useState(false);
   const [memberOpen,setMemberOpen]=useState(false);
@@ -230,7 +231,9 @@ export default function KawanChatPage() {
     setThread(result.data as ThreadPayload);setThreadUnread(current=>({...current,[messageId]:0}));setThreadOpen(true); setDetailOpen(true); setMenuMessageId(null);
   }
 
-  function selectConversation(id:string){setCeoOpen(false);setSelectedId(id);if(window.innerWidth<=900)setSidebarOpen(false);}
+  function selectConversation(id:string){setCeoOpen(false);setSidebarActionId(null);setSelectedId(id);if(window.innerWidth<=900)setSidebarOpen(false);}
+  async function setConversationArchive(item:Conversation,archived:boolean){setSidebarActionId(null);const result=await createClient().rpc('set_chat_conversation_archived',{target_conversation_id:item.id,should_archive:archived});if(result.error){setError('Status arsip percakapan belum berhasil diperbarui.');return}setNotice(archived?'Percakapan dipindahkan ke Arsip.':'Percakapan dikembalikan ke Semua.');await loadWorkspace();}
+  async function hideConversation(item:Conversation){setSidebarActionId(null);if(!window.confirm(`Hapus “${item.name}” dari daftar chat kamu? Riwayat dan anggota lain tidak akan dihapus.`))return;const result=await createClient().rpc('hide_chat_conversation_for_me',{target_conversation_id:item.id});if(result.error){setError('Percakapan belum berhasil dihapus dari daftar.');return}if(selectedId===item.id){setSelectedId(null);setDetail(null);setThread(null);setThreadOpen(false)}setNotice('Percakapan dihapus dari daftar kamu. Riwayat chat tetap tersimpan.');await loadWorkspace();}
 
   useEffect(() => { void loadWorkspace(); }, []);
   useEffect(() => { if (!requestedThread.current || requestedThreadOpened.current || !selectedId || detail?.conversation.id !== selectedId) return; requestedThreadOpened.current = true; void loadThread(requestedThread.current); }, [selectedId, detail]);
@@ -272,7 +275,7 @@ export default function KawanChatPage() {
 
   const conversations = useMemo(() => workspace.conversations.filter((item) => {
     const term = query.trim().toLowerCase();
-    const matchesMode = listMode === 'all' || (listMode === 'unread' ? item.unread_count > 0 : listMode === 'mentions' ? Boolean(item.mention_count) : Boolean(item.starred));
+    const matchesMode = listMode === 'archived' ? Boolean(item.archived) : listMode === 'all' ? !item.archived : listMode === 'unread' ? !item.archived && item.unread_count > 0 : listMode === 'mentions' ? !item.archived && Boolean(item.mention_count) : !item.archived && Boolean(item.starred);
     return matchesMode && (!term || item.name.toLowerCase().includes(term) || item.last_message?.toLowerCase().includes(term));
   }), [workspace.conversations, query, listMode]);
   const direct = conversations.filter((item) => item.kind === 'direct' || item.kind === 'group');
@@ -402,18 +405,18 @@ export default function KawanChatPage() {
         <header><div><FiMessageCircle /><span><small>Ruang Kawan</small><strong>Kawan Chat</strong></span></div><button onClick={() => setSidebarOpen(false)} aria-label="Tutup daftar percakapan"><FiX /></button></header>
         <button className="rk-chat-new" onClick={() => setCreateOpen(true)} disabled={backendPending}><FiPlus /> Percakapan baru</button>
         <label className="rk-chat-search"><FiSearch /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari percakapan" /></label>
-        <nav className="rk-chat-shortcuts"><button data-active={listMode === 'unread'} onClick={() => setListMode((value) => value === 'unread' ? 'all' : 'unread')}><FiBell /><span>Belum dibaca</span><b>{workspace.unread_total}</b></button><button data-active={listMode === 'mentions'} onClick={() => setListMode((value) => value === 'mentions' ? 'all' : 'mentions')}><FiAtSign /><span>Mention</span>{workspace.mentions_total ? <b>{workspace.mentions_total}</b> : null}</button><button data-active={listMode === 'starred'} onClick={() => setListMode((value) => value === 'starred' ? 'all' : 'starred')}><FiStar /><span>Berbintang</span></button></nav>
+        <nav className="rk-chat-shortcuts"><button data-active={listMode === 'all'} onClick={() => setListMode('all')}><FiMessageCircle/><span>Semua</span></button><button data-active={listMode === 'unread'} onClick={() => setListMode((value) => value === 'unread' ? 'all' : 'unread')}><FiBell /><span>Belum dibaca</span><b>{workspace.unread_total}</b></button><button data-active={listMode === 'mentions'} onClick={() => setListMode((value) => value === 'mentions' ? 'all' : 'mentions')}><FiAtSign /><span>Mention</span>{workspace.mentions_total ? <b>{workspace.mentions_total}</b> : null}</button><button data-active={listMode === 'starred'} onClick={() => setListMode((value) => value === 'starred' ? 'all' : 'starred')}><FiStar /><span>Berbintang</span></button><button data-active={listMode === 'archived'} onClick={() => setListMode((value) => value === 'archived' ? 'all' : 'archived')}><FiArchive/><span>Arsip</span><b>{workspace.conversations.filter(item=>item.archived).length||''}</b></button></nav>
         {ceoAssistantAvailable ? <section className="rk-chat-group"><header><strong>Asisten</strong><FiZap /></header><button type="button" className="rk-chat-ceo-link" data-active={ceoOpen} onClick={() => { setCeoOpen(true); if (window.innerWidth <= 900) setSidebarOpen(false); }}><FiZap /><span><strong>Kawan AI — Asisten CEO</strong><small>Prioritas, deadline, approval</small></span></button></section> : null}
-        <ConversationGroup title="Pesan langsung" items={direct} selectedId={selectedId} onSelect={selectConversation} />
-        <ConversationGroup title="Ruang" items={spaces} selectedId={selectedId} onSelect={selectConversation} />
+        <ConversationGroup title="Pesan langsung" items={direct} selectedId={selectedId} openMenuId={sidebarActionId} onSelect={selectConversation} onToggleMenu={id=>setSidebarActionId(current=>current===id?null:id)} onArchive={setConversationArchive} onHide={hideConversation} />
+        <ConversationGroup title="Ruang" items={spaces} selectedId={selectedId} openMenuId={sidebarActionId} onSelect={selectConversation} onToggleMenu={id=>setSidebarActionId(current=>current===id?null:id)} onArchive={setConversationArchive} onHide={hideConversation} />
       </aside>
 
-      <section className="rk-chat-main" data-ticket-space={Boolean(detail?.conversation.name.startsWith("Ticket ·"))}>
+      <section className="rk-chat-main" data-ticket-space={isTicketSpaceName(detail?.conversation.name??'')}>
         {ceoOpen ? <CeoAssistantPanel onBack={() => setSidebarOpen(true)} /> : detail ? <>
-          <header className="rk-chat-conversation-head" data-meeting={hasMeeting} data-ticket-space={Boolean(detail.conversation.name.startsWith("Ticket ·"))}>
+          <header className="rk-chat-conversation-head" data-meeting={hasMeeting} data-ticket-space={isTicketSpaceName(detail.conversation.name)}>
             <button className="rk-chat-mobile-back" onClick={() => setSidebarOpen(true)} aria-label="Buka daftar percakapan"><FiArrowLeft /></button>
             <Avatar name={detail.conversation.name} url={detail.conversation.avatar_url} />
-            <div><h1>{detail.conversation.name.startsWith('Ticket ·')?<FiBriefcase/>:detail.conversation.kind !== 'direct' ? '# ' : ''}{detail.conversation.name}</h1><span><FiUsers /> {detail.members.length || detail.conversation.member_count || 0} anggota</span>{hasMeeting ? <span className="rk-chat-meeting-badge"><FiVideo /> Meeting tersedia</span> : null}</div>
+            <div><h1>{isTicketSpaceName(detail.conversation.name)?<FiBriefcase/>:detail.conversation.kind !== 'direct' ? '# ' : ''}{detail.conversation.name}</h1><span><FiUsers /> {detail.members.length || detail.conversation.member_count || 0} anggota</span>{hasMeeting ? <span className="rk-chat-meeting-badge"><FiVideo /> Meeting tersedia</span> : null}</div>
             <nav><button onClick={() => setSearchOpen(true)} aria-label="Cari pesan"><FiSearch /></button><button onClick={() => void toggleStar()} aria-label="Tandai percakapan berbintang"><FiStar /></button>{canManageSelected&&detail.conversation.kind!=='direct'?<button onClick={()=>setMemberOpen(true)} aria-label="Tambah anggota" title="Tambah anggota"><FiUsers /></button>:null}<button className="rk-chat-meet-button" onClick={() => openAction('meeting')} aria-label="Buat Google Meet" title="Integrasi Google Meet"><FiVideo /><span>Buat Google Meet</span></button><button onClick={() => { setThreadOpen(false); setDetailOpen((value) => !value); }} aria-label="Detail percakapan"><FiInfo /></button></nav>
           </header>
           <section className="rk-chat-timeline">
@@ -556,8 +559,9 @@ function MeetingCard({meeting,now,onRespond}:{meeting:ChatMeeting;now:number;onR
 
 function ManageMembers({conversationId,current,available,onClose,onSaved}:{conversationId:string;current:Member[];available:Member[];onClose:()=>void;onSaved:()=>Promise<void>}){const[selected,setSelected]=useState<string[]>([]);const[saving,setSaving]=useState(false);const[error,setError]=useState('');const choices=available.filter(member=>!current.some(item=>item.id===member.id));async function save(event:FormEvent){event.preventDefault();setSaving(true);const result=await createClient().rpc('add_chat_members',{target_conversation_id:conversationId,member_ids:selected});setSaving(false);if(result.error){setError(result.error.message);return;}await onSaved();}return <div className="rk-chat-modal" role="dialog" aria-modal="true"><form onSubmit={save}><header><div><small>Kawan Chat</small><h2>Tambah anggota</h2></div><button type="button" onClick={onClose}><FiX/></button></header><fieldset><legend>Anggota aktif</legend>{choices.map(member=><label key={member.id}><input type="checkbox" checked={selected.includes(member.id)} onChange={()=>setSelected(items=>items.includes(member.id)?items.filter(id=>id!==member.id):[...items,member.id])}/><Avatar name={member.name} url={member.avatar_url}/><span><strong>{member.name}</strong><small>{member.position_name||member.email}</small></span></label>)}{!choices.length?<p>Semua anggota aktif sudah masuk.</p>:null}</fieldset>{error?<p className="rk-chat-modal-error">{error}</p>:null}<footer><button type="button" onClick={onClose}>Batal</button><button data-primary disabled={saving||!selected.length}>Tambah</button></footer></form></div>}
 
+function isTicketSpaceName(name:string){return name.startsWith('Ticket ·')||/ - CI-TKT-\\d{4}-\\d{6}$/.test(name)}
 function Avatar({ name, url, online }: { name: string; url: string | null; online?: boolean }) {
-  const ticketSpace = name.startsWith('Ticket ·');
+  const ticketSpace = isTicketSpaceName(name);
   return <span className="rk-chat-avatar" data-ticket-space={ticketSpace}>{url ? <img src={url} alt="" /> : ticketSpace ? <i><FiBriefcase/></i> : <i>{initials(name)}</i>}{online ? <b /> : null}</span>;
 }
 
@@ -600,8 +604,12 @@ function MessageExcerpt({ item, online, onProfile, menu, onMenu, onReact }: { it
 function ChatSearchDialog({ value, results, searching, mentionsOnly, onChange, onSearch, onClose, onSelect }: { value: string; results: SearchResult[]; searching: boolean; mentionsOnly: boolean; onChange: (value: string) => void; onSearch: (event: FormEvent) => Promise<void>; onClose: () => void; onSelect: (item: SearchResult) => void }) {
   return <div className="rk-chat-modal rk-chat-search-modal" role="dialog" aria-modal="true" aria-labelledby="chat-search-title"><section><header><div><small>{mentionsOnly ? 'Pencarian mention' : 'Semua percakapan'}</small><h2 id="chat-search-title">Cari pesan</h2></div><button onClick={onClose} aria-label="Tutup pencarian"><FiX /></button></header><form onSubmit={(event) => void onSearch(event)}><FiSearch /><input autoFocus value={value} onChange={(event) => onChange(event.target.value)} placeholder="Ketik kata, keputusan, atau nama file" /><button disabled={!value.trim() || searching}>{searching ? <FiLoader /> : 'Cari'}</button></form><div className="rk-chat-search-results">{results.map((item) => <button key={item.id} onClick={() => onSelect(item)}><span><strong>{item.conversation_name}</strong><time>{new Date(item.created_at).toLocaleDateString('id-ID')}</time></span><p><LinkedText body={item.body} /></p><small>{item.sender_name}{item.parent_id ? ' · balasan thread' : ''}</small></button>)}{!results.length && value ? <p>Belum ada hasil. Jalankan pencarian untuk menemukan pesan yang dapat kamu akses.</p> : null}</div></section></div>;
 }
-function ConversationGroup({ title, items, selectedId, onSelect }: { title: string; items: Conversation[]; selectedId: string | null; onSelect: (id: string) => void }) {
-  return <section className="rk-chat-group"><header><strong>{title}</strong><FiChevronDown /></header>{items.map((item) => <button key={item.id} data-active={selectedId === item.id} onClick={() => onSelect(item.id)}><Avatar name={item.name} url={item.avatar_url} /><span><strong>{item.name.startsWith('Ticket ·')?<FiBriefcase/>:item.kind !== 'direct' ? '# ' : ''}{item.name}</strong><small>{item.last_message || 'Belum ada pesan'}</small></span>{item.unread_count ? <b>{item.unread_count > 99 ? '99+' : item.unread_count}</b> : <time>{formatTime(item.last_message_at)}</time>}</button>)}{!items.length ? <p>Belum ada percakapan.</p> : null}</section>;
+function ConversationGroup({ title, items, selectedId, openMenuId, onSelect, onToggleMenu, onArchive, onHide }: { title: string; items: Conversation[]; selectedId: string | null; openMenuId:string|null; onSelect: (id: string) => void; onToggleMenu:(id:string)=>void; onArchive:(item:Conversation,archived:boolean)=>void; onHide:(item:Conversation)=>void }) {
+  return <section className="rk-chat-group"><header><strong>{title}</strong><FiChevronDown /></header>{items.map((item) => <div key={item.id} className={ticketChatStyles.sidebarConversationRow} data-active={selectedId===item.id}>
+    <button type="button" className={ticketChatStyles.sidebarConversationOpen} data-active={selectedId===item.id} onClick={() => onSelect(item.id)}><Avatar name={item.name} url={item.avatar_url} /><span><strong>{isTicketSpaceName(item.name)?<FiBriefcase/>:item.kind !== 'direct' ? '# ' : ''}{item.name}</strong><small>{item.last_message || 'Belum ada pesan'}</small></span>{item.unread_count ? <b>{item.unread_count > 99 ? '99+' : item.unread_count}</b> : <time>{formatTime(item.last_message_at)}</time>}</button>
+    <button type="button" className={ticketChatStyles.sidebarActionsToggle} aria-label={`Aksi ${item.name}`} aria-expanded={openMenuId===item.id} onClick={()=>onToggleMenu(item.id)}><FiMoreVertical/></button>
+    {openMenuId===item.id?<div className={ticketChatStyles.sidebarActionsMenu} role="menu"><button role="menuitem" onClick={()=>onArchive(item,!item.archived)}><FiArchive/>{item.archived?'Keluarkan dari arsip':'Arsipkan chat'}</button><button role="menuitem" data-danger onClick={()=>onHide(item)}><FiTrash2/>Hapus dari daftar</button></div>:null}
+  </div>)}{!items.length ? <p>{title==='Ruang'?'Belum ada ruang di tampilan ini.':'Belum ada percakapan.'}</p> : null}</section>;
 }
 function ChatLanding({ backendPending, onCreate }: { backendPending: boolean; onCreate: () => void }) {
   return <div className="rk-chat-landing"><span><FiMessageCircle /></span><small>Kawan Chat</small><h1>Koordinasi kerja tetap di Ruang Kawan.</h1><p>{backendPending ? 'Tampilan Kawan Chat sudah siap. Endpoint realtime dan penyimpanan pesan masih perlu dihubungkan sebelum percakapan dapat digunakan.' : 'Pilih percakapan di samping atau mulai percakapan baru bersama tim.'}</p><button onClick={onCreate} disabled={backendPending}><FiPlus /> Percakapan baru</button>{backendPending ? <em>Backend chat belum terpasang · lihat catatan integrasi</em> : null}</div>;
