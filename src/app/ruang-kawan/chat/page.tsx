@@ -240,6 +240,7 @@ export default function KawanChatPage() {
 
   useEffect(() => { void loadWorkspace(); }, []);
   useEffect(() => { if (!requestedThread.current || requestedThreadOpened.current || !selectedId || detail?.conversation.id !== selectedId) return; requestedThreadOpened.current = true; void loadThread(requestedThread.current); }, [selectedId, detail]);
+   useEffect(()=>{let active=true;if(!detail||!isTicketSpaceName(detail.conversation.name)){setLinkedTicketParent(null);return;}void createClient().rpc('ticket_discussion_parent',{target_conversation_id:detail.conversation.id}).then(result=>{if(active)setLinkedTicketParent(result.error?null:(result.data as {conversation_id:string;message_id:string}|null));});return()=>{active=false}},[detail?.conversation.id]);
   useEffect(() => { if (selectedId) void loadConversation(selectedId); else setDetail(null);const refresh=()=>{if(selectedId&&document.visibilityState==='visible')void loadConversation(selectedId,false);};const timer=setInterval(refresh,60000);window.addEventListener('focus',refresh);return()=>{++conversationRequest.current;clearInterval(timer);window.removeEventListener('focus',refresh);}; }, [selectedId]);
   useEffect(() => {
     if (!selectedId) return;
@@ -295,6 +296,7 @@ export default function KawanChatPage() {
     const result = await createClient().rpc('send_chat_message', { target_conversation_id: selectedId, message_body: body, reply_to_message_id: null, attachment_ids: pendingAttachments.map((item) => item.id), mention_membership_ids: activeMentions });
     setSending(false);
     if (result.error) { setError('Pesan belum berhasil dikirim.'); return; }
+    if(detail&&isTicketSpaceName(detail.conversation.name)){const mirrored=await createClient().rpc('mirror_ticket_discussion_message',{target_message_id:result.data as string});if(mirrored.error)setNotice('Pesan terkirim di ruang PIC; sinkronisasi ke Commercial sedang tertunda.')}
     setMessage(''); setPendingAttachments([]); setMentionIds([]); setMentionTerm(null); void channelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { membershipId: workspace.me?.id, typing: false } }); await loadConversation(selectedId); await loadWorkspace();
   }
 
