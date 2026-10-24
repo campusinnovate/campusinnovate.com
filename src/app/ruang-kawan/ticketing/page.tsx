@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { FiArrowLeft, FiBriefcase, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiDollarSign, FiEdit3, FiExternalLink, FiFilter, FiGrid, FiLink, FiList, FiMessageCircle, FiPaperclip, FiPlus, FiRefreshCw, FiSearch, FiSend, FiTag, FiTrash2, FiUsers, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiBriefcase, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiDollarSign, FiEdit3, FiExternalLink, FiFilter, FiGrid, FiLink, FiList, FiMessageCircle, FiPaperclip, FiPlus, FiRefreshCw, FiSearch, FiSend, FiTag, FiTrash2, FiUploadCloud, FiUsers, FiX } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 import { supabaseUrl } from '@/lib/supabase/config';
 import styles from './ticketing.module.css';
