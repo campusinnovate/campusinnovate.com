@@ -4,11 +4,12 @@ alter table public.commercial_ticket_records
   add column if not exists client_type text not null default 'new_client',
   add column if not exists discussion_conversation_id uuid references public.chat_conversations(id) on delete set null;
 
+-- Drop the legacy allowed values before translating them to the new RRU enum.
+alter table public.commercial_ticket_records drop constraint if exists commercial_ticket_records_rru_status_check;
 update public.commercial_ticket_records
 set client_type = case when rru_status = 'repeat_order' then 'repeat_order' else 'new_client' end,
     rru_status = case when rru_status in ('first_time','repeat_order') then 'ready' else rru_status end;
 
-alter table public.commercial_ticket_records drop constraint if exists commercial_ticket_records_rru_status_check;
 alter table public.commercial_ticket_records add constraint commercial_ticket_records_rru_status_check
   check (rru_status in ('ready','response','unreachable'));
 alter table public.commercial_ticket_records drop constraint if exists commercial_ticket_records_client_type_check;
