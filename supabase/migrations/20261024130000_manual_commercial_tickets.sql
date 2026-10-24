@@ -105,8 +105,8 @@ begin
  if jsonb_array_length(coalesce(payload->'pics','[]'::jsonb))=0 then body:=body||E'\n'||'Belum ditentukan'; end if;
  message_uuid:=public.send_chat_message(room,body,null,'{}'::uuid[],mentions);
  update public.commercial_ticket_records set chat_message_id=message_uuid where id=ticket_uuid;
- insert into public.chat_relations(conversation_id,relation_type,relation_id,title,url,metadata,created_by_membership_id)
- values(room,'pipeline',coalesce(lead_uuid,ticket_uuid),ticket_code_value,'/ruang-kawan/tickets/?ticket='||ticket_uuid,jsonb_build_object('ticket_id',ticket_uuid,'ticket_code',ticket_code_value),actor);
+ insert into public.chat_relations(conversation_id,message_id,relation_type,relation_id,title,url,metadata,created_by_membership_id)
+ values(room,message_uuid,'pipeline',coalesce(lead_uuid,ticket_uuid),ticket_code_value,'/ruang-kawan/tickets/?ticket='||ticket_uuid,jsonb_build_object('ticket_id',ticket_uuid,'ticket_code',ticket_code_value),actor);
  return jsonb_build_object('ticket_id',ticket_uuid,'ticket_code',ticket_code_value,'conversation_id',room,'message_id',message_uuid);
 end $$;
 
