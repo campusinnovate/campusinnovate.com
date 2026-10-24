@@ -299,6 +299,13 @@ export default function KawanChatPage() {
     const matchesMode = listMode === 'archived' ? Boolean(item.archived) : listMode === 'all' ? !item.archived : listMode === 'unread' ? !item.archived && item.unread_count > 0 : listMode === 'mentions' ? !item.archived && Boolean(item.mention_count) : !item.archived && Boolean(item.starred);
     return matchesMode && (!term || item.name.toLowerCase().includes(term) || item.last_message?.toLowerCase().includes(term));
   }), [workspace.conversations, query, listMode]);
+  const filterCounts = useMemo(() => ({
+    all: workspace.conversations.filter(item => !item.archived).length,
+    unread: workspace.unread_total,
+    mentions: workspace.mentions_total ?? workspace.conversations.reduce((total, item) => total + (item.archived ? 0 : item.mention_count ?? 0), 0),
+    starred: workspace.conversations.filter(item => !item.archived && item.starred).length,
+    archived: workspace.conversations.filter(item => item.archived).length,
+  }), [workspace.conversations, workspace.unread_total, workspace.mentions_total]);
   conversations.sort((a,b)=>Number(Boolean(b.starred))-Number(Boolean(a.starred))||new Date(b.last_message_at??0).getTime()-new Date(a.last_message_at??0).getTime());
 
   async function send(event: FormEvent) {
@@ -439,7 +446,13 @@ export default function KawanChatPage() {
         <header><div><FiMessageCircle /><span><small>Ruang Kawan</small><strong>Kawan Chat</strong></span></div><button onClick={() => setSidebarOpen(false)} aria-label="Tutup daftar percakapan"><FiX /></button></header>
         <button className="rk-chat-new" onClick={() => setCreateOpen(true)} disabled={backendPending}><FiPlus /> Percakapan baru</button>
         <label className="rk-chat-search"><FiSearch /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari percakapan" /></label>
-        <div className={ticketChatStyles.filterBar}><span className={ticketChatStyles.unreadTotal}>{workspace.unread_total}</span><nav className="rk-chat-shortcuts"><button data-active={listMode === 'all'} onClick={() => setListMode('all')}><FiMessageCircle/><span>Semua</span></button><button data-active={listMode === 'unread'} onClick={() => setListMode((value) => value === 'unread' ? 'all' : 'unread')}><FiBell /><span>Belum dibaca</span></button><button data-active={listMode === 'mentions'} onClick={() => setListMode((value) => value === 'mentions' ? 'all' : 'mentions')}><FiAtSign /><span>Mention</span></button><button data-active={listMode === 'starred'} onClick={() => setListMode((value) => value === 'starred' ? 'all' : 'starred')}><FiStar /><span>Berbintang</span></button><button data-active={listMode === 'archived'} onClick={() => setListMode((value) => value === 'archived' ? 'all' : 'archived')}><FiArchive/><span>Arsip</span></button></nav></div>
+        <div className={ticketChatStyles.filterBar}><nav className="rk-chat-shortcuts">
+          <button data-active={listMode === 'all'} onClick={() => setListMode('all')}><FiMessageCircle/><span>Semua</span>{filterCounts.all > 0 ? <b className={ticketChatStyles.filterCount}>{filterCounts.all > 99 ? '99+' : filterCounts.all}</b> : null}</button>
+          <button data-active={listMode === 'unread'} onClick={() => setListMode((value) => value === 'unread' ? 'all' : 'unread')}><FiBell/><span>Belum dibaca</span>{filterCounts.unread > 0 ? <b className={ticketChatStyles.filterCount}>{filterCounts.unread > 99 ? '99+' : filterCounts.unread}</b> : null}</button>
+          <button data-active={listMode === 'mentions'} onClick={() => setListMode((value) => value === 'mentions' ? 'all' : 'mentions')}><FiAtSign/><span>Mention</span>{filterCounts.mentions > 0 ? <b className={ticketChatStyles.filterCount}>{filterCounts.mentions > 99 ? '99+' : filterCounts.mentions}</b> : null}</button>
+          <button data-active={listMode === 'starred'} onClick={() => setListMode((value) => value === 'starred' ? 'all' : 'starred')}><FiStar/><span>Berbintang</span>{filterCounts.starred > 0 ? <b className={ticketChatStyles.filterCount}>{filterCounts.starred > 99 ? '99+' : filterCounts.starred}</b> : null}</button>
+          <button data-active={listMode === 'archived'} onClick={() => setListMode((value) => value === 'archived' ? 'all' : 'archived')}><FiArchive/><span>Arsip</span>{filterCounts.archived > 0 ? <b className={ticketChatStyles.filterCount}>{filterCounts.archived > 99 ? '99+' : filterCounts.archived}</b> : null}</button>
+        </nav></div>
         {ceoAssistantAvailable ? <section className="rk-chat-group"><header><strong>Asisten</strong><FiZap /></header><button type="button" className="rk-chat-ceo-link" data-active={ceoOpen} onClick={() => { setCeoOpen(true); if (window.innerWidth <= 900) setSidebarOpen(false); }}><FiZap /><span><strong>Kawan AI — Asisten CEO</strong><small>Prioritas, deadline, approval</small></span></button></section> : null}
         <ConversationGroup title="Percakapan" items={conversations} selectedId={selectedId} openMenuId={sidebarActionId} onSelect={selectConversation} onToggleMenu={id=>setSidebarActionId(current=>current===id?null:id)} onArchive={setConversationArchive} onHide={hideConversation} onPin={toggleConversationPin} />
       </aside>
