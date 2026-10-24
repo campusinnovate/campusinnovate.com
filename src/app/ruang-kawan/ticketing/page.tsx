@@ -11,7 +11,8 @@ type Workspace={tickets:Ticket[];members:Array<{id:string;name:string;position:s
 const phases:Record<Ticket['phase'],string>={commercial:'Commercial',proposal_deal:'Proposal & Deal',handover:'Handover',delivery:'Delivery',report_close:'Report & Close'};
 const statusLabels:Record<string,string>={open:'Open',in_progress:'Berjalan',waiting_client:'Menunggu client',blocked:'Terhambat',handover:'Handover',closed_won:'Won',closed_lost:'Lost'};
 const nextPhase:Partial<Record<Ticket['phase'],Ticket['phase']>>={commercial:'proposal_deal',proposal_deal:'handover',handover:'delivery',delivery:'report_close'};
-const isWon=(ticket:Ticket)=>['Won','Closed Won','Deal','Paid/Booked'].includes(ticket.stage);\nconst explicitValue=(ticket:Ticket,key:'proposal_value'|'won_value')=>{const input=ticket.extra_data?.[key];if(input===undefined||input===null||input==='')return null;const value=Number(input);return Number.isFinite(value)&&value>=0?value:null;};
+const isWon=(ticket:Ticket)=>['Won','Closed Won','Deal','Paid/Booked'].includes(ticket.stage);
+const explicitValue=(ticket:Ticket,key:'proposal_value'|'won_value')=>{const input=ticket.extra_data?.[key];if(input===undefined||input===null||input==='')return null;const value=Number(input);return Number.isFinite(value)&&value>=0?value:null;};
 const formatMoney=(value:number|null)=>value===null?'Belum dicatat':new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0,notation:value>=1_000_000_000?'compact':'standard'}).format(value);
 const formatDate=(value:string)=>new Date(`${value}T12:00:00+07:00`).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Jakarta'});
 
