@@ -165,7 +165,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path=public
-as $
+as $sync_ticket_room_name$
 begin
   if new.discussion_conversation_id is not null then
     update public.chat_conversations
@@ -174,7 +174,7 @@ begin
   end if;
   return new;
 end;
-$;
+$sync_ticket_room_name$;
 
 drop trigger if exists commercial_ticket_discussion_name_sync on public.commercial_ticket_records;
 create trigger commercial_ticket_discussion_name_sync
