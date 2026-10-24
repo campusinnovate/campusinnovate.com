@@ -197,7 +197,7 @@ begin
   if ticket.discussion_message_id is not null then
     select body into previous_discussion_body from public.chat_messages where id=ticket.discussion_message_id;
     docs_position := coalesce(nullif(strpos(previous_discussion_body,'📎 DOKUMEN PENDUKUNG'),0),0);
-    if docs_position>0 then docs_suffix := E'\\n\\n'||substring(previous_discussion_body from docs_position); end if;
+    if docs_position>0 then docs_suffix := E'\n\\n'||substring(previous_discussion_body from docs_position); end if;
     update public.chat_messages
       set body=replace(new_body,'Balas pada thread pengumuman ini untuk memulai chat teknis bersama PIC.','Percakapan teknis dan handover berlangsung di ruang ini.')||coalesce(docs_suffix,''),
           edited_at=now(),updated_at=now()
@@ -292,7 +292,7 @@ begin
 
     if project_message.id is not null then
       update public.chat_messages
-        set body=concat_ws(E'\\n\\n',nullif(body,''),'📎 DOKUMEN PENDUKUNG'||E'\\n'||link_lines),
+        set body=concat_ws(E'\n\\n',nullif(body,''),'📎 DOKUMEN PENDUKUNG'||E'\n'||link_lines),
             updated_at=now()
         where id=project_message.id;
     end if;
