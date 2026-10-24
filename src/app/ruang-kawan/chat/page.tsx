@@ -111,6 +111,8 @@ export default function KawanChatPage() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestedConversation = useRef<string | null>(null);
+  const requestedThread = useRef<string | null>(null);
+  const requestedThreadOpened = useRef(false);
   const hasMeeting = meetings.some(item => meetingActive(item, clockNow));
 
   useEffect(() => {
@@ -189,6 +191,7 @@ export default function KawanChatPage() {
     setBackendPending(false);
     setStatus('ready');
     if (!requestedConversation.current) requestedConversation.current = new URLSearchParams(window.location.search).get('conversation');
+    if (!requestedThread.current) requestedThread.current = new URLSearchParams(window.location.search).get('thread');
     if (!selectedId) {
       const initialConversationId = requestedConversation.current ?? payload.conversations[0]?.id ?? null;
       setSelectedId(initialConversationId);
@@ -229,6 +232,7 @@ export default function KawanChatPage() {
   function selectConversation(id:string){setCeoOpen(false);setSelectedId(id);if(window.innerWidth<=900)setSidebarOpen(false);}
 
   useEffect(() => { void loadWorkspace(); }, []);
+  useEffect(() => { if (!requestedThread.current || requestedThreadOpened.current || !selectedId || detail?.conversation.id !== selectedId) return; requestedThreadOpened.current = true; void loadThread(requestedThread.current); }, [selectedId, detail]);
   useEffect(() => { if (selectedId) void loadConversation(selectedId); else setDetail(null);const refresh=()=>{if(selectedId&&document.visibilityState==='visible')void loadConversation(selectedId,false);};const timer=setInterval(refresh,60000);window.addEventListener('focus',refresh);return()=>{++conversationRequest.current;clearInterval(timer);window.removeEventListener('focus',refresh);}; }, [selectedId]);
   useEffect(() => {
     if (!selectedId) return;
