@@ -573,7 +573,7 @@ function Avatar({ name, url, online }: { name: string; url: string | null; onlin
 const ticketHeadings = [
   ['🏢 CLIENT','Client'],['🤝 HUBUNGAN CLIENT','Hubungan client'],['🧩 LAYANAN','Layanan'],
   ['📋 KEBUTUHAN','Kebutuhan'],['📆 TARGET PROPOSAL','Target proposal'],['🗺️ RENCANA PROJECT','Rencana project'],
-  ['📡 STATUS RRU','Status RRU'],['👤 DITERBITKAN OLEH','Diterbitkan oleh'],['👥 PIC','PIC']
+  ['📡 STATUS RRU','Status RRU'],['👤 DITERBITKAN OLEH','Diterbitkan oleh'],['👥 PIC','PIC'],['📎 DOKUMEN PENDUKUNG','Dokumen pendukung']
 ] as const;
 function isTicketAnnouncement(body:string){return body.includes('TICKET BARU')||body.includes('TICKET DIHAPUS')||body.includes('TIKET BARU')}
 function TicketAnnouncement({body}:{body:string}){
@@ -592,7 +592,7 @@ function TicketAnnouncement({body}:{body:string}){
   finish();
   return <section className={ticketChatStyles.ticketAnnouncement} aria-label="Pengumuman ticket">
     <header><span className={ticketChatStyles.ticketBadge}>PENGUMUMAN TICKET</span><strong>{title.replace(/^🎫\\s*TICKET BARU\\s*·\\s*/,'').replace(/^🗄️\\s*TICKET DIHAPUS\\s*·\\s*/,'')}</strong>{title.includes('DIHAPUS')?<small>DIHAPUS</small>:null}</header>
-    <div className={ticketChatStyles.ticketFields}>{fields.map((field,index)=><article key={field.label} data-wide={field.label==='Kebutuhan'||field.label==='Rencana project'||field.label==='PIC'}><small>{field.label}</small><span>{field.value}</span></article>)}</div>
+    <div className={ticketChatStyles.ticketFields}>{fields.map((field,index)=><article key={field.label} data-wide={field.label==='Kebutuhan'||field.label==='Rencana project'||field.label==='PIC'||field.label==='Dokumen pendukung'}><small>{field.label}</small><span><LinkedText body={field.value}/></span></article>)}</div>
     <footer>Commercial <b>→</b> Proposal & Deal <b>→</b> Handover <b>→</b> Delivery <b>→</b> Report & Close</footer>
   </section>;
 }
@@ -611,7 +611,7 @@ function ChatSearchDialog({ value, results, searching, mentionsOnly, onChange, o
 }
 function ConversationGroup({ title, items, selectedId, openMenuId, onSelect, onToggleMenu, onArchive, onHide, onPin }: { title: string; items: Conversation[]; selectedId: string | null; openMenuId:string|null; onSelect: (id: string) => void; onToggleMenu:(id:string)=>void; onArchive:(item:Conversation,archived:boolean)=>void; onHide:(item:Conversation)=>void; onPin:(item:Conversation)=>void }) {
   return <section className="rk-chat-group"><header><strong>{title}</strong><FiChevronDown /></header>{items.map((item) => <div key={item.id} className={ticketChatStyles.sidebarConversationRow} data-active={selectedId===item.id} data-commercial={isCommercialSpaceName(item.name)}>
-    <button type="button" className={ticketChatStyles.sidebarConversationOpen} data-active={selectedId===item.id} onClick={() => onSelect(item.id)}><Avatar name={item.name} url={item.avatar_url} /><span><strong>{isTicketSpaceName(item.name)?<FiBriefcase/>:item.kind !== 'direct' ? '# ' : ''}{item.name}{item.starred?<FiMapPin className={ticketChatStyles.rowPinned}/>:null}</strong><small>{item.last_message || 'Belum ada pesan'}</small></span>{item.unread_count ? <b>{item.unread_count > 99 ? '99+' : item.unread_count}</b> : <time>{formatTime(item.last_message_at)}</time>}</button>
+    <button type="button" className={ticketChatStyles.sidebarConversationOpen} data-active={selectedId===item.id} onClick={() => onSelect(item.id)}><Avatar name={item.name} url={item.avatar_url} /><span><strong>{isTicketSpaceName(item.name)?<FiBriefcase/>:item.kind !== 'direct' ? '# ' : ''}{item.name}{item.starred?<FiMapPin className={ticketChatStyles.rowPinned}/>:null}</strong><small>{isCommercialSpaceName(item.name)?'Percakapan ticket diperbarui':item.last_message || 'Belum ada pesan'}</small></span>{item.unread_count ? <b>{item.unread_count > 99 ? '99+' : item.unread_count}</b> : <time>{formatTime(item.last_message_at)}</time>}</button>
     <button type="button" className={ticketChatStyles.sidebarActionsToggle} aria-label="Aksi percakapan" aria-expanded={openMenuId===item.id} onClick={()=>onToggleMenu(item.id)}><FiMoreVertical/></button>
     {openMenuId===item.id?<div className={ticketChatStyles.sidebarActionsMenu} role="menu"><button role="menuitem" onClick={()=>onPin(item)}><FiMapPin/>{item.starred?'Lepas sematan':'Sematkan chat'}</button><button role="menuitem" onClick={()=>onArchive(item,!item.archived)}><FiArchive/>{item.archived?'Keluarkan dari arsip':'Arsipkan chat'}</button><button role="menuitem" data-danger onClick={()=>onHide(item)}><FiTrash2/>Hapus dari daftar</button></div>:null}
   </div>)}{!items.length ? <p>Belum ada percakapan.</p> : null}</section>;
