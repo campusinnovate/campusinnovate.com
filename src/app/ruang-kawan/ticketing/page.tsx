@@ -84,7 +84,7 @@ export default function TicketingPage(){
   }
   const lines=links.map(item=>`${item.label||item.url}: ${item.url}`);
   if(attachments.length)lines.push('File terlampir: '+attachments.map(item=>item.name).join(', '));
-  const messageBody=[`Dokumen ticket ${code}`,...lines].join('\\n');
+  const messageBody=[`Dokumen ticket ${code}`,...lines].join('\n');
   const sent=await db.rpc('send_chat_message',{target_conversation_id:conversationId,message_body:messageBody,reply_to_message_id:null,attachment_ids:attachments.map(item=>item.id),mention_membership_ids:[]});
   if(sent.error)throw new Error(sent.error.message);
  }
