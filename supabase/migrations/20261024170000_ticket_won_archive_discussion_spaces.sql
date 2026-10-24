@@ -98,7 +98,10 @@ begin
  if lead_uuid is not null and not exists(select 1 from public.pipeline_leads pl join public.activities a on a.id=pl.activity_id where pl.id=lead_uuid and public.can_access_activity(a.id)) then
   raise exception 'Lead Pipeline tidak dapat diakses.' using errcode='42501';
  end if;
- if coalesce(jsonb_typeof(payload->'pics'),'array')<>'array' or jsonb_array_length(coalesce(payload->'pics','[]'::jsonb))=0 then
+ if jsonb_typeof(payload->'pics') is distinct from 'array' then
+  raise exception 'Daftar PIC ticket tidak valid.';
+ end if;
+ if jsonb_array_length(payload->'pics')=0 then
   raise exception 'Tambahkan minimal satu PIC sebelum menerbitkan ticket.';
  end if;
 
@@ -130,8 +133,10 @@ begin
   insert into public.commercial_ticket_record_pics(ticket_id,membership_id,pic_role)
   values(ticket_uuid,pic_id,pic_role_value) on conflict do nothing;
 
-  insert into public.chat_conversation_members(conversation_id,membership_id,member_role,notification_level,last_read_at)
-  values(discussion,pic_id,'member','all',now()) on conflict(conversation_id,membership_id) do update set left_at=null,joined_at=now(),notification_level='all';
+  if pic_id<>actor then
+   insert into public.chat_conversation_members(conversation_id,membership_id,member_role,notification_level,last_read_at)
+   values(discussion,pic_id,'member','all',now()) on conflict(conversation_id,membership_id) do update set left_at=null,joined_at=now(),notification_level='all';
+  end if;
 
   insert into public.chat_conversation_members(conversation_id,membership_id,member_role,notification_level,last_read_at)
   values(room,pic_id,'member','mentions',now()) on conflict(conversation_id,membership_id) do update set left_at=null,joined_at=now();
@@ -152,7 +157,7 @@ begin
   '🤝 HUBUNGAN CLIENT'||E'\n'||case client_type_value when 'repeat_order' then 'Repeat Order' else 'Client Baru' end||E'\n'||
   '🧩 LAYANAN'||E'\n'||service_value||E'\n'||
   '📋 KEBUTUHAN'||E'\n'||requirements_value||E'\n'||
-  '📆 TARGET PROPOSAL'||E'\n'||to_char(target_date,'DD Mon YYYY')||E'\n'||
+  '📆 TARGET PROPOSAL'||E'\n'||to_char(target_date,'DD/MM/YYYY')||E'\n'||
   '🗺️ RENCANA PROJECT'||E'\n'||plan_value||E'\n'||
   '📡 STATUS RRU'||E'\n'||case rru_value when 'ready' then 'Ready · Siap ditindaklanjuti' when 'response' then 'Response · Prospek sudah merespons' else 'Unreachable · Belum dapat dijangkau' end||E'\n'||
   '👤 DITERBITKAN OLEH'||E'\n'||creator_name||E'\n'||
