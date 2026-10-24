@@ -626,7 +626,24 @@ function TicketAnnouncement({body}:{body:string}){
     <footer>Commercial <b>→</b> Proposal & Deal <b>→</b> Handover <b>→</b> Delivery <b>→</b> Report & Close</footer>
   </section>;
 }
-function escapeMentionName(value: string) { return value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\function MessageExcerpt({ item, online, onProfile, menu, onMenu, onReact }: { item: Message; online: boolean; onProfile: (member: Member) => void; menu: (item: Message) => React.ReactNode; onMenu: (id: string, x: number, y: number) => void; onReact: (id: string, emoji: string) => Promise<void> }) {'); }
+function escapeMentionName(value: string) { return value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
+function mentionIdsForBody(body: string, members: Member[], excludedId?: string) {
+  const normalized = body.toLocaleLowerCase();
+  return members.filter(member => member.id !== excludedId && normalized.includes('@' + member.name.toLocaleLowerCase())).map(member => member.id);
+}
+function MentionText({ body, members }: { body: string; members: Member[] }) {
+  const names = Array.from(new Set(members.map(member => member.name).filter(Boolean))).sort((a, b) => b.length - a.length);
+  if (!names.length) return <LinkedText body={body}/>;
+  const matcher = new RegExp('@(?:' + names.map(escapeMentionName).join('|') + '|all)(?=$|[\\\\s.,!?;:)}\\\\]])', 'gi');
+  const parts: React.ReactNode[] = []; let cursor = 0; let match: RegExpExecArray | null;
+  while ((match = matcher.exec(body))) {
+    if (match.index > cursor) parts.push(<LinkedText key={'text-' + cursor} body={body.slice(cursor, match.index)}/>);
+    parts.push(<span className="rk-chat-mention-highlight" key={'mention-' + match.index}>{match[0]}</span>); cursor = matcher.lastIndex;
+  }
+  if (cursor < body.length) parts.push(<LinkedText key={'text-' + cursor} body={body.slice(cursor)}/>);
+  return <>{parts}</>;
+}
+function MessageExcerpt({ item, online, onProfile, menu, onMenu, onReact }: { item: Message; online: boolean; onProfile: (member: Member) => void; menu: (item: Message) => React.ReactNode; onMenu: (id: string, x: number, y: number) => void; onReact: (id: string, emoji: string) => Promise<void> }) {'); }
 function mentionIdsForBody(body: string, members: Member[], excludedId?: string) {
   const normalized = body.toLocaleLowerCase();
   return members.filter(member => member.id !== excludedId && normalized.includes(`@${member.name.toLocaleLowerCase()}`)).map(member => member.id);
