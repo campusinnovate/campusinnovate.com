@@ -481,11 +481,7 @@ export default function KawanChatPage() {
       </section>
 
       <aside className="rk-chat-detail">
-        {false && threadOpen && thread ? <>
-          <header className={ticketChatStyles.threadPanelHead}><div><strong>Balasan percakapan</strong><small>{thread.replies.length} balasan{detail?.conversation.name ? ' · ' + detail.conversation.name : ''}</small></div><button onClick={() => { setThreadOpen(false); setThread(null); }} aria-label="Tutup thread"><FiX /></button></header>
-          <section className="rk-chat-thread"><div className="rk-chat-day"><time>{dayLabel(thread.parent.created_at, clockNow)}</time></div><MessageExcerpt menu={renderMessageMenu} onMenu={showMenu} onReact={react} onProfile={showProfile} item={thread.parent} online={onlineIds.has(thread.parent.sender.id)} members={detail?.members ?? []} />{thread.replies.map((item, index) => <Fragment key={item.id}>{dayKey(item.created_at) !== dayKey((index ? thread.replies[index - 1] : thread.parent).created_at) ? <div className="rk-chat-day"><time>{dayLabel(item.created_at, clockNow)}</time></div> : null}<MessageExcerpt menu={renderMessageMenu} onMenu={showMenu} onReact={react} onProfile={showProfile} item={item} online={onlineIds.has(item.sender.id)} members={detail?.members ?? []} /></Fragment>)}{!thread.replies.length ? <div className="rk-chat-detail-empty"><FiCornerUpLeft /><p>Belum ada balasan. Jadikan percakapan panjang tetap rapi lewat thread.</p></div> : null}</section>
-          <form className="rk-chat-thread-composer" onSubmit={sendThread}>{threadMentionTerm !== null ? <div className="rk-chat-mention-menu">{(detail?.members ?? []).filter(member => member.id !== workspace.me?.id && member.name.toLowerCase().includes(threadMentionTerm)).slice(0, 6).map(member => <button type="button" key={member.id} onClick={() => selectThreadMention(member)}><Avatar name={member.name} url={member.avatar_url} online={onlineIds.has(member.id)} /><span><strong>{member.name}</strong><small>{member.position_name || 'Anggota'}</small></span></button>)}{!(detail?.members ?? []).some(member => member.id !== workspace.me?.id && member.name.toLowerCase().includes(threadMentionTerm)) ? <p>Tidak ada anggota yang cocok.</p> : null}</div> : null}<textarea value={threadMessage} onChange={event => updateThreadMessage(event.target.value)} placeholder="Balas di thread" /><button disabled={!threadMessage.trim() || threadSending}>{threadSending ? <FiLoader /> : <FiSend />} Kirim</button></form>
-        </> : <>
+
           <header><strong>Terkait</strong><button onClick={() => setDetailOpen(false)} aria-label="Tutup detail"><FiX /></button></header>
           <nav className="rk-chat-related-tabs"><button data-active={relatedTab==='active'} onClick={()=>setRelatedTab('active')}>Aktif</button><button data-active={relatedTab==='history'} onClick={()=>setRelatedTab('history')}>Riwayat</button><button data-active={relatedTab==='archive'} onClick={()=>setRelatedTab('archive')}>File & tautan</button></nav>
           {relatedTab==='archive'&&detail?<ChatArchive key={detail.conversation.id} conversationId={detail.conversation.id}/>:null}
@@ -495,7 +491,6 @@ export default function KawanChatPage() {
           {!detail?.related.length ? <div className="rk-chat-detail-empty"><FiLink /><p>Belum ada project, assignment, dokumen, atau meeting yang dihubungkan.</p></div> : null}
           </>:null}
           <section><strong>Anggota</strong><div>{detail?.members.slice(0, 8).map((member) => <button className="rk-chat-member-dot rk-chat-profile-trigger" onClick={() => showProfile(member)} key={member.id}><Avatar name={member.name} url={member.avatar_url} online={onlineIds.has(member.id)} /><small>{member.name}</small></button>)}</div></section>
-        </>}
       </aside>
     </section>
     {selectedRelation?<ChatDialog title={selectedRelation.title} onClose={()=>setSelectedRelation(null)}><p>{selectedRelation.subtitle||'Catatan ini tersimpan sebagai konteks percakapan.'}</p><small>{selectedRelation.type}</small></ChatDialog>:null}
