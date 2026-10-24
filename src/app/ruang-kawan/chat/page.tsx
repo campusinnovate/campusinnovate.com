@@ -651,7 +651,7 @@ function MessageExcerpt({ item, online, members, onProfile, menu, onMenu, onReac
     <button className="rk-chat-profile-trigger" onClick={() => onProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={online} /></button>
     <div><header><button className="rk-chat-sender" onClick={() => onProfile(item.sender)}>{item.sender.name}</button><time>{formatTime(item.created_at)}</time><button aria-label="Aksi pesan" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); onMenu(item.id, rect.left, rect.bottom); }}><FiMoreVertical /></button></header>
       {item.parent_id ? menu(item) : null}
-      {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : isTicketAnnouncement(item.body)?<TicketAnnouncement body={item.body}/>:<p><MentionText body={item.body} members={detail?.members ?? []}/></p>}
+      {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : isTicketAnnouncement(item.body) ? <TicketAnnouncement body={item.body}/> : <p><MentionText body={item.body} members={members}/></p>}
       {!item.deleted_at ? <>{item.attachments?.map(file => <AttachmentPreview file={file} key={file.id} />)}<footer>{item.reactions?.map(reaction => <button key={reaction.emoji} data-active={reaction.reacted_by_me} onClick={() => void onReact(item.id, reaction.emoji)}>{reaction.emoji} {reaction.count}</button>)}</footer></> : null}
     </div>
   </article>;
