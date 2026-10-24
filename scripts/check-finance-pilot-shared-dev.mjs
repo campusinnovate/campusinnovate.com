@@ -1,0 +1,73 @@
+// Isolation regression, using actual SQL/RLS and synthetic production sentinels in PGlite.
+import {PGlite} from '@electric-sql/pglite';
+import {readFile,writeFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const read=p=>readFile(new URL('../'+p,import.meta.url),'utf8');
+process.on('uncaughtException',e=>{console.error(e.message+' @ '+e.position+' '+(e.query||'').slice(Math.max(Number(e.position)-150,0),Number(e.position)+150));process.exit(1);});
+const db=new PGlite(),checks=[];
+const uid=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
+await db.exec(`create schema auth;create schema storage;create schema extensions;create role anon;create role authenticated;
+create table auth.users(id uuid primary key);
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+create function extensions.gen_random_uuid() returns uuid language sql as $$select gen_random_uuid()$$;
+create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text);
+alter table storage.objects enable row level security;
+create function storage.foldername(text) returns text[] language sql immutable as $$select string_to_array($1,'/')$$;
+grant usage on schema public,auth,storage to anon,authenticated;
+grant select,insert,update,delete on storage.objects to authenticated;
+-- Deliberately broad production-like policies: DEV restrictive guards must still isolate its bucket.
+create policy old_storage_select on storage.objects for select to authenticated using(true);
+create policy old_storage_insert on storage.objects for insert to authenticated with check(bucket_id='office-documents');
+create policy old_storage_update on storage.objects for update to authenticated using(true) with check(true);
+create policy old_storage_delete on storage.objects for delete to authenticated using(true);`);
+const schema=JSON.parse(await read('scripts/finance-pilot-schema-fixture.json'));
+for(const t of schema){const cols=t.columns.map(c=>`"${c.name}" ${c.data_type==='USER-DEFINED'?'text':c.data_type==='ARRAY'?'text[]':c.data_type}${c.options.includes('identity')?' generated always as identity':c.default_value?' default '+c.default_value:''}${c.options.includes('nullable')?'':' not null'}${c.options.includes('unique')?' unique':''}`);await db.exec(`create table ${t.name}(${cols.join(',')}${t.primary_keys.length?',primary key('+t.primary_keys.join(',')+')':''});`);}
+await db.exec("create function public.current_membership_id() returns uuid language sql stable security definer set search_path=public as $$select id from memberships where user_id=auth.uid() and status='active' limit 1$$;");
+await db.exec(await read('scripts/finance-pilot-auth-fixture.sql'));
+for(const [i,key] of ['coo','ceo','cto','business_development_staff','project_lead','growth_marketing_staff','finance_staff','viewer'].entries()){
+ await db.query('insert into auth.users values($1)',[uid(i+1)]);
+ await db.query('insert into positions(id,key,name) values($1,$2,$2)',[uid(i+1),key]);
+ await db.query("insert into memberships(id,user_id,email,position_id,engagement_type,status) values($1,$1,$2,$1,'employee','active')",[uid(i+1),'real-session-fixture-'+key+'@test.invalid']);
+}
+for(const [i,key] of ['finance_manager','executive','system_admin'].entries())await db.query('insert into roles(id,key,name) values($1,$2,$2)',[uid(i+50),key]);
+for(const a of JSON.parse(await read('scripts/finance-pilot-coa-fixture.json')))await db.query('insert into finance_coa(code,name,account_class,cash_flow_category,control_position,default_flow) values($1,$2,$3,$4,$5,$6)',[a.code,a.name,a.account_class,a.cash_flow_category,a.control_position,'Non-Kas']);
+await db.exec(await read('supabase/migrations/20260930110000_finance_pilot_accounting_core.sql'));
+await db.query("insert into finance_documents(document_type,document_number,document_date,client,status,total,created_by_membership_id,updated_by_membership_id) values('invoice','PROD-SENTINEL','2026-10-01','Synthetic production sentinel','Unpaid',17,$1,$1)",[uid(1)]);
+await db.exec("insert into storage.buckets(id,name,public) values('office-documents','office-documents',false);insert into storage.objects(bucket_id,name) values('office-documents','prod-sentinel.pdf')");
+const fingerprint=async()=>{await db.exec('reset role');const tables=[];for(const {tablename} of (await db.query("select tablename from pg_tables where schemaname='public' order by tablename")).rows){const row=(await db.query(`select md5(coalesce(string_agg(to_jsonb(t)::text,',' order by to_jsonb(t)::text),'')) as hash from public.${tablename} t`)).rows[0];tables.push([tablename,row.hash]);}return {tables,functions:(await db.query("select md5(string_agg(pg_get_functiondef(p.oid),chr(10) order by p.proname,p.oid)) as hash from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname not like 'finance_pilot_dev_%'")).rows[0].hash};};
+const before=await fingerprint();
+const install=await read('supabase/dev/finance-pilot/install.sql');await db.exec(install);
+assert.deepEqual(await fingerprint(),before);checks.push('Installer preserves every synthetic production table row and existing public function definition');
+assert.equal((await db.query("select count(*)::int n from pg_tables where schemaname='finance_pilot_dev' and not rowsecurity")).rows[0].n,0);checks.push('All DEV tables have RLS enabled; DEV namespace not exposed in Data API settings');
+assert.equal((await db.query("select count(*)::int n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'finance_pilot_dev_%'")).rows[0].n,18);checks.push('Only 18 distinctly prefixed public DEV endpoints added');
+const as=async n=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[n?uid(n):'']);await db.exec('set role '+(n?'authenticated':'anon'));};
+const row=async(q,args=[])=> (await db.query(q,args)).rows[0];
+const deny=async(label,fn)=>{try {await assert.rejects(fn);}catch(e){throw new Error(label+': '+e.message);}checks.push(label);};
+await as(null);await deny('Anon cannot bind/read DEV',()=>row('select public.finance_pilot_dev_bind()'));
+await as(3);await deny('Non-allowlisted CTO cannot bind DEV',()=>row('select public.finance_pilot_dev_bind()'));
+await deny('Broad old Storage policies cannot expose DEV evidence to outsider',()=>db.query("insert into storage.objects(bucket_id,name) values('finance-pilot-dev-evidence',$1)",[uid(3)+'/peer.pdf']));
+await as(1);const coo=(await row('select public.finance_pilot_dev_bind() as id')).id;assert.notEqual(coo,uid(1));assert.equal((await row('select public.current_membership_id() as id')).id,uid(1));checks.push('COO binds to separate DEV membership without changing real production membership');
+assert.equal((await row('select public.finance_pilot_dev_access() as data')).data.manage,true);
+await deny('Client cannot directly write DEV table',()=>db.exec("insert into finance_pilot_dev.finance_coa(code,name,account_class) values('BAD','BAD','Aset')"));
+const evidence=uid(1)+'/test.pdf';await db.query("insert into storage.objects(bucket_id,name) values('finance-pilot-dev-evidence',$1)",[evidence]);
+await deny('DEV evidence cannot overwrite even with broad old UPDATE policy',()=>db.query("update storage.objects set name='changed' where bucket_id='finance-pilot-dev-evidence' returning id").then(r=>assert.equal(r.rows.length,1)));
+await as(2);await row('select public.finance_pilot_dev_bind()');assert.equal((await row('select public.finance_pilot_dev_access() as data')).data.approve,true);await deny('CEO cannot operate DEV despite real logged-in session',()=>row('select public.finance_pilot_dev_save_request($1,$2,$3)',[crypto.randomUUID(),'journal',{}]));
+await db.exec('reset role');for(const [code,cl] of [['FP-CASH','Aset'],['FP-AP','Kewajiban'],['FP-ADV','Kewajiban'],['FP-TAX','Kewajiban'],['FP-RE','Ekuitas'],['FP-DIST','Kewajiban']])await db.query("insert into finance_pilot_dev.finance_coa(code,name,account_class,cash_flow_category,default_flow) values($1,$1,$2,'Operasional','Non-Kas')",[code,cl]);
+const policy={approval_threshold:1000000,fiscal_start:1,accounts:{cash:'FP-CASH',receivable:'2000',payable:'FP-AP',advance:'FP-ADV',tax_payable:'FP-TAX',retained_earnings:'FP-RE',distribution_payable:'FP-DIST',fixed_asset:'7000',related_receivable:'2001'},reason:'Isolated namespace UAT'};
+const req=async(kind,p)=> (await row('select public.finance_pilot_dev_save_request($1,$2,$3) as id',[crypto.randomUUID(),kind,p])).id;
+await as(1);const pid=await req('policy',policy);await row('select public.finance_pilot_dev_submit($1)',[pid]);await as(2);await row("select public.finance_pilot_dev_review($1,'approve','DEV UAT')",[pid]);await as(1);await row('select public.finance_pilot_dev_execute($1)',[pid]);
+const iid=await req('invoice',{date:'2026-10-01',due_date:'2026-10-07',client:'DEV CLIENT',service_line_key:'event_management',item_description:'Synthetic milestone',quantity:1,unit_price:1000000,discount:0,tax:0,management_fee:0,other_fees:0,installment_scheme:'full',percentages:[100],milestone_evidence:'Synthetic delivery',evidence_path:evidence});
+assert.equal((await row('select public.finance_pilot_dev_submit($1) as state',[iid])).state,'submitted');await as(2);await row("select public.finance_pilot_dev_review($1,'approve','DEV invoice')",[iid]);await as(1);const inv=(await row('select public.finance_pilot_dev_execute($1) as id',[iid])).id;
+const receipt=await req('receipt',{date:'2026-10-02',invoice_id:inv,amount:400000,deposit_coa_code:'FP-CASH',reference:'DEV-PAY',evidence_path:evidence});await row('select public.finance_pilot_dev_submit($1)',[receipt]);
+const snapshot=(await row("select public.finance_pilot_dev_snapshot('MTD','2026-10-07') as data")).data;assert.equal(Number(snapshot.totals.revenue),1000000);assert.equal(Number(snapshot.cash.book_cash),400000);assert.equal(Number(snapshot.totals.outstanding),600000);assert.equal(Number(snapshot.quality.ledger_difference),0);assert.match(snapshot.invoices[0].invoice_number,/^DEV-INV-/);checks.push('Public DEV RPCs reconcile invoice 1,000,000/receipt 400,000/AR 600,000, with DEV document prefix');
+assert.deepEqual(await fingerprint(),before);checks.push('DEV posting, approvals and evidence preserve all synthetic production rows/RPCs');
+await db.exec("update public.memberships set status='inactive' where user_id='"+uid(1)+"'");await as(1);await deny('Production membership deactivation immediately blocks DEV',()=>row('select public.finance_pilot_dev_snapshot()'));await db.exec('reset role');await db.query("update public.memberships set status='active' where user_id=$1",[uid(1)]);
+// Fail-safe collision behavior: no destructive reset or overwrite on a second install.
+await assert.rejects(()=>db.exec(install),/Shared DEV already exists/);await db.exec('rollback');checks.push('Repeated install refuses namespace/RPC/bucket collision without overwrite');
+const disable=await read('supabase/dev/finance-pilot/disable.sql');await db.exec(disable);await as(1);await deny('Disable revokes DEV RPC access',()=>row('select public.finance_pilot_dev_snapshot()'));
+assert.equal((await db.query("select name from storage.objects where bucket_id='finance-pilot-dev-evidence'")).rows.length,0);checks.push('Disable blocks DEV Storage without deleting evidence');
+assert.equal((await db.query("select name from storage.objects where bucket_id='office-documents'")).rows.length,1);checks.push('Existing office Storage remains accessible after DEV disable');
+await db.exec('reset role');assert.deepEqual(await fingerprint(),before);checks.push('Recovery disable leaves production fingerprints unchanged');
+await db.close();
+const result={status:'passed',isolated:true,hostedApplied:false,checks};await writeFile(new URL('../docs/finance-pilot-shared-dev-test-results.json',import.meta.url),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result,null,2));
