@@ -328,7 +328,11 @@ export default function KawanChatPage() {
     const mentions=(detail?.members??[]).filter(member=>member.id!==workspace.me?.id&&body.includes(`@${member.name}`)).map(member=>member.id);
     setThreadSending(true); const result = await createClient().rpc('send_chat_message', { target_conversation_id: selectedId, message_body: body, reply_to_message_id: thread.parent.id, attachment_ids: [], mention_membership_ids: mentions }); setThreadSending(false);
     if (result.error) { setError('Balasan belum berhasil dikirim.'); return; }
-    setThreadMessage(''); await loadThread(thread.parent.id); await loadConversation(selectedId);
+    setThreadMessage('');
+    const branch=await createClient().rpc('ensure_ticket_discussion_for_thread_reply',{target_reply_id:result.data as string});
+    if(branch.error){setError('Balasan tersimpan, tetapi ruang PIC belum berhasil dibuka. Coba muat ulang thread.');await loadThread(thread.parent.id);return;}
+    if(branch.data){setThreadOpen(false);setThread(null);setSelectedId(branch.data as string);await loadWorkspace();await loadConversation(branch.data as string);setNotice('Balasan tiket tersalin ke ruang diskusi PIC. Riwayat handover tetap tersimpan di grup utama.');return;}
+    await loadThread(thread.parent.id); await loadConversation(selectedId);
   }
 
   async function runSearch(event?: FormEvent) {
@@ -420,7 +424,7 @@ export default function KawanChatPage() {
               <button className="rk-chat-profile-trigger" onClick={() => showProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={onlineIds.has(item.sender.id)} /></button>
               <div><header><button className="rk-chat-sender" onClick={() => showProfile(item.sender)}>{item.sender.name}</button><time title={`${dayLabel(item.created_at)} · WIB`}>{formatTime(item.created_at)}</time>{item.edited_at ? <small>diedit</small> : null}<button onClick={event => { if (menuMessageId === item.id) setMenuMessageId(null); else { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); } }} aria-label="Aksi pesan" aria-expanded={menuMessageId === item.id}><FiMoreVertical /></button></header>
                 {renderMessageMenu(item)}
-                {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : <p><LinkedText body={item.body} /></p>}
+                {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : isTicketAnnouncement(item.body)?<TicketAnnouncement body={item.body}/>:<p><LinkedText body={item.body}/></p>}
                 {!item.deleted_at ? item.attachments?.map(file => <AttachmentPreview file={file} key={file.id} />) : null}
                 <footer>{item.reactions?.map((reaction) => <button data-active={reaction.reacted_by_me} onClick={() => void react(item.id, reaction.emoji)} key={reaction.emoji}>{reaction.emoji} {reaction.count}</button>)}<button disabled={Boolean(item.deleted_at)} onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); }} aria-label="Pilih reaksi"><FiSmile /></button><button className="rk-chat-replies" onClick={() => void loadThread(item.id)}><FiMessageCircle /> {item.reply_count ? `${item.reply_count} balasan` : 'Balas'}{threadUnread[item.id]?<b>{threadUnread[item.id]}</b>:null}</button>{item.sender.id === workspace.me?.id ? <small className="rk-chat-delivery">{item.read_count ? `Dibaca ${item.read_count}` : 'Terkirim'}</small> : null}</footer>
               </div>
@@ -556,12 +560,39 @@ function Avatar({ name, url, online }: { name: string; url: string | null; onlin
   const ticketSpace = name.startsWith('Ticket ·');
   return <span className="rk-chat-avatar" data-ticket-space={ticketSpace}>{url ? <img src={url} alt="" /> : ticketSpace ? <i><FiBriefcase/></i> : <i>{initials(name)}</i>}{online ? <b /> : null}</span>;
 }
+
+const ticketHeadings = [
+  ['🏢 CLIENT','Client'],['🤝 HUBUNGAN CLIENT','Hubungan client'],['🧩 LAYANAN','Layanan'],
+  ['📋 KEBUTUHAN','Kebutuhan'],['📆 TARGET PROPOSAL','Target proposal'],['🗺️ RENCANA PROJECT','Rencana project'],
+  ['📡 STATUS RRU','Status RRU'],['👤 DITERBITKAN OLEH','Diterbitkan oleh'],['👥 PIC','PIC']
+] as const;
+function isTicketAnnouncement(body:string){return body.includes('TICKET BARU')||body.includes('TICKET DIHAPUS')}
+function TicketAnnouncement({body}:{body:string}){
+  const lines=body.split(/\r?\n/);const title=lines.find(line=>line.includes('TICKET BARU')||line.includes('TICKET DIHAPUS'))??'Ticket';
+  const fields:Array<{label:string;value:string}>=[];
+  let current:string|null=null, values:string[]=[];
+  const finish=()=>{if(current&&values.length)fields.push({label:current,value:values.join('\n').trim()});};
+  let skipping=false;
+  for(const line of lines){
+    const heading=ticketHeadings.find(([prefix])=>line.trim().startsWith(prefix));
+    if(line.includes('DISKUSI TEKNIS & HANDOVER')||line.startsWith('🧭 PROGRES')){finish();current=null;values=[];skipping=true;continue}
+    if(heading){finish();current=heading[1];values=[];skipping=false;continue}
+    if(skipping||line.startsWith('🎫')||line.startsWith('━')||!line.trim())continue
+    if(current)values.push(line.trim());
+  }
+  finish();
+  return <section className={ticketChatStyles.ticketAnnouncement} aria-label="Pengumuman ticket">
+    <header><span className={ticketChatStyles.ticketBadge}>PENGUMUMAN TICKET</span><strong>{title.replace(/^🎫\\s*TICKET BARU\\s*·\\s*/,'').replace(/^🗄️\\s*TICKET DIHAPUS\\s*·\\s*/,'')}</strong>{title.includes('DIHAPUS')?<small>DIHAPUS</small>:null}</header>
+    <div className={ticketChatStyles.ticketFields}>{fields.map((field,index)=><article key={field.label} data-wide={field.label==='Kebutuhan'||field.label==='Rencana project'||field.label==='PIC'}><small>{field.label}</small><span>{field.value}</span></article>)}</div>
+    <footer>Commercial <b>→</b> Proposal & Deal <b>→</b> Handover <b>→</b> Delivery <b>→</b> Report & Close</footer>
+  </section>;
+}
 function MessageExcerpt({ item, online, onProfile, menu, onMenu, onReact }: { item: Message; online: boolean; onProfile: (member: Member) => void; menu: (item: Message) => React.ReactNode; onMenu: (id: string, x: number, y: number) => void; onReact: (id: string, emoji: string) => Promise<void> }) {
   return <article className="rk-chat-thread-message" onContextMenu={event => { event.preventDefault(); onMenu(item.id, event.clientX, event.clientY); }}>
     <button className="rk-chat-profile-trigger" onClick={() => onProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={online} /></button>
     <div><header><button className="rk-chat-sender" onClick={() => onProfile(item.sender)}>{item.sender.name}</button><time>{formatTime(item.created_at)}</time><button aria-label="Aksi pesan" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); onMenu(item.id, rect.left, rect.bottom); }}><FiMoreVertical /></button></header>
       {item.parent_id ? menu(item) : null}
-      <p>{item.deleted_at ? <em>Pesan telah dihapus.</em> : <LinkedText body={item.body} />}</p>
+      {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : isTicketAnnouncement(item.body)?<TicketAnnouncement body={item.body}/>:<p><LinkedText body={item.body}/></p>}
       {!item.deleted_at ? <>{item.attachments?.map(file => <AttachmentPreview file={file} key={file.id} />)}<footer>{item.reactions?.map(reaction => <button key={reaction.emoji} data-active={reaction.reacted_by_me} onClick={() => void onReact(item.id, reaction.emoji)}>{reaction.emoji} {reaction.count}</button>)}</footer></> : null}
     </div>
   </article>;

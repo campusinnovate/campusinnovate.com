@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { FiArrowLeft, FiBriefcase, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiDollarSign, FiExternalLink, FiFilter, FiGrid, FiList, FiMessageCircle, FiPlus, FiRefreshCw, FiSearch, FiSend, FiTag, FiUsers, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiBriefcase, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiDollarSign, FiEdit3, FiExternalLink, FiFilter, FiGrid, FiList, FiMessageCircle, FiPlus, FiRefreshCw, FiSearch, FiSend, FiTag, FiTrash2, FiUsers, FiX } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 import styles from './ticketing.module.css';
 
@@ -47,7 +47,7 @@ export default function TicketingPage(){
  const [error,setError]=useState(''),[notice,setNotice]=useState(''),[query,setQuery]=useState('');
  const [period,setPeriod]=useState<Period>('all'),[periodMonth,setPeriodMonth]=useState(todayKey().slice(0,7)),[periodYear,setPeriodYear]=useState(todayKey().slice(0,4)),[periodQuarter,setPeriodQuarter]=useState('1');
  const [view,setView]=useState<'tickets'|'won'>('tickets'),[layout,setLayout]=useState<'card'|'list'>('card');
- const [showForm,setShowForm]=useState(false),[form,setForm]=useState<Form>(emptyForm()),[pics,setPics]=useState<Pic[]>([]);
+ const [showForm,setShowForm]=useState(false),[form,setForm]=useState<Form>(emptyForm()),[pics,setPics]=useState<Pic[]>([]),[editingTicket,setEditingTicket]=useState<Ticket|null>(null);
  const [picMember,setPicMember]=useState(''),[picRole,setPicRole]=useState<PicRole>('account_manager');
  async function load(){
   setError('');const db=createClient();const {data:{session}}=await db.auth.getSession();
@@ -71,15 +71,21 @@ export default function TicketingPage(){
  const periodText=period==='all'?'Semua waktu':period==='month'?new Date(`${periodMonth}-01T00:00:00`).toLocaleDateString('id-ID',{month:'long',year:'numeric'}):period==='quarter'?`Kuartal ${periodQuarter} · ${periodYear}`:periodYear;
  function addPic(){if(!picMember||pics.some(pic=>pic.membership_id===picMember&&pic.role===picRole))return;setPics(items=>[...items,{membership_id:picMember,role:picRole}]);setPicMember('')}
  async function createTicket(event:FormEvent){
-  event.preventDefault();if(!pics.length){setError('Tambahkan minimal satu PIC agar ikut ditag dan masuk ke ruang diskusi tiket.');return}
+  event.preventDefault();if(!pics.length){setError('Tambahkan minimal satu PIC agar ikut ditag.');return}
   setSaving(true);setError('');setNotice('');
-  const result=await createClient().rpc('create_commercial_ticket_record',{payload:{...form,pipeline_lead_id:form.pipeline_lead_id||null,pics}});
+  const payload={...form,pipeline_lead_id:form.pipeline_lead_id||null,pics};
+  const result=editingTicket
+   ? await createClient().rpc('update_commercial_ticket_record',{target_ticket_id:editingTicket.id,payload})
+   : await createClient().rpc('create_commercial_ticket_record',{payload});
   setSaving(false);
   if(result.error){setError(result.error.message);return}
-  const created=result.data as {ticket_code:string};
-  setShowForm(false);setForm(emptyForm());setPics([]);setNotice(`Ticket ${created.ticket_code} diterbitkan; pengumuman sudah masuk ke grup dan ruang diskusinya dibuat untuk PIC.`);
+  const code=editingTicket?.ticket_code??(result.data as {ticket_code:string}).ticket_code;
+  setShowForm(false);setForm(emptyForm());setPics([]);setNotice(editingTicket?`Ticket ${code} diperbarui.`:`Ticket ${code} diterbitkan; pengumuman rapi sudah masuk ke grup.`);setEditingTicket(null);
   await load();
  }
+ function openEdit(ticket:Ticket){setEditingTicket(ticket);setForm({client_name:ticket.client_name,client_type:ticket.client_type,service_name:ticket.service_name,requirements:ticket.requirements,target_proposal_date:ticket.target_proposal_date,project_plan:ticket.project_plan,rru_status:ticket.rru_status,pipeline_lead_id:ticket.pipeline_lead_id??''});setPics(ticket.pics.map(pic=>({membership_id:pic.membership_id,role:pic.role})));setError('');setEditingTicket(null);setForm(emptyForm());setPics([]);setShowForm(true)}
+ async function deleteTicket(ticket:Ticket){if(!window.confirm(`Hapus ${ticket.ticket_code} dari daftar ticket? Riwayat chat dan handover tetap disimpan.`))return;const result=await createClient().rpc('delete_commercial_ticket_record',{target_ticket_id:ticket.id});if(result.error){setError(result.error.message);return}setNotice(`${ticket.ticket_code} dihapus dari daftar ticket. Riwayat chat tetap tersimpan.`);await load()}
+
  if(loading)return <main className={`rk-work-foundation ${styles.ticketPage}`}><section className="rk-access-denied"><p>Menyiapkan ticket...</p></section></main>;
  return <main className={`rk-work-foundation ${styles.ticketPage}`}><section className="rk-work-shell">
   <nav className="rk-work-nav"><Link href="/ruang-kawan/marketing/"><FiArrowLeft/> Marketing</Link><span>Commercial & Handover</span><button onClick={()=>void load()}><FiRefreshCw/> Muat ulang</button></nav>
@@ -111,7 +117,7 @@ export default function TicketingPage(){
     <div className={styles.detailBlock}><small>RENCANA PROJECT</small><p>{ticket.project_plan}</p></div>
     <div className={styles.pics}><small><FiUsers/> PIC TERTAG</small><p>{ticket.pics.length?ticket.pics.map(pic=>`${roleLabels[pic.role]??pic.role}: ${pic.name}`).join(' · '):'Belum ditentukan'}</p></div>
     {ticket.pipeline_lead_id?<div className={styles.valueRow}><span>Penawaran <strong>{money(ticket.proposal_value)}</strong></span><span>Deal <strong>{ticket.is_won?money(ticket.won_value):'Belum Won'}</strong></span></div>:null}
-    <footer className={styles.cardFooter}><span>Dibuat {dateLabel(localDateKey(ticket.created_at))} · {ticket.creator_name}</span><div>{ticket.discussion_conversation_id?<Link href={`/ruang-kawan/chat/?conversation=${ticket.discussion_conversation_id}`}><FiMessageCircle/> Ruang diskusi</Link>:null}{ticket.chat_message_id&&workspace?.conversation_id?<Link href={`/ruang-kawan/chat/?conversation=${workspace.conversation_id}&thread=${ticket.chat_message_id}`}><FiExternalLink/> Pengumuman</Link>:null}</div></footer>
+    <footer className={styles.cardFooter}><span>Dibuat {dateLabel(localDateKey(ticket.created_at))} · {ticket.creator_name}</span><div>{workspace?.can_create?<><button type="button" onClick={()=>openEdit(ticket)}><FiEdit3/> Edit</button><button type="button" data-danger onClick={()=>void deleteTicket(ticket)}><FiTrash2/> Hapus</button></>:null}{ticket.discussion_conversation_id?<span className={styles.discussionReady}><FiMessageCircle/> Diskusi PIC aktif</span>:null}{ticket.chat_message_id&&workspace?.conversation_id?<Link href={`/ruang-kawan/chat/?conversation=${workspace.conversation_id}&thread=${ticket.chat_message_id}`}><FiExternalLink/> Pengumuman</Link>:null}</div></footer>
    </article>)}{!visibleTickets.length?<div className={styles.empty}><span><FiBriefcase/></span><strong>{tickets.length?'Tidak ada ticket yang cocok':'Belum ada ticket diterbitkan'}</strong><p>Lead di Pipeline tidak otomatis menjadi ticket. BD/CEO menerbitkan ticket secara manual dari form ini.</p>{workspace?.can_create?<button onClick={()=>setShowForm(true)}><FiPlus/> Buat ticket</button>:null}</div>:null}</section>:<section className={styles.recordGrid} data-layout={layout}>{visibleWon.map(project=><article className={styles.wonCard} key={project.id}>
     <header className={styles.cardTop}><span className={styles.ticketCode}>{project.lead_code}</span><span className={styles.wonPill}><FiCheckCircle/> WON</span></header>
     <h3>{project.client_name}</h3><p className={styles.service}>{project.service_name||'Service belum dicatat'}</p>
@@ -122,7 +128,7 @@ export default function TicketingPage(){
   </section>
  </section>
  {showForm?<div className={`rk-work-modal ${styles.modal}`} role="dialog" aria-modal="true"><form className={styles.ticketForm} onSubmit={event=>void createTicket(event)}>
-  <header className={styles.formHeader}><div><small>COMMERCIAL & HANDOVER</small><h2>Buat ticket baru</h2><p>Ticket ID otomatis; ringkasan masuk ke grup besar dan ruang diskusi PIC dibuat otomatis.</p></div><button type="button" onClick={()=>setShowForm(false)} aria-label="Tutup"><FiX/></button></header>
+  <header className={styles.formHeader}><div><small>COMMERCIAL & HANDOVER</small><h2>{editingTicket?'Edit ticket':'Buat ticket baru'}</h2><p>Ticket ID dibuat otomatis; ringkasan tampil sebagai kartu khusus di grup utama.</p></div><button type="button" onClick={()=>{setShowForm(false);setEditingTicket(null);setError('')}} aria-label="Tutup"><FiX/></button></header>
   {error?<p className="rk-work-alert" data-error>{error}</p>:null}
   <div className={styles.fields}>
    <label>Client<input required value={form.client_name} onChange={event=>setForm({...form,client_name:event.target.value})} placeholder="Nama client"/></label>
@@ -134,8 +140,8 @@ export default function TicketingPage(){
    <fieldset className={`${styles.wide} ${styles.rruField}`}><legend>Status RRU</legend><p>Pilih kondisi terbaru prospek untuk membantu tim menentukan tindak lanjut.</p><div>{rruOptions.map(option=><label key={option.value} data-selected={form.rru_status===option.value}><input type="radio" name="rru-status" checked={form.rru_status===option.value} onChange={()=>setForm({...form,rru_status:option.value})}/><strong>{option.label}</strong><small>{option.short}</small><span>{option.description}</span></label>)}</div></fieldset>
    <label className={styles.wide}>Hubungkan ke lead Pipeline <select value={form.pipeline_lead_id} onChange={event=>setForm({...form,pipeline_lead_id:event.target.value})}><option value="">Tidak dihubungkan</option>{workspace?.pipeline_options.map(lead=><option value={lead.id} key={lead.id}>{lead.lead_code} · {lead.client_name} · {lead.stage}</option>)}</select><small>Opsional dan manual; stage Pipeline tidak otomatis menerbitkan ticket.</small></label>
   </div>
-  <section className={styles.picPicker}><h3><FiUsers/> PIC yang akan ditag</h3><div><select value={picMember} onChange={event=>setPicMember(event.target.value)}><option value="">Pilih staf</option>{workspace?.members.filter(member=>!pics.some(pic=>pic.membership_id===member.id&&pic.role===picRole)).map(member=><option key={member.id} value={member.id}>{member.name}{member.position?` · ${member.position}`:''}</option>)}</select><select value={picRole} onChange={event=>setPicRole(event.target.value as PicRole)}>{Object.entries(roleLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><button type="button" onClick={addPic} disabled={!picMember}><FiPlus/> Tambah PIC</button></div>{pics.map((pic,index)=>{const member=workspace?.members.find(item=>item.id===pic.membership_id);return <span className={styles.picChip} key={`${pic.membership_id}-${pic.role}-${index}`}>{roleLabels[pic.role]} · {member?.name}<button type="button" aria-label="Hapus PIC" onClick={()=>setPics(items=>items.filter((_,i)=>i!==index))}><FiX/></button></span>})}<small>PIC yang dipilih akan di-mention pada pengumuman grup dan menjadi anggota ruang diskusi tiket.</small></section>
-  <footer className={styles.formFooter}><button type="button" onClick={()=>setShowForm(false)}>Batal</button><button type="submit" data-primary disabled={saving}>{saving?<FiSend/>:'Terbitkan ticket'}</button></footer>
+  <section className={styles.picPicker}><h3><FiUsers/> PIC yang akan ditag</h3><div><select value={picMember} onChange={event=>setPicMember(event.target.value)}><option value="">Pilih staf</option>{workspace?.members.filter(member=>!pics.some(pic=>pic.membership_id===member.id&&pic.role===picRole)).map(member=><option key={member.id} value={member.id}>{member.name}{member.position?` · ${member.position}`:''}</option>)}</select><select value={picRole} onChange={event=>setPicRole(event.target.value as PicRole)}>{Object.entries(roleLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><button type="button" onClick={addPic} disabled={!picMember}><FiPlus/> Tambah PIC</button></div>{pics.map((pic,index)=>{const member=workspace?.members.find(item=>item.id===pic.membership_id);return <span className={styles.picChip} key={`${pic.membership_id}-${pic.role}-${index}`}>{roleLabels[pic.role]} · {member?.name}<button type="button" aria-label="Hapus PIC" onClick={()=>setPics(items=>items.filter((_,i)=>i!==index))}><FiX/></button></span>})}<small>PIC akan di-mention pada pengumuman dan ditambahkan ke ruang koordinasi saat diskusi dimulai.</small></section>
+  <footer className={styles.formFooter}><button type="button" onClick={()=>{setShowForm(false);setEditingTicket(null);setError('')}}>Batal</button><button type="submit" data-primary disabled={saving}>{saving?<FiSend/>:editingTicket?'Simpan perubahan':'Terbitkan ticket'}</button></footer>
  </form></div>:null}
  </main>
 }
