@@ -357,7 +357,6 @@ export default function KawanChatPage() {
     setThreadMentionIds(items => items.includes(member.id) ? items : [...items, member.id]);
     setThreadMentionTerm(null);
   }
-
   async function sendThread(event: FormEvent) {
     event.preventDefault(); const body = threadMessage.trim();
     if (!selectedId || !thread?.parent.id || !body || threadSending) return;
@@ -626,7 +625,7 @@ function TicketAnnouncement({body}:{body:string}){
     <footer>Commercial <b>→</b> Proposal & Deal <b>→</b> Handover <b>→</b> Delivery <b>→</b> Report & Close</footer>
   </section>;
 }
-function escapeMentionName(value: string) { return value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
+function escapeMentionName(value: string) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function mentionIdsForBody(body: string, members: Member[], excludedId?: string) {
   const normalized = body.toLocaleLowerCase();
   return members.filter(member => member.id !== excludedId && normalized.includes('@' + member.name.toLocaleLowerCase())).map(member => member.id);
