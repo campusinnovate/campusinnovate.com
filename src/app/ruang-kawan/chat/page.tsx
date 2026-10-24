@@ -424,7 +424,7 @@ export default function KawanChatPage() {
               <button className="rk-chat-profile-trigger" onClick={() => showProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={onlineIds.has(item.sender.id)} /></button>
               <div><header><button className="rk-chat-sender" onClick={() => showProfile(item.sender)}>{item.sender.name}</button><time title={`${dayLabel(item.created_at)} · WIB`}>{formatTime(item.created_at)}</time>{item.edited_at ? <small>diedit</small> : null}<button onClick={event => { if (menuMessageId === item.id) setMenuMessageId(null); else { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); } }} aria-label="Aksi pesan" aria-expanded={menuMessageId === item.id}><FiMoreVertical /></button></header>
                 {renderMessageMenu(item)}
-                {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : <p>{isTicketAnnouncement(item.body)?<TicketAnnouncement body={item.body}/>:<LinkedText body={item.body}/>}</p>}
+                {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : isTicketAnnouncement(item.body)?<TicketAnnouncement body={item.body}/>:<p><LinkedText body={item.body}/></p>}
                 {!item.deleted_at ? item.attachments?.map(file => <AttachmentPreview file={file} key={file.id} />) : null}
                 <footer>{item.reactions?.map((reaction) => <button data-active={reaction.reacted_by_me} onClick={() => void react(item.id, reaction.emoji)} key={reaction.emoji}>{reaction.emoji} {reaction.count}</button>)}<button disabled={Boolean(item.deleted_at)} onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); }} aria-label="Pilih reaksi"><FiSmile /></button><button className="rk-chat-replies" onClick={() => void loadThread(item.id)}><FiMessageCircle /> {item.reply_count ? `${item.reply_count} balasan` : 'Balas'}{threadUnread[item.id]?<b>{threadUnread[item.id]}</b>:null}</button>{item.sender.id === workspace.me?.id ? <small className="rk-chat-delivery">{item.read_count ? `Dibaca ${item.read_count}` : 'Terkirim'}</small> : null}</footer>
               </div>
@@ -575,9 +575,9 @@ function TicketAnnouncement({body}:{body:string}){
   let skipping=false;
   for(const line of lines){
     const heading=ticketHeadings.find(([prefix])=>line.trim().startsWith(prefix));
-    if(line.includes('DISKUSI TEKNIS & HANDOVER')){finish();current=null;values=[];skipping=true;continue}
+    if(line.includes('DISKUSI TEKNIS & HANDOVER')||line.startsWith('🧭 PROGRES')){finish();current=null;values=[];skipping=true;continue}
     if(heading){finish();current=heading[1];values=[];skipping=false;continue}
-    if(skipping||line.startsWith('🎫')||line.startsWith('━')||!line.trim()||line.startsWith('🧭 PROGRES'))continue;
+    if(skipping||line.startsWith('🎫')||line.startsWith('━')||!line.trim())continue
     if(current)values.push(line.trim());
   }
   finish();
@@ -592,7 +592,7 @@ function MessageExcerpt({ item, online, onProfile, menu, onMenu, onReact }: { it
     <button className="rk-chat-profile-trigger" onClick={() => onProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={online} /></button>
     <div><header><button className="rk-chat-sender" onClick={() => onProfile(item.sender)}>{item.sender.name}</button><time>{formatTime(item.created_at)}</time><button aria-label="Aksi pesan" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); onMenu(item.id, rect.left, rect.bottom); }}><FiMoreVertical /></button></header>
       {item.parent_id ? menu(item) : null}
-      <p>{item.deleted_at ? <em>Pesan telah dihapus.</em> : isTicketAnnouncement(item.body)?<TicketAnnouncement body={item.body}/>:<LinkedText body={item.body} />}</p>
+      {item.deleted_at ? <p><em>Pesan telah dihapus.</em></p> : isTicketAnnouncement(item.body)?<TicketAnnouncement body={item.body}/>:<p><LinkedText body={item.body}/></p>}
       {!item.deleted_at ? <>{item.attachments?.map(file => <AttachmentPreview file={file} key={file.id} />)}<footer>{item.reactions?.map(reaction => <button key={reaction.emoji} data-active={reaction.reacted_by_me} onClick={() => void onReact(item.id, reaction.emoji)}>{reaction.emoji} {reaction.count}</button>)}</footer></> : null}
     </div>
   </article>;
