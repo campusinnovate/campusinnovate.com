@@ -566,9 +566,9 @@ const ticketHeadings = [
   ['📋 KEBUTUHAN','Kebutuhan'],['📆 TARGET PROPOSAL','Target proposal'],['🗺️ RENCANA PROJECT','Rencana project'],
   ['📡 STATUS RRU','Status RRU'],['👤 DITERBITKAN OLEH','Diterbitkan oleh'],['👥 PIC','PIC']
 ] as const;
-function isTicketAnnouncement(body:string){return body.includes('TICKET BARU')||body.includes('TICKET DIHAPUS')}
+function isTicketAnnouncement(body:string){return body.includes('TICKET BARU')||body.includes('TICKET DIHAPUS')||body.includes('TIKET BARU')}
 function TicketAnnouncement({body}:{body:string}){
-  const lines=body.split(/\r?\n/);const title=lines.find(line=>line.includes('TICKET BARU')||line.includes('TICKET DIHAPUS'))??'Ticket';
+  const lines=body.split(/\r?\n/);const title=lines.find(line=>line.includes('TICKET BARU')||line.includes('TICKET DIHAPUS')||line.includes('TIKET BARU'))??'Ticket';
   const fields:Array<{label:string;value:string}>=[];
   let current:string|null=null, values:string[]=[];
   const finish=()=>{if(current&&values.length)fields.push({label:current,value:values.join('\n').trim()});};
