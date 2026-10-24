@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { FiArrowLeft, FiBriefcase, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiDollarSign, FiEdit3, FiExternalLink, FiFilter, FiGrid, FiList, FiMessageCircle, FiPlus, FiRefreshCw, FiSearch, FiSend, FiTag, FiTrash2, FiUsers, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiBriefcase, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiDollarSign, FiEdit3, FiExternalLink, FiFilter, FiGrid, FiLink, FiList, FiMessageCircle, FiPaperclip, FiPlus, FiRefreshCw, FiSearch, FiSend, FiTag, FiTrash2, FiUsers, FiX } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
+import { supabaseUrl } from '@/lib/supabase/config';
 import styles from './ticketing.module.css';
 
 type Member={id:string;name:string;position:string|null};
@@ -49,6 +50,7 @@ export default function TicketingPage(){
  const [view,setView]=useState<'tickets'|'won'>('tickets'),[layout,setLayout]=useState<'card'|'list'>('card');
  const [showForm,setShowForm]=useState(false),[form,setForm]=useState<Form>(emptyForm()),[pics,setPics]=useState<Pic[]>([]),[editingTicket,setEditingTicket]=useState<Ticket|null>(null);
  const [picMember,setPicMember]=useState(''),[picRole,setPicRole]=useState<PicRole>('account_manager');
+ const [docLinks,setDocLinks]=useState<Array<{label:string;url:string}>>([]),[docLabel,setDocLabel]=useState(''),[docUrl,setDocUrl]=useState(''),[docFiles,setDocFiles]=useState<File[]>([]);
  async function load(){
   setError('');const db=createClient();const {data:{session}}=await db.auth.getSession();
   if(!session){window.location.replace('/ruang-kawan/');return}
@@ -70,6 +72,22 @@ export default function TicketingPage(){
  const years=Array.from(new Set([todayKey().slice(0,4),...wonProjects.map(p=>p.won_date.slice(0,4)),periodYear])).sort().reverse();
  const periodText=period==='all'?'Semua waktu':period==='month'?new Date(`${periodMonth}-01T00:00:00`).toLocaleDateString('id-ID',{month:'long',year:'numeric'}):period==='quarter'?`Kuartal ${periodQuarter} · ${periodYear}`:periodYear;
  function addPic(){if(!picMember||pics.some(pic=>pic.membership_id===picMember&&pic.role===picRole))return;setPics(items=>[...items,{membership_id:picMember,role:picRole}]);setPicMember('')}
+ async function publishTicketDocuments(code:string,conversationId:string|null,files:File[],links:Array<{label:string;url:string}>,registerDocument:boolean){
+  if(!conversationId||(!files.length&&!links.length))return;
+  const db=createClient(),{data:{session}}=await db.auth.getSession();if(!session)throw new Error('Sesi login berakhir saat menyimpan lampiran.');
+  const attachments:Array<{id:string;name:string}>=[];
+  for(const file of files.slice(0,5)){
+   const body=new FormData();body.append('file',file);body.append('conversationId',conversationId);body.append('registerDocument',registerDocument?'true':'false');
+   const response=await fetch(`${supabaseUrl}/functions/v1/ruang-kawan-calendar/chat/attachments`,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`},body});
+   const payload=await response.json();if(!response.ok||!payload.attachment)throw new Error(payload.error??`File ${file.name} gagal diunggah.`);
+   attachments.push({id:payload.attachment.id,name:payload.attachment.name});
+  }
+  const lines=links.map(item=>`${item.label||item.url}: ${item.url}`);
+  if(attachments.length)lines.push('File terlampir: '+attachments.map(item=>item.name).join(', '));
+  const messageBody=[`Dokumen ticket ${code}`,...lines].join('\\n');
+  const sent=await db.rpc('send_chat_message',{target_conversation_id:conversationId,message_body:messageBody,reply_to_message_id:null,attachment_ids:attachments.map(item=>item.id),mention_membership_ids:[]});
+  if(sent.error)throw new Error(sent.error.message);
+ }
  async function createTicket(event:FormEvent){
   event.preventDefault();if(!pics.length){setError('Tambahkan minimal satu PIC agar ikut ditag.');return}
   setSaving(true);setError('');setNotice('');
@@ -77,11 +95,20 @@ export default function TicketingPage(){
   const result=editingTicket
    ? await createClient().rpc('update_commercial_ticket_record',{target_ticket_id:editingTicket.id,payload})
    : await createClient().rpc('create_commercial_ticket_record',{payload});
-  setSaving(false);
-  if(result.error){setError(result.error.message);return}
-  const code=editingTicket?.ticket_code??(result.data as {ticket_code:string}).ticket_code;
-  setShowForm(false);setForm(emptyForm());setPics([]);setNotice(editingTicket?`Ticket ${code} diperbarui.`:`Ticket ${code} diterbitkan; pengumuman rapi sudah masuk ke grup.`);setEditingTicket(null);
-  await load();
+  if(result.error){setSaving(false);setError(result.error.message);return}
+  const info=result.data as {ticket_code?:string;discussion_conversation_id?:string}|null;
+  const code=editingTicket?.ticket_code??info?.ticket_code??'Ticket';
+  const discussionId=editingTicket?.discussion_conversation_id??info?.discussion_conversation_id??null;
+  let docWarning='';
+  try{
+   if(docLinks.length||docFiles.length){
+    await publishTicketDocuments(code,workspace?.conversation_id??null,docFiles,docLinks,true);
+    if(discussionId)await publishTicketDocuments(code,discussionId,docFiles,docLinks,false);
+   }
+  }catch(err){docWarning=err instanceof Error?err.message:'Sebagian dokumen gagal disinkronkan.'}
+  setSaving(false);setShowForm(false);setForm(emptyForm());setPics([]);setDocLinks([]);setDocFiles([]);setDocLabel('');setDocUrl('');
+  setNotice((editingTicket?`Ticket ${code} diperbarui.`:`Ticket ${code} diterbitkan; pengumuman rapi sudah masuk ke grup.`)+(docWarning?` Dokumen belum lengkap tersinkron: ${docWarning}`:docLinks.length||docFiles.length?' Dokumen sudah dikirim ke Commercial dan ruang PIC.':''));
+  setEditingTicket(null);await load();
  }
  function openEdit(ticket:Ticket){setEditingTicket(ticket);setForm({client_name:ticket.client_name,client_type:ticket.client_type,service_name:ticket.service_name,requirements:ticket.requirements,target_proposal_date:ticket.target_proposal_date,project_plan:ticket.project_plan,rru_status:ticket.rru_status,pipeline_lead_id:ticket.pipeline_lead_id??''});setPics(ticket.pics.map(pic=>({membership_id:pic.membership_id,role:pic.role})));setError('');setShowForm(true)}
  async function deleteTicket(ticket:Ticket){if(!window.confirm(`Hapus ${ticket.ticket_code} dari daftar ticket? Riwayat chat dan handover tetap disimpan.`))return;const result=await createClient().rpc('delete_commercial_ticket_record',{target_ticket_id:ticket.id});if(result.error){setError(result.error.message);return}setNotice(`${ticket.ticket_code} dihapus dari daftar ticket. Riwayat chat tetap tersimpan.`);await load()}
@@ -140,6 +167,12 @@ export default function TicketingPage(){
    <fieldset className={`${styles.wide} ${styles.rruField}`}><legend>Status RRU</legend><p>Pilih kondisi terbaru prospek untuk membantu tim menentukan tindak lanjut.</p><div>{rruOptions.map(option=><label key={option.value} data-selected={form.rru_status===option.value}><input type="radio" name="rru-status" checked={form.rru_status===option.value} onChange={()=>setForm({...form,rru_status:option.value})}/><strong>{option.label}</strong><small>{option.short}</small><span>{option.description}</span></label>)}</div></fieldset>
    <label className={styles.wide}>Hubungkan ke lead Pipeline <select value={form.pipeline_lead_id} onChange={event=>setForm({...form,pipeline_lead_id:event.target.value})}><option value="">Tidak dihubungkan</option>{workspace?.pipeline_options.map(lead=><option value={lead.id} key={lead.id}>{lead.lead_code} · {lead.client_name} · {lead.stage}</option>)}</select><small>Opsional dan manual; stage Pipeline tidak otomatis menerbitkan ticket.</small></label>
   </div>
+  <section className={styles.documentPicker}><div><h3><FiPaperclip/> Dokumen sebelumnya</h3><p>Tambahkan link proposal, brief, atau file agar bisa dibuka dari pesan di Commercial dan ruang PIC.</p></div>
+   <div className={styles.linkRow}><input value={docLabel} onChange={event=>setDocLabel(event.target.value)} placeholder="Nama dokumen"/><input type="url" value={docUrl} onChange={event=>setDocUrl(event.target.value)} placeholder="https://..."/><button type="button" disabled={!docUrl.trim()} onClick={()=>{setDocLinks(items=>[...items,{label:docLabel.trim()||docUrl.trim(),url:docUrl.trim()}]);setDocLabel('');setDocUrl('')}}><FiLink/> Tambah link</button></div>
+   {docLinks.map((item,index)=><div className={styles.documentChip} key={item.url}><FiLink/><span>{item.label}</span><button type="button" onClick={()=>setDocLinks(items=>items.filter((_,i)=>i!==index))} aria-label="Hapus link"><FiX/></button></div>)}
+   <label className={styles.fileDrop}><FiUploadCloud/><span>Pilih file untuk dilampirkan</span><small>Maksimal 5 file, masing-masing sampai 25 MB</small><input type="file" multiple onChange={event=>setDocFiles(Array.from(event.target.files??[]).slice(0,5))}/></label>
+   {docFiles.map((file,index)=><div className={styles.documentChip} key={file.name+index}><FiPaperclip/><span>{file.name}</span><button type="button" onClick={()=>setDocFiles(items=>items.filter((_,i)=>i!==index))} aria-label="Hapus file"><FiX/></button></div>)}
+  </section>
   <section className={styles.picPicker}><h3><FiUsers/> PIC yang akan ditag</h3><div><select value={picMember} onChange={event=>setPicMember(event.target.value)}><option value="">Pilih staf</option>{workspace?.members.filter(member=>!pics.some(pic=>pic.membership_id===member.id&&pic.role===picRole)).map(member=><option key={member.id} value={member.id}>{member.name}{member.position?` · ${member.position}`:''}</option>)}</select><select value={picRole} onChange={event=>setPicRole(event.target.value as PicRole)}>{Object.entries(roleLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><button type="button" onClick={addPic} disabled={!picMember}><FiPlus/> Tambah PIC</button></div>{pics.map((pic,index)=>{const member=workspace?.members.find(item=>item.id===pic.membership_id);return <span className={styles.picChip} key={`${pic.membership_id}-${pic.role}-${index}`}>{roleLabels[pic.role]} · {member?.name}<button type="button" aria-label="Hapus PIC" onClick={()=>setPics(items=>items.filter((_,i)=>i!==index))}><FiX/></button></span>})}<small>PIC akan di-mention pada pengumuman dan ditambahkan ke ruang koordinasi saat diskusi dimulai.</small></section>
   <footer className={styles.formFooter}><button type="button" onClick={()=>{setShowForm(false);setEditingTicket(null);setError('')}}>Batal</button><button type="submit" data-primary disabled={saving}>{saving?<FiSend/>:editingTicket?'Simpan perubahan':'Terbitkan ticket'}</button></footer>
  </form></div>:null}
