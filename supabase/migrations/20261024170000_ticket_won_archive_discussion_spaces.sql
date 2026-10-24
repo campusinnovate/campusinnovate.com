@@ -116,7 +116,7 @@ begin
  if room is null then raise exception 'Grup Commercial & Handover belum disiapkan.'; end if;
 
  insert into public.chat_conversations(name,kind,created_by_membership_id)
- values('🛠️ Ticket · '||ticket_code_value||' · '||left(client_value,72),'private',actor)
+ values('Ticket · '||ticket_code_value||' · '||left(client_value,72),'private',actor)
  returning id into discussion;
 
  insert into public.chat_conversation_members(conversation_id,membership_id,member_role,notification_level,last_read_at)
