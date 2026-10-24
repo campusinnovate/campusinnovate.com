@@ -338,7 +338,8 @@ export default function KawanChatPage() {
     setThreadMessage('');
     const branch=await createClient().rpc('ensure_ticket_discussion_for_thread_reply',{target_reply_id:result.data as string});
     if(branch.error){setError('Balasan tersimpan, tetapi ruang PIC belum berhasil dibuka. Coba muat ulang thread.');await loadThread(thread.parent.id);return;}
-    if(branch.data){setThreadOpen(false);setThread(null);setSelectedId(branch.data as string);await loadWorkspace();await loadConversation(branch.data as string);setNotice('Balasan tiket tersalin ke ruang diskusi PIC. Riwayat handover tetap tersimpan di grup utama.');return;}
+    if(branch.data){setThreadOpen(false);setThread(null);setSelectedId(branch.data as string);await loadWorkspace();await loadConversation(branch.data as string);setNotice('Balasan tercermin di Commercial dan ruang PIC. Keduanya tetap terhubung.');return;}
+    if(detail&&isTicketSpaceName(detail.conversation.name)){const mirrored=await createClient().rpc('mirror_ticket_discussion_message',{target_message_id:result.data as string});if(mirrored.error)setNotice('Balasan tersimpan di ruang PIC, tetapi sinkronisasi ke Commercial tertunda.')}
     await loadThread(thread.parent.id); await loadConversation(selectedId);
   }
 
@@ -415,9 +416,9 @@ export default function KawanChatPage() {
         <ConversationGroup title="Ruang" items={spaces} selectedId={selectedId} openMenuId={sidebarActionId} onSelect={selectConversation} onToggleMenu={id=>setSidebarActionId(current=>current===id?null:id)} onArchive={setConversationArchive} onHide={hideConversation} />
       </aside>
 
-      <section className="rk-chat-main" data-ticket-space={isTicketSpaceName(detail?.conversation.name??'')}>
+      <section className="rk-chat-main" data-ticket-space={isTicketSpaceName(detail?.conversation.name??'')} data-commercial-space={isCommercialSpaceName(detail?.conversation.name??'')}>
         {ceoOpen ? <CeoAssistantPanel onBack={() => setSidebarOpen(true)} /> : detail ? <>
-          <header className="rk-chat-conversation-head" data-meeting={hasMeeting} data-ticket-space={isTicketSpaceName(detail.conversation.name)}>
+          <header className="rk-chat-conversation-head" data-meeting={hasMeeting} data-ticket-space={isTicketSpaceName(detail.conversation.name)} data-commercial-space={isCommercialSpaceName(detail.conversation.name)}>
             <button className="rk-chat-mobile-back" onClick={() => setSidebarOpen(true)} aria-label="Buka daftar percakapan"><FiArrowLeft /></button>
             <Avatar name={detail.conversation.name} url={detail.conversation.avatar_url} />
             <div><h1>{isTicketSpaceName(detail.conversation.name)?<FiBriefcase/>:detail.conversation.kind !== 'direct' ? '# ' : ''}{detail.conversation.name}</h1><span><FiUsers /> {detail.members.length || detail.conversation.member_count || 0} anggota</span>{hasMeeting ? <span className="rk-chat-meeting-badge"><FiVideo /> Meeting tersedia</span> : null}</div>
@@ -426,7 +427,7 @@ export default function KawanChatPage() {
           <section className="rk-chat-timeline">
             {detail.messages.map((item, index) => <Fragment key={item.id}>
               {index === 0 || dayKey(item.created_at) !== dayKey(detail.messages[index - 1].created_at) ? <div className="rk-chat-day"><time dateTime={dayKey(item.created_at)}>{dayLabel(item.created_at, clockNow)}</time></div> : null}
-              <article className="rk-chat-message" data-ticket-space={isTicketSpaceName(detail.conversation.name)} data-pinned={item.pinned} onContextMenu={event => { event.preventDefault(); showMenu(item.id, event.clientX, event.clientY); }}>
+              <article className="rk-chat-message" data-ticket-space={isTicketSpaceName(detail.conversation.name)} data-commercial-space={isCommercialSpaceName(detail.conversation.name)} data-pinned={item.pinned} onContextMenu={event => { event.preventDefault(); showMenu(item.id, event.clientX, event.clientY); }}>
 
               <button className="rk-chat-profile-trigger" onClick={() => showProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={onlineIds.has(item.sender.id)} /></button>
               <div><header><button className="rk-chat-sender" onClick={() => showProfile(item.sender)}>{item.sender.name}</button><time title={`${dayLabel(item.created_at)} · WIB`}>{formatTime(item.created_at)}</time>{item.edited_at ? <small>diedit</small> : null}<button onClick={event => { if (menuMessageId === item.id) setMenuMessageId(null); else { const rect = event.currentTarget.getBoundingClientRect(); showMenu(item.id, rect.left, rect.bottom); } }} aria-label="Aksi pesan" aria-expanded={menuMessageId === item.id}><FiMoreVertical /></button></header>
