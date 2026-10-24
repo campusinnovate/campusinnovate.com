@@ -35,3 +35,19 @@
 .sidebarActionsMenu>button{display:flex;align-items:center;gap:9px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:#34465e;font-size:11px;text-align:left;cursor:pointer}
 .sidebarActionsMenu>button:hover{background:#f1f5fa}
 .sidebarActionsMenu>button[data-danger]{color:#a13d51}
+
+.filterBar{position:relative;box-sizing:border-box;flex:0 0 48px;height:48px;width:100%;padding-top:15px}
+.unreadTotal{position:absolute;right:2px;top:0;z-index:1;font-size:9px;font-weight:800;line-height:13px;color:#637186;white-space:nowrap}
+.threadPanelHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #e7edf4;background:linear-gradient(135deg,#fff,#f5f8fc)}
+.threadPanelHead div{min-width:0;display:grid;gap:3px}.threadPanelHead strong{font-size:13px;color:#26364b}.threadPanelHead small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:#7a8798}
+.ticketChat :global(.rk-chat-detail){min-width:0;max-width:100%;overflow-x:hidden}
+.ticketChat :global(.rk-chat-thread){min-width:0;max-width:100%;overflow-x:hidden;padding:10px}
+.ticketChat :global(.rk-chat-thread-message){min-width:0;max-width:100%;overflow:hidden}
+.ticketChat :global(.rk-chat-thread-message>div){min-width:0;max-width:100%;overflow-wrap:anywhere}
+.ticketChat :global(.rk-chat-thread-message p){white-space:pre-wrap;overflow-wrap:anywhere}
+.ticketChat :global(.rk-chat-main[data-commercial-space=true]){background:radial-gradient(circle at 88% 6%,rgba(68,174,139,.12),transparent 30%),#f5fbf8}
+.ticketChat :global(.rk-chat-conversation-head[data-commercial-space=true]){background:linear-gradient(110deg,#f3fbf7,#eaf7f2);border-bottom:1px solid #d3e9df}
+.ticketChat :global(.rk-chat-conversation-head[data-commercial-space=true] h1){color:#246454}
+.ticketChat :global(.rk-chat-conversation-head[data-commercial-space=true] h1 svg){color:#44a988}
+.sidebarConversationRow[data-commercial=true] .sidebarConversationOpen[data-active=true]{background:linear-gradient(100deg,rgba(67,170,137,.13),rgba(67,170,137,.05));border-left:3px solid #43a98a}
+.rowPinned{margin-left:5px;color:#d29a25}
