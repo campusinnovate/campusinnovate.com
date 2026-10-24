@@ -105,7 +105,8 @@ begin
   '🛠️ DISKUSI TEKNIS & HANDOVER'||E'\n'||'https://campusinnovate.com/ruang-kawan/chat/?conversation='||discussion::text||E'\n'||
   '👥 PIC'||E'\n'||formatted_pics;
 
- discussion_body:=replace(body,'Balas pada thread pengumuman ini untuk memulai chat teknis bersama PIC.','Percakapan teknis dan handover berlangsung di ruang ini.');
+ discussion_body:=regexp_replace(body,E'🛠️ DISKUSI TEKNIS & HANDOVER\n[^\n]+\n?','','g');
+ discussion_body:=replace(replace(discussion_body,'Update singkat bisa di thread pengumuman ini.','Percakapan teknis dan handover berlangsung di ruang ini.'),'Balas pada thread pengumuman ini untuk memulai chat teknis bersama PIC.','Percakapan teknis dan handover berlangsung di ruang ini.');
 
  message_uuid:=public.send_chat_message(room,body,null,'{}'::uuid[],mentions);
  discussion_message_uuid:=public.send_chat_message(discussion,discussion_body,null,'{}'::uuid[],mentions);
@@ -380,4 +381,6 @@ begin
 end $$;
 
 -- Preserve the requested sequence: Finku is 21, so the next issued ticket is 22.
-select setval('public.commercial_ticket_record_seq', greatest(21, (select coalesce(max(nullif(regexp_replace(ticket_code,'^.*-',''),'')::bigint),0) from public.commercial_ticket_records)), true);
+select setval('public.commercial_ticket_record_seq', greatest(21, (select coalesce(max(case when ticket_code ~ '-[0-9]{6}
+ then substring(ticket_code from '([0-9]{6})
+)::bigint end),0) from public.commercial_ticket_records)), true);
