@@ -626,21 +626,24 @@ function TicketAnnouncement({body}:{body:string}){
     <footer>Commercial <b>→</b> Proposal & Deal <b>→</b> Handover <b>→</b> Delivery <b>→</b> Report & Close</footer>
   </section>;
 }
-function escapeMentionName(value: string) { return value.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&'); }
 function mentionIdsForBody(body: string, members: Member[], excludedId?: string) {
   const normalized = body.toLocaleLowerCase();
   return members.filter(member => member.id !== excludedId && normalized.includes('@' + member.name.toLocaleLowerCase())).map(member => member.id);
 }
 function MentionText({ body, members }: { body: string; members: Member[] }) {
   const names = Array.from(new Set(members.map(member => member.name).filter(Boolean))).sort((a, b) => b.length - a.length);
-  if (!names.length) return <LinkedText body={body}/>;
-  const matcher = new RegExp('@(?:' + names.map(escapeMentionName).join('|') + '|all)(?=$|[\\\\s.,!?;:)}\\\\]])', 'gi');
-  const parts: React.ReactNode[] = []; let cursor = 0; let match: RegExpExecArray | null;
-  while ((match = matcher.exec(body))) { if (match.index > cursor) parts.push(<LinkedText key={'text-' + cursor} body={body.slice(cursor, match.index)}/>); parts.push(<span className="rk-chat-mention-highlight" key={'mention-' + match.index}>{match[0]}</span>); cursor = matcher.lastIndex; }
-  if (cursor < body.length) parts.push(<LinkedText key={'text-' + cursor} body={body.slice(cursor)}/>);
+  const parts: React.ReactNode[] = []; let cursor = 0;
+  while (cursor < body.length) {
+    const at = body.indexOf('@', cursor);
+    if (at < 0) { parts.push(<LinkedText key={'text-' + cursor} body={body.slice(cursor)}/>); break; }
+    if (at > cursor) parts.push(<LinkedText key={'text-' + cursor} body={body.slice(cursor, at)}/>);
+    const matched = names.find(name => body.slice(at + 1, at + 1 + name.length).toLocaleLowerCase() === name.toLocaleLowerCase() && (at + name.length + 1 === body.length || ' \\t\\n.,!?;:)}]'.includes(body[at + name.length + 1])) || (body.slice(at + 1, at + 4).toLocaleLowerCase() === 'all' && (at + 4 === body.length || ' \\t\\n.,!?;:)}]'.includes(body[at + 4])) ? 'all' : null;
+    if (matched) { parts.push(<span className="rk-chat-mention-highlight" key={'mention-' + at}>@{matched}</span>); cursor = at + matched.length + 1; }
+    else { parts.push(<LinkedText key={'text-' + at} body="@"/>); cursor = at + 1; }
+  }
   return <>{parts}</>;
 }
-function MessageExcerpt({ item, online, members, onProfile, menu, onMenu, onReact }: { item: Message; online: boolean; members: Member[]; onProfile: (member: Member) => void; menu: (item: Message) => React.ReactNode; onMenu: (id: string, x: number, y: number) => void; onReact: (id: string, emoji: string) => Promise<void> }) {onProfile: (member: Member) => void; menu: (item: Message) => React.ReactNode; onMenu: (id: string, x: number, y: number) => void; onReact: (id: string, emoji: string) => Promise<void> }) {
+function MessageExcerpt({ item, online, members, onProfile, menu, onMenu, onReact }: { item: Message; online: boolean; members: Member[]; onProfile: (member: Member) => void; menu: (item: Message) => React.ReactNode; onMenu: (id: string, x: number, y: number) => void; onReact: (id: string, emoji: string) => Promise<void> }) {
   return <article className="rk-chat-thread-message" onContextMenu={event => { event.preventDefault(); onMenu(item.id, event.clientX, event.clientY); }}>
     <button className="rk-chat-profile-trigger" onClick={() => onProfile(item.sender)} aria-label={`Lihat profil ${item.sender.name}`}><Avatar name={item.sender.name} url={item.sender.avatar_url} online={online} /></button>
     <div><header><button className="rk-chat-sender" onClick={() => onProfile(item.sender)}>{item.sender.name}</button><time>{formatTime(item.created_at)}</time><button aria-label="Aksi pesan" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); onMenu(item.id, rect.left, rect.bottom); }}><FiMoreVertical /></button></header>
