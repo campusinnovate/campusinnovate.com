@@ -20,9 +20,9 @@ type Period='all'|'month'|'quarter'|'year';
 const services=['Event Experience Management','Digital System','Coreva','Stripmate','Program Development','Media & Creative Production'];
 const roleLabels:Record<PicRole,string>={account_manager:'AM',operations:'Ops',sales:'Sales',marketing:'Marketing',social_media_specialist:'Sosmed Specialist',coo:'COO',cto:'CTO',hr:'HR PIC',other:'PIC'};
 const rruOptions:Array<{value:Rru;label:string;short:string;description:string}>=[
- {value:'ready',label:'Ready',short:'Siap ditindaklanjuti',description:'Data valid dan siap masuk antrean follow-up sales.'},
- {value:'response',label:'Response',short:'Sudah merespons',description:'Prospek sudah membalas; lanjutkan komunikasi dua arah.'},
- {value:'unreachable',label:'Unreachable',short:'Belum dapat dijangkau',description:'Upaya kontak belum berhasil; cek kembali data dan jadwalkan percobaan.'},
+ {value:'ready',label:'Ready',short:'Siap ditindaklanjuti',description:'Data prospek valid dan siap masuk antrean follow-up tim sales.'},
+ {value:'response',label:'Response',short:'Sudah merespons',description:'Terjadi komunikasi dua arah; prospek bisa tertarik, meminta materi, atau menolak dengan halus.'},
+ {value:'unreachable',label:'Unreachable',short:'Belum dapat dijangkau',description:'Setelah beberapa upaya, kontak tetap tidak tersambung—misalnya nomor salah/tidak aktif atau pesan tidak dijawab.'},
 ];
 const rruLabel:Record<Rru,string>={ready:'Ready',response:'Response',unreachable:'Unreachable'};
 const emptyForm=():Form=>({client_name:'',client_type:'new_client',service_name:'',requirements:'',target_proposal_date:'',project_plan:'',rru_status:'ready',pipeline_lead_id:''});
