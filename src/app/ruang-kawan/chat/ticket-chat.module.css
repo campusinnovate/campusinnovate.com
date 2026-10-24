@@ -57,3 +57,27 @@
 .unreadTotal{display:grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#e8eef5;color:#405267;font-size:10px}
 .ticketSpaceLink{display:inline-grid!important;place-items:center;width:30px;height:30px;border:1px solid #cde8dc!important;border-radius:9px;background:#edf8f3!important;color:#24715e!important}
 .ticketChat :global(.rk-chat-message[data-commercial-space=true]>div){border:1px solid #d9eee5;border-left:3px solid #56b896;border-radius:13px;background:linear-gradient(145deg,#fff,#f5fbf8)}
+
+/* Keep ticket cards inside the thread width; let grid children shrink and wrap. */
+.ticketChat :global(.rk-chat-thread-message){grid-template-columns:36px minmax(0,1fr);min-width:0;width:100%;box-sizing:border-box;overflow:hidden}
+.ticketChat :global(.rk-chat-thread-message>div){width:100%;min-width:0;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere}
+.ticketChat :global(.rk-chat-thread-message>div>header){flex-wrap:wrap;min-width:0}
+.ticketChat :global(.rk-chat-thread-message>div>header .rk-chat-sender){min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal}
+.ticketChat :global(.rk-chat-thread-message p),
+.ticketChat :global(.rk-chat-thread-message span),
+.ticketChat :global(.rk-chat-thread-message a){max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+.ticketChat :global(.rk-chat-thread-message .ticketAnnouncement){width:100%;min-width:0;max-width:100%;box-sizing:border-box;overflow:hidden}
+.ticketChat :global(.rk-chat-thread-message .ticketAnnouncement>header){grid-template-columns:minmax(0,1fr);min-width:0;align-items:start}
+.ticketChat :global(.rk-chat-thread-message .ticketAnnouncement>header strong){min-width:0;white-space:normal;overflow-wrap:anywhere}
+@media(min-width:1181px){
+ .ticketChat :global(.rk-chat-shell){grid-template-columns:290px minmax(0,1fr) 320px}
+ .ticketChat :global(.rk-chat-shell[data-detail=false]){grid-template-columns:290px minmax(0,1fr)}
+ .ticketChat :global(.rk-chat-shell[data-detail=false] .rk-chat-detail){display:none}
+}
+@media(min-width:761px) and (max-width:1180px){
+ .ticketChat :global(.rk-chat-shell){grid-template-columns:270px minmax(0,1fr) 310px}
+ .ticketChat :global(.rk-chat-shell[data-detail=false]){grid-template-columns:270px minmax(0,1fr)}
+ .ticketChat :global(.rk-chat-detail){position:relative;inset:auto;width:auto;height:auto;box-shadow:none;transform:none;transition:none;overflow:hidden;border-left:1px solid #e4ebf1;background:#fff}
+ .ticketChat :global(.rk-chat-shell[data-detail=false] .rk-chat-detail){display:none}
+ .ticketChat :global(.rk-chat-shell[data-detail=true] .rk-chat-detail){transform:none}
+}
