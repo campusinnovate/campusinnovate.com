@@ -1,5 +1,5 @@
 -- Preserve per-thread unread state in workspace counts and notify Commercial members without exposing thread text.
-create or replace function public.chat_workspace()
+create or replace function public.chat_workspace_legacy()
 returns jsonb language sql stable security definer set search_path=public as $$
 with me as(select public.current_membership_id() id), accessible as(
  select c.*,cm.starred_at,cm.last_read_at,
