@@ -29,7 +29,7 @@ begin
       set body = regexp_replace(
         replace(body, 'Update singkat bisa di thread pengumuman ini.',
           'Balas pada thread pengumuman ini untuk memulai chat teknis bersama PIC.'),
-        E'🛠️ DISKUSI TEKNIS & HANDOVER\\n[^\\n]+\\n?', '', 'g'),
+        E'🛠️ DISKUSI TEKNIS & HANDOVER\n[^\n]+\n?', '', 'g'),
         updated_at=now()
       where id=message;
   end if;
@@ -145,7 +145,7 @@ begin
     select coalesce(full_name,email::text) into pic_name from public.memberships where id=pic_id and status='active';
     if pic_name is null then raise exception 'PIC harus anggota aktif.'; end if;
     insert into public.commercial_ticket_record_pics(ticket_id,membership_id,pic_role) values(ticket.id,pic_id,pic_role_value);
-    if formatted_pics<>'' then formatted_pics:=formatted_pics||E'\\n'; end if;
+    if formatted_pics<>'' then formatted_pics:=formatted_pics||E'\n'; end if;
     formatted_pics:=formatted_pics||'• '||case pic_role_value when 'account_manager' then 'AM' when 'operations' then 'Ops' when 'sales' then 'Sales' when 'marketing' then 'Marketing' when 'social_media_specialist' then 'Sosmed Specialist' when 'coo' then 'COO' when 'cto' then 'CTO' when 'hr' then 'HR PIC' else 'PIC' end||': @'||pic_name;
     if ticket.discussion_conversation_id is not null then
       insert into public.chat_conversation_members(conversation_id,membership_id,member_role,notification_level,last_read_at)
@@ -154,18 +154,18 @@ begin
     end if;
   end loop;
 
-  new_body := '🎫 TICKET BARU  ·  '||ticket.ticket_code||E'\\n'||'━━━━━━━━━━━━━━━━━━━━'||E'\\n'||
-    '🏢 CLIENT'||E'\\n'||client_value||E'\\n'||
-    '🤝 HUBUNGAN CLIENT'||E'\\n'||case client_type_value when 'repeat_order' then 'Repeat Order' else 'Client Baru' end||E'\\n'||
-    '🧩 LAYANAN'||E'\\n'||service_value||E'\\n'||
-    '📋 KEBUTUHAN'||E'\\n'||requirements_value||E'\\n'||
-    '📆 TARGET PROPOSAL'||E'\\n'||to_char(target_date,'DD/MM/YYYY')||E'\\n'||
-    '🗺️ RENCANA PROJECT'||E'\\n'||plan_value||E'\\n'||
-    '📡 STATUS RRU'||E'\\n'||case rru_value when 'ready' then 'Ready · Siap ditindaklanjuti' when 'response' then 'Response · Prospek sudah merespons' else 'Unreachable · Belum dapat dijangkau' end||E'\\n'||
-    '👤 DITERBITKAN OLEH'||E'\\n'||coalesce((select full_name from public.memberships where id=ticket.created_by_membership_id),'BD')||E'\\n'||
-    '🧭 PROGRES'||E'\\n'||'Commercial → Proposal & Deal → Handover → Delivery → Report & Close'||E'\\n'||
-    'Balas pada thread pengumuman ini untuk memulai chat teknis bersama PIC.'||E'\\n'||
-    '👥 PIC'||E'\\n'||formatted_pics;
+  new_body := '🎫 TICKET BARU  ·  '||ticket.ticket_code||E'\n'||'━━━━━━━━━━━━━━━━━━━━'||E'\n'||
+    '🏢 CLIENT'||E'\n'||client_value||E'\n'||
+    '🤝 HUBUNGAN CLIENT'||E'\n'||case client_type_value when 'repeat_order' then 'Repeat Order' else 'Client Baru' end||E'\n'||
+    '🧩 LAYANAN'||E'\n'||service_value||E'\n'||
+    '📋 KEBUTUHAN'||E'\n'||requirements_value||E'\n'||
+    '📆 TARGET PROPOSAL'||E'\n'||to_char(target_date,'DD/MM/YYYY')||E'\n'||
+    '🗺️ RENCANA PROJECT'||E'\n'||plan_value||E'\n'||
+    '📡 STATUS RRU'||E'\n'||case rru_value when 'ready' then 'Ready · Siap ditindaklanjuti' when 'response' then 'Response · Prospek sudah merespons' else 'Unreachable · Belum dapat dijangkau' end||E'\n'||
+    '👤 DITERBITKAN OLEH'||E'\n'||coalesce((select full_name from public.memberships where id=ticket.created_by_membership_id),'BD')||E'\n'||
+    '🧭 PROGRES'||E'\n'||'Commercial → Proposal & Deal → Handover → Delivery → Report & Close'||E'\n'||
+    'Balas pada thread pengumuman ini untuk memulai chat teknis bersama PIC.'||E'\n'||
+    '👥 PIC'||E'\n'||formatted_pics;
   update public.chat_messages set body=new_body,edited_at=now(),updated_at=now() where id=ticket.chat_message_id;
 end;
 $$;
