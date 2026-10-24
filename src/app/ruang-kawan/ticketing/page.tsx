@@ -129,6 +129,8 @@ export default function TicketingPage(){
  async function createTicket(event:FormEvent){
   event.preventDefault();if(!pics.length){setError('Tambahkan minimal satu PIC agar ikut ditag.');return}
   setSaving(true);setError('');setNotice('');
+  const pendingDocumentUrl=docUrl.trim();
+  const documentLinks=[...docLinks,...(pendingDocumentUrl&&/^https?:\/\//i.test(pendingDocumentUrl)&&!docLinks.some(item=>item.url===pendingDocumentUrl)?[{label:docLabel.trim()||pendingDocumentUrl,url:pendingDocumentUrl}]:[])];
   const payload={...form,pipeline_lead_id:form.pipeline_lead_id||null,pics};
   const result=editingTicket
    ? await createClient().rpc('update_commercial_ticket_record',{target_ticket_id:editingTicket.id,payload})
@@ -139,16 +141,16 @@ export default function TicketingPage(){
   const ticketId=editingTicket?.id??info?.ticket_id??null;
   let docWarning='';
   try{
-   if(docLinks.length||docFiles.length){
+   if(documentLinks.length||docFiles.length){
     const uploaded=await uploadTicketFiles(workspace?.conversation_id??null,docFiles);
     if(!ticketId)throw new Error('ID ticket tidak tersedia untuk menyimpan dokumen.');
-    const attached=await createClient().rpc('attach_commercial_ticket_documents',{target_ticket_id:ticketId,target_attachment_ids:uploaded.attachmentIds,target_document_links:docLinks});
+    const attached=await createClient().rpc('attach_commercial_ticket_documents',{target_ticket_id:ticketId,target_attachment_ids:uploaded.attachmentIds,target_document_links:documentLinks});
     if(attached.error)throw new Error(attached.error.message);
     if(uploaded.errors.length)docWarning=uploaded.errors.join(' ');
    }
   }catch(err){docWarning=err instanceof Error?err.message:'Sebagian dokumen gagal dilampirkan.'}
   setSaving(false);setShowForm(false);setForm(emptyForm());setPics([]);setDocLinks([]);setDocFiles([]);setDocLabel('');setDocUrl('');
-  setNotice((editingTicket?`Ticket ${code} diperbarui.`:`Ticket ${code} diterbitkan.`)+(docWarning?` Dokumen belum lengkap dilampirkan: ${docWarning}`:docLinks.length||docFiles.length?' Dokumen tergabung dalam pesan ticket di Commercial.':''));
+  setNotice((editingTicket?`Ticket ${code} diperbarui.`:`Ticket ${code} diterbitkan.`)+(docWarning?` Dokumen belum lengkap dilampirkan: ${docWarning}`:documentLinks.length||docFiles.length?' Dokumen tergabung dalam pesan ticket di Commercial.':''));
   setEditingTicket(null);await load();
  }
  function openEdit(ticket:Ticket){setEditingTicket(ticket);setForm({client_name:ticket.client_name,client_type:ticket.client_type,service_name:ticket.service_name,requirements:ticket.requirements,target_proposal_date:ticket.target_proposal_date,project_plan:ticket.project_plan,rru_status:ticket.rru_status,pipeline_lead_id:ticket.pipeline_lead_id??''});setPics(ticket.pics.map(pic=>({membership_id:pic.membership_id,role:pic.role})));setError('');setShowForm(true)}
@@ -157,7 +159,7 @@ export default function TicketingPage(){
  if(loading)return <main className={`rk-work-foundation ${styles.ticketPage}`}><section className="rk-access-denied"><p>Menyiapkan ticket...</p></section></main>;
  return <main className={`rk-work-foundation ${styles.ticketPage}`}><section className="rk-work-shell">
   <nav className="rk-work-nav"><Link href="/ruang-kawan/marketing/"><FiArrowLeft/> Marketing</Link><span>Commercial & Handover</span><button onClick={()=>void load()}><FiRefreshCw/> Muat ulang</button></nav>
-  <header className={styles.hero}><div className={styles.heroCopy}><small>MARKETING · COMMERCIAL OPERATIONS</small><h1>Ticket & Won Archive</h1><p>Koordinasi tiket tetap ringkas, sementara semua project Won terkumpul dan bisa ditinjau berdasarkan periode.</p><div className={styles.heroNote}><FiCheckCircle/><span>Pipeline tetap menjadi sumber data lead dan nilai deal.</span></div></div><div className={styles.heroActions}><Link href={workspace?.conversation_id?'/ruang-kawan/chat/?conversation='+workspace.conversation_id:'/ruang-kawan/chat/'}><FiMessageCircle/> Grup Commercial & Handover</Link>{workspace?.can_create?<button data-primary onClick={()=>{setError('');setShowForm(true)}}><FiPlus/> Buat ticket</button>:null}</div></header>
+  <header className={styles.hero}><div className={styles.heroCopy}><small>MARKETING · COMMERCIAL OPERATIONS</small><h1>Ticket & Won Archive</h1><p>Koordinasi tiket tetap ringkas, sementara semua project Won terkumpul dan bisa ditinjau berdasarkan periode.</p><div className={styles.heroNote}><FiCheckCircle/><span>Pipeline tetap menjadi sumber data lead dan nilai deal.</span></div></div><div className={styles.heroActions}><Link href="/ruang-kawan/pipeline/"><FiArrowLeft/> Pipeline BD</Link><Link href={workspace?.conversation_id?'/ruang-kawan/chat/?conversation='+workspace.conversation_id:'/ruang-kawan/chat/'}><FiMessageCircle/> Grup Commercial & Handover</Link>{workspace?.can_create?<button data-primary onClick={()=>{setError('');setShowForm(true)}}><FiPlus/> Buat ticket</button>:null}</div></header>
 
   <section className={styles.stats}>
    <article className={styles.statCard}><span className={styles.statIcon}><FiBriefcase/></span><div><small>Ticket diterbitkan</small><strong>{scopedTickets.length}</strong><em>{periodText}</em></div></article>
