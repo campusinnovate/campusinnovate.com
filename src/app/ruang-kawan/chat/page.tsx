@@ -348,12 +348,13 @@ export default function KawanChatPage() {
 
   function updateThreadMessage(value: string) {
     setThreadMessage(value);
-    const found = value.match(/(?:^|\\s)@([^@\\n]*)$/);
-    setThreadMentionTerm(found ? found[1].toLowerCase() : null);
+    const at = value.lastIndexOf('@'); const query = at >= 0 ? value.slice(at + 1) : '';
+    const isMention = at >= 0 && !query.includes('@') && !query.includes('\n') && (at === 0 || /\s/.test(value[at - 1]));
+    setThreadMentionTerm(isMention ? query.toLowerCase() : null);
   }
 
   function selectThreadMention(member: Member) {
-    setThreadMessage(value => value.replace(/(?:^|\\s)@([^@\\n]*)$/, match => `${match.startsWith(' ') ? ' ' : ''}@${member.name} `));
+    setThreadMessage(value => { const at = value.lastIndexOf('@'); return value.slice(0, at) + '@' + member.name + ' '; });
     setThreadMentionIds(items => items.includes(member.id) ? items : [...items, member.id]);
     setThreadMentionTerm(null);
   }
