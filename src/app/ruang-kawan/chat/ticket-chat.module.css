@@ -1,0 +1,10 @@
+.ticketChat :global(.rk-chat-main[data-ticket-space=true]){background:radial-gradient(circle at 88% 8%,rgba(75,150,190,.1),transparent 26%),#f6f9ff}
+.ticketChat :global(.rk-chat-conversation-head[data-ticket-space=true]){background:linear-gradient(110deg,#f6fbff,#edf3ff);border-bottom:1px solid #dce7f4}
+.ticketChat :global(.rk-chat-conversation-head[data-ticket-space=true] h1){color:#244a71}
+.ticketChat :global(.rk-chat-conversation-head[data-ticket-space=true] h1 svg){margin-right:8px;color:#6e8fbd}
+.ticketChat :global(.rk-chat-avatar[data-ticket-space=true]){display:grid;place-items:center;background:linear-gradient(145deg,#d8eff5,#e1e7fb);border:1px solid #b9d4e6;color:#3d7090;box-shadow:0 5px 16px #345d7f1c}
+.ticketChat :global(.rk-chat-avatar[data-ticket-space=true] i){display:grid;place-items:center;font-style:normal}
+.ticketChat :global(.rk-chat-message[data-ticket-space=true] > div){padding:10px 13px;border:1px solid #e1eaf4;border-left:3px solid #83b7cd;border-radius:13px;background:linear-gradient(125deg,#fff,#f5f9ff);box-shadow:0 4px 13px #1a41610d}
+.ticketChat :global(.rk-chat-message[data-ticket-space=true] .rk-chat-sender){color:#2e6189}
+.ticketChat :global(.rk-chat-group button:has(.rk-chat-avatar[data-ticket-space=true])){background:linear-gradient(110deg,#f4faff,#f4f2ff);border-color:#d8e6f0}
+.ticketChat :global(.rk-chat-group button:has(.rk-chat-avatar[data-ticket-space=true]) strong){color:#315d83}
