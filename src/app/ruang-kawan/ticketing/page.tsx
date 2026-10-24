@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { FiArrowLeft, FiBriefcase, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiDollarSign, FiEdit3, FiExternalLink, FiFilter, FiGrid, FiLink, FiList, FiMessageCircle, FiPaperclip, FiPlus, FiRefreshCw, FiSearch, FiSend, FiTag, FiTrash2, FiUploadCloud, FiUsers, FiX } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 import { supabaseUrl } from '@/lib/supabase/config';
@@ -50,6 +50,7 @@ export default function TicketingPage(){
  const [view,setView]=useState<'tickets'|'won'>('tickets'),[layout,setLayout]=useState<'card'|'list'>('card');
  const [showForm,setShowForm]=useState(false),[form,setForm]=useState<Form>(emptyForm()),[pics,setPics]=useState<Pic[]>([]),[editingTicket,setEditingTicket]=useState<Ticket|null>(null);
  const [picMember,setPicMember]=useState(''),[picRole,setPicRole]=useState<PicRole>('account_manager');
+ const autoOpenHandled=useRef(false);
  const [docLinks,setDocLinks]=useState<Array<{label:string;url:string}>>([]),[docLabel,setDocLabel]=useState(''),[docUrl,setDocUrl]=useState(''),[docFiles,setDocFiles]=useState<File[]>([]);
  async function load(){
   setError('');const db=createClient();const {data:{session}}=await db.auth.getSession();
@@ -59,6 +60,44 @@ export default function TicketingPage(){
   setWorkspace(result.data as Workspace);setLoading(false);
  }
  useEffect(()=>{void load()},[]);
+ useEffect(()=>{
+  if(!workspace||loading||autoOpenHandled.current)return;
+  const params=new URLSearchParams(window.location.search);
+  const ticketId=params.get('ticket');
+  const leadId=params.get('lead');
+  if(ticketId){
+   autoOpenHandled.current=true;
+   window.history.replaceState(null,'','/ruang-kawan/tickets/');
+   const ticket=workspace.tickets.find(item=>item.id===ticketId);
+   if(ticket){setView('tickets');openEdit(ticket)}
+   else setError('Ticket tidak ditemukan atau tidak bisa diakses.');
+   return;
+  }
+  if(!leadId||params.get('create')!=='1')return;
+  autoOpenHandled.current=true;
+  window.history.replaceState(null,'','/ruang-kawan/tickets/');
+  setView('tickets');setEditingTicket(null);setError('');
+  void (async()=>{
+   const result=await createClient().rpc('ticketing_pipeline_lead_prefill',{target_pipeline_lead_id:leadId});
+   if(result.error){setError(result.error.message);return}
+   const data=result.data as Partial<Form>|null;
+   if(!data){setError('Data lead Pipeline tidak ditemukan.');return}
+   setForm({
+    ...emptyForm(),
+    client_name:data.client_name??'',
+    client_type:data.client_type==='repeat_order'?'repeat_order':'new_client',
+    service_name:services.includes(data.service_name??'')?data.service_name??'':'',
+    requirements:data.requirements??'',
+    target_proposal_date:data.target_proposal_date??'',
+    project_plan:data.project_plan??'',
+    rru_status:data.rru_status==='response'||data.rru_status==='unreachable'?data.rru_status:'ready',
+    pipeline_lead_id:leadId
+   });
+   setPics([]);setDocLinks([]);setDocFiles([]);setDocLabel('');setDocUrl('');
+   setNotice('Data lead dimasukkan otomatis. Lengkapi bagian yang kosong dan pilih PIC.');
+   setShowForm(true);
+  })();
+ },[workspace,loading]);
  const tickets=workspace?.tickets??[],wonProjects=workspace?.won_projects??[];
  const bounds=getBounds(period,periodYear,periodMonth,periodQuarter);
  const inPeriod=(key:string)=>!bounds||(key>=bounds[0]&&key<bounds[1]);
@@ -146,8 +185,8 @@ export default function TicketingPage(){
     <div className={styles.detailBlock}><small>RENCANA PROJECT</small><p>{ticket.project_plan}</p></div>
     <div className={styles.pics}><small><FiUsers/> PIC TERTAG</small><p>{ticket.pics.length?ticket.pics.map(pic=>`${roleLabels[pic.role]??pic.role}: ${pic.name}`).join(' · '):'Belum ditentukan'}</p></div>
     {ticket.pipeline_lead_id?<div className={styles.valueRow}><span>Penawaran <strong>{money(ticket.proposal_value)}</strong></span><span>Deal <strong>{ticket.is_won?money(ticket.won_value):'Belum Won'}</strong></span></div>:null}
-    <footer className={styles.cardFooter}><span>Dibuat {dateLabel(localDateKey(ticket.created_at))} · {ticket.creator_name}</span><div>{workspace?.can_create?<><button type="button" onClick={()=>openEdit(ticket)}><FiEdit3/> Edit</button><button type="button" data-danger onClick={()=>void deleteTicket(ticket)}><FiTrash2/> Hapus</button></>:null}{ticket.discussion_conversation_id?<span className={styles.discussionReady}><FiMessageCircle/> Diskusi PIC aktif</span>:null}{ticket.chat_message_id&&workspace?.conversation_id?<Link href={`/ruang-kawan/chat/?conversation=${workspace.conversation_id}&thread=${ticket.chat_message_id}`}><FiExternalLink/> Pengumuman</Link>:null}</div></footer>
-   </article>)}{!visibleTickets.length?<div className={styles.empty}><span><FiBriefcase/></span><strong>{tickets.length?'Tidak ada ticket yang cocok':'Belum ada ticket diterbitkan'}</strong><p>Lead di Pipeline tidak otomatis menjadi ticket. BD/CEO menerbitkan ticket secara manual dari form ini.</p>{workspace?.can_create?<button onClick={()=>setShowForm(true)}><FiPlus/> Buat ticket</button>:null}</div>:null}</section>:<section className={styles.recordGrid} data-layout={layout}>{visibleWon.map(project=><article className={styles.wonCard} key={project.id}>
+    <footer className={styles.cardFooter}><span>Dibuat {dateLabel(localDateKey(ticket.created_at))} · {ticket.creator_name}</span><div className={styles.ticketActionRow}>{workspace?.can_create?<><button type="button" onClick={()=>openEdit(ticket)}><FiEdit3/> Edit</button><button type="button" data-danger onClick={()=>void deleteTicket(ticket)}><FiTrash2/> Hapus</button></>:null}{ticket.discussion_conversation_id?<span className={styles.discussionReady}><FiMessageCircle/> Diskusi PIC aktif</span>:null}{ticket.chat_message_id&&workspace?.conversation_id?<Link href={`/ruang-kawan/chat/?conversation=${workspace.conversation_id}&thread=${ticket.chat_message_id}`}><FiExternalLink/> Pengumuman</Link>:null}</div></footer>
+   </article>)}{!visibleTickets.length?<div className={styles.empty}><span><FiBriefcase/></span><strong>{tickets.length?'Tidak ada ticket yang cocok':'Belum ada ticket diterbitkan'}</strong><p>Lead Pipeline bisa diteruskan langsung ke form ticket dari tombol Ticket pada setiap lead.</p>{workspace?.can_create?<button onClick={()=>setShowForm(true)}><FiPlus/> Buat ticket</button>:null}</div>:null}</section>:<section className={styles.recordGrid} data-layout={layout}>{visibleWon.map(project=><article className={styles.wonCard} key={project.id}>
     <header className={styles.cardTop}><span className={styles.ticketCode}>{project.lead_code}</span><span className={styles.wonPill}><FiCheckCircle/> WON</span></header>
     <h3>{project.client_name}</h3><p className={styles.service}>{project.service_name||'Service belum dicatat'}</p>
     <div className={styles.metaGrid}><span><FiCalendar/> Deal · {dateLabel(project.won_date)}</span><span><FiBriefcase/> {project.stage}</span></div>
@@ -157,7 +196,7 @@ export default function TicketingPage(){
   </section>
  </section>
  {showForm?<div className={`rk-work-modal ${styles.modal}`} role="dialog" aria-modal="true"><form className={styles.ticketForm} onSubmit={event=>void createTicket(event)}>
-  <header className={styles.formHeader}><div><small>COMMERCIAL & HANDOVER</small><h2>{editingTicket?'Edit ticket':'Buat ticket baru'}</h2><p>Ticket ID dibuat otomatis; ringkasan tampil sebagai kartu khusus di grup utama.</p></div><button type="button" onClick={()=>{setShowForm(false);setEditingTicket(null);setError('')}} aria-label="Tutup"><FiX/></button></header>
+  <header className={styles.formHeader}><div><small>COMMERCIAL & HANDOVER</small><h2>{editingTicket?'Edit ticket':'Buat ticket baru'}</h2><p>{form.pipeline_lead_id&&!editingTicket?'Data lead diisi otomatis. Lengkapi kebutuhan yang belum ada, cek tipe client dan RRU, lalu tentukan PIC.':'Ticket ID dibuat otomatis; ringkasan tampil sebagai kartu khusus di grup utama.'}</p></div><button type="button" onClick={()=>{setShowForm(false);setEditingTicket(null);setError('')}} aria-label="Tutup"><FiX/></button></header>
   {error?<p className="rk-work-alert" data-error>{error}</p>:null}
   <div className={styles.fields}>
    <label>Client<input required value={form.client_name} onChange={event=>setForm({...form,client_name:event.target.value})} placeholder="Nama client"/></label>
@@ -167,7 +206,7 @@ export default function TicketingPage(){
    <label>Target proposal<input required type="date" value={form.target_proposal_date} onChange={event=>setForm({...form,target_proposal_date:event.target.value})}/></label>
    <label className={styles.wide}>Rencana project<textarea required value={form.project_plan} onChange={event=>setForm({...form,project_plan:event.target.value})} placeholder="Tahapan utama, target pelaksanaan, atau rencana delivery"/></label>
    <fieldset className={`${styles.wide} ${styles.rruField}`}><legend>Status RRU</legend><p>Pilih kondisi terbaru prospek untuk membantu tim menentukan tindak lanjut.</p><div>{rruOptions.map(option=><label key={option.value} data-selected={form.rru_status===option.value}><input type="radio" name="rru-status" checked={form.rru_status===option.value} onChange={()=>setForm({...form,rru_status:option.value})}/><strong>{option.label}</strong><small>{option.short}</small><span>{option.description}</span></label>)}</div></fieldset>
-   <label className={styles.wide}>Hubungkan ke lead Pipeline <select value={form.pipeline_lead_id} onChange={event=>setForm({...form,pipeline_lead_id:event.target.value})}><option value="">Tidak dihubungkan</option>{workspace?.pipeline_options.map(lead=><option value={lead.id} key={lead.id}>{lead.lead_code} · {lead.client_name} · {lead.stage}</option>)}</select><small>Opsional dan manual; stage Pipeline tidak otomatis menerbitkan ticket.</small></label>
+   <label className={styles.wide}>Hubungkan ke lead Pipeline <select value={form.pipeline_lead_id} onChange={event=>setForm({...form,pipeline_lead_id:event.target.value})}><option value="">Tidak dihubungkan</option>{workspace?.pipeline_options.map(lead=><option value={lead.id} key={lead.id}>{lead.lead_code} · {lead.client_name} · {lead.stage}</option>)}</select><small>{form.pipeline_lead_id?'Lead terpilih otomatis dari Pipeline.':'Opsional; kamu juga bisa memilih lead Pipeline di sini.'}</small></label>
   </div>
   <section className={styles.documentPicker}><div><h3><FiPaperclip/> Dokumen sebelumnya</h3><p>Tambahkan link proposal, brief, atau file agar langsung tergabung di pesan ticket pada Commercial.</p></div>
    <div className={styles.linkRow}><input value={docLabel} onChange={event=>setDocLabel(event.target.value)} placeholder="Nama dokumen"/><input type="url" value={docUrl} onChange={event=>setDocUrl(event.target.value)} placeholder="https://..."/><button type="button" disabled={!docUrl.trim()} onClick={()=>{setDocLinks(items=>[...items,{label:docLabel.trim()||docUrl.trim(),url:docUrl.trim()}]);setDocLabel('');setDocUrl('')}}><FiLink/> Tambah link</button></div>
