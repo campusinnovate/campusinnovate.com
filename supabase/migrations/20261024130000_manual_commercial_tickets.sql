@@ -90,7 +90,7 @@ begin
  select conversation_id into room from public.commercial_ticket_chat_config where singleton;
  if room is null then raise exception 'Grup Commercial & Handover belum disiapkan.'; end if;
  select coalesce(full_name,email::text) into creator_name from public.memberships where id=actor;
- body:='🎫 TIKET BARU'||E'\n'||'Ticket ID: '||ticket_code_value||E'\n'||'Client: '||client_value||E'\n'||'Service: '||service_value||E'\n'||E'\n'||'Deskripsi & kebutuhan detail:'||E'\n'||requirements_value||E'\n'||E'\n'||'Target proposal: '||to_char(target_date,'DD/MM/YYYY')||E'\n'||'Rencana project:'||E'\n'||plan_value||E'\n'||'Status RRU: '||case rru_value when 'repeat_order' then 'Repeat Order' else 'First Time Client' end||E'\n'||'Ticket Creator: '||creator_name||E'\n'||'PIC:';
+ body:='🎫 TIKET BARU'||E'\n'||'Ticket ID: '||ticket_code_value||E'\n'||'Client: '||client_value||E'\n'||'Service: '||service_value||E'\n'||E'\n'||'Deskripsi & kebutuhan detail:'||E'\n'||requirements_value||E'\n'||E'\n'||'Target proposal: '||to_char(target_date,'DD/MM/YYYY')||E'\n'||'Rencana project:'||E'\n'||plan_value||E'\n'||'Status RRU: '||case rru_value when 'repeat_order' then 'Repeat Order' else 'First Time Client' end||E'\n'||'Ticket Creator: '||creator_name||E'\n'||'Progress: Commercial → Proposal & Deal → Handover → Delivery → Report & Close (update di thread ini)'||E'\n'||'PIC:';
  for pic in select value from jsonb_array_elements(coalesce(payload->'pics','[]'::jsonb)) loop
   pic_id:=nullif(pic->>'membership_id','')::uuid; pic_role_value:=coalesce(nullif(pic->>'role',''),'other');
   if pic_id is null or pic_role_value not in('account_manager','operations','sales','marketing','hr','other') then raise exception 'PIC ticket tidak valid.'; end if;
