@@ -491,7 +491,6 @@ export default function KawanChatPage() {
           {!detail?.related.length ? <div className="rk-chat-detail-empty"><FiLink /><p>Belum ada project, assignment, dokumen, atau meeting yang dihubungkan.</p></div> : null}
           </>:null}
           <section><strong>Anggota</strong><div>{detail?.members.slice(0, 8).map((member) => <button className="rk-chat-member-dot rk-chat-profile-trigger" onClick={() => showProfile(member)} key={member.id}><Avatar name={member.name} url={member.avatar_url} online={onlineIds.has(member.id)} /><small>{member.name}</small></button>)}</div></section>
-        </>}
       </aside>
     </section>
     {selectedRelation?<ChatDialog title={selectedRelation.title} onClose={()=>setSelectedRelation(null)}><p>{selectedRelation.subtitle||'Catatan ini tersimpan sebagai konteks percakapan.'}</p><small>{selectedRelation.type}</small></ChatDialog>:null}
