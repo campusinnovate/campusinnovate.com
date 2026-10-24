@@ -12,3 +12,22 @@
 .ticketAnnouncement{display:block;min-width:min(560px,calc(100vw - 170px));max-width:680px;padding:17px 18px;border:1px solid #dce6f1;border-radius:16px;background:linear-gradient(145deg,#fff 0%,#f8fbff 100%);box-shadow:0 10px 28px rgba(31,58,92,.09);color:#273c57;line-height:1.45;white-space:normal}.ticketAnnouncement>header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid #e7edf5}.ticketAnnouncement>header strong{font-size:13px;letter-spacing:.02em}.ticketAnnouncement>header small{padding:4px 7px;border-radius:8px;background:#fff0f1;color:#a94155;font-size:9px;font-weight:850}.ticketBadge{padding:5px 8px;border-radius:8px;background:linear-gradient(135deg,#eaf5ff,#eff0ff);color:#406a93;font-size:9px;font-weight:900;letter-spacing:.09em}.ticketFields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:13px 0}.ticketFields article{min-width:0;padding:9px 11px;border:1px solid #ebeff5;border-radius:10px;background:#fff}.ticketFields article[data-wide=true]{grid-column:1/-1}.ticketFields article small{display:block;margin:0 0 4px;color:#8392a6;font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.ticketFields article span{display:block;color:#3f536e;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}.ticketAnnouncement>footer{padding-top:10px;border-top:1px solid #e7edf5;color:#73849a;font-size:10px}.ticketAnnouncement>footer b{padding:0 4px;color:#9aabc0}@media(max-width:600px){.ticketAnnouncement{min-width:min(300px,calc(100vw - 95px));padding:13px}.ticketFields{grid-template-columns:1fr}.ticketFields article[data-wide=true]{grid-column:auto}.ticketAnnouncement>header{grid-template-columns:1fr auto}.ticketBadge{grid-column:1/-1;width:max-content}}
 
 .ticketChat :global(.rk-chat-detail .ticketAnnouncement){min-width:0;width:100%;max-width:100%;box-sizing:border-box}.ticketChat :global(.rk-chat-detail .ticketFields){grid-template-columns:1fr}.ticketChat :global(.rk-chat-detail .ticketAnnouncement>header){grid-template-columns:1fr auto}.ticketChat :global(.rk-chat-detail .ticketBadge){grid-column:1/-1;width:max-content}
+
+.ticketChat :global(.rk-chat-shortcuts){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ticketChat :global(.rk-chat-shortcuts>button){min-width:0;justify-content:flex-start;padding:8px 9px}
+.sidebarConversationRow{position:relative;display:flex;align-items:center;gap:2px;margin:2px 7px;border-radius:11px}
+.sidebarConversationRow[data-active=true]{background:rgba(255,255,255,.11)}
+.sidebarConversationOpen{display:flex;align-items:center;gap:9px;min-width:0;flex:1;padding:9px 5px 9px 8px;border:0;border-radius:10px;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.sidebarConversationOpen:hover,.sidebarConversationOpen[data-active=true]{background:rgba(255,255,255,.1)}
+.sidebarConversationOpen>span:not(.rk-chat-avatar){display:flex;flex:1;flex-direction:column;gap:3px;min-width:0}
+.sidebarConversationOpen>span>strong{display:flex;align-items:center;gap:5px;overflow:hidden;color:#f4f7fc;font-size:11px;font-weight:760;text-overflow:ellipsis;white-space:nowrap}
+.sidebarConversationOpen>span>strong svg{flex:0 0 auto;color:#b6d7ec}
+.sidebarConversationOpen>span>small{overflow:hidden;color:#a9b7cb;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.sidebarConversationOpen>b{flex:0 0 auto;min-width:20px;padding:3px 6px;border-radius:999px;background:#f5d14d;color:#243452;font-size:9px;text-align:center}
+.sidebarConversationOpen>time{flex:0 0 auto;color:#9aabc2;font-size:9px}
+.sidebarActionsToggle{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;margin-right:4px;border:0;border-radius:8px;background:transparent;color:#c6d2e2;cursor:pointer;opacity:.7}
+.sidebarActionsToggle:hover,.sidebarActionsToggle[aria-expanded=true]{background:rgba(255,255,255,.14);color:#fff;opacity:1}
+.sidebarActionsMenu{position:absolute;top:calc(100% - 2px);right:5px;z-index:30;display:grid;min-width:180px;padding:5px;border:1px solid #dfe6ef;border-radius:12px;background:#fff;box-shadow:0 14px 35px rgba(10,25,45,.25)}
+.sidebarActionsMenu>button{display:flex;align-items:center;gap:9px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:#34465e;font-size:11px;text-align:left;cursor:pointer}
+.sidebarActionsMenu>button:hover{background:#f1f5fa}
+.sidebarActionsMenu>button[data-danger]{color:#a13d51}
