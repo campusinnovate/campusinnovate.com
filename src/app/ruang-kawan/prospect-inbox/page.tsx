@@ -126,7 +126,7 @@ export default function ProspectInboxPage(){
  if(state==='loading')return <main className={styles.foundation}><div className={styles.empty}>Menyiapkan Prospect Inbox…</div></main>;
  if(state==='denied')return <main className={styles.foundation}><div className={styles.empty}><h1>Prospect Inbox belum tersedia</h1><p>Akses Pipeline BD diperlukan.</p><Link href="/ruang-kawan/marketing/">Kembali ke Marketing</Link></div></main>;
  return <main className={styles.foundation}><section className={styles.shell}>
-  <nav className={styles.topnav}><Link href="/ruang-kawan/marketing/?tab=pipeline"><FiArrowLeft/> Pipeline & Prospect</Link><button onClick={()=>void load()}><FiRefreshCw/> Muat ulang</button></nav>
+  <nav className={styles.topnav}><Link href="/ruang-kawan/marketing/?tab=prospect"><FiArrowLeft/> Marketing</Link><button onClick={()=>void load()}><FiRefreshCw/> Muat ulang</button></nav>
   <header className={styles.hero}><div><small>Pre-pipeline review workspace</small><h1>Prospect Inbox</h1><p>Review seluruh data riset, tandai duplicate atau junk, validasi PIC, lalu pindahkan record yang sama ke Pipeline BD saat siap outreach.</p></div><div className={styles.heroActions}>{canManage?<button onClick={()=>{setError('');setManual(blankManual())}}><FiPlus/> Tambah lead</button>:null}<Link href="/ruang-kawan/pipeline/">Buka Pipeline BD <FiSend/></Link></div></header>
   {message?<p className={styles.success}>{message}</p>:null}{error?<p className={styles.error}>{error}</p>:null}
   <section className={styles.stats}>
