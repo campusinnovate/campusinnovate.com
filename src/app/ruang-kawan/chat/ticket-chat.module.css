@@ -53,3 +53,7 @@
 .rowPinned{margin-left:5px;color:#d29a25}
 
 .ticketChat :global(.rk-chat-conversation-head[data-commercial-space=true] .rk-chat-avatar){display:grid;place-items:center;background:linear-gradient(145deg,#d9f2e7,#dcefe9);border:1px solid #b8dfce;color:#2d8069;box-shadow:0 5px 16px #28785c1a}
+
+.unreadTotal{display:grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#e8eef5;color:#405267;font-size:10px}
+.ticketSpaceLink{display:inline-grid!important;place-items:center;width:30px;height:30px;border:1px solid #cde8dc!important;border-radius:9px;background:#edf8f3!important;color:#24715e!important}
+.ticketChat :global(.rk-chat-message[data-commercial-space=true]>div){border:1px solid #d9eee5;border-left:3px solid #56b896;border-radius:13px;background:linear-gradient(145deg,#fff,#f5fbf8)}
