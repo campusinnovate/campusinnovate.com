@@ -118,4 +118,10 @@
 .sidebarConversationOpen[data-active=true]{background:transparent}
 @media(max-width:700px){.ticketChat :global(.rk-chat-message[data-ticket-space=true]){grid-template-columns:30px minmax(0,1fr);gap:6px}.ticketChat :global(.rk-chat-message[data-ticket-space=true][data-own=true]){grid-template-columns:minmax(0,1fr) 30px}}
 
-.ticketChat :global(.sidebarConversationOpen .rk-chat-avatar[data-commercial-space=true]){background:linear-gradient(145deg,#e6f4ff 0%,#c8e4fa 52%,#acd4f1 100%);border:1px solid rgba(145,194,226,.8);color:#3476a3;box-shadow:0 5px 15px rgba(65,127,174,.18)}
+.ticketChat .sidebarConversationOpen :global(.rk-chat-avatar[data-commercial-space=true]){background:linear-gradient(145deg,#e6f4ff 0%,#c8e4fa 52%,#acd4f1 100%)!important;border:1px solid rgba(145,194,226,.8)!important;color:#3476a3!important;box-shadow:0 5px 15px rgba(65,127,174,.18)!important}
+
+/* Put each unread/count badge on its own compact filter control. */
+.ticketChat .filterBar{height:42px;flex-basis:42px;padding-top:5px;overflow:visible}
+.ticketChat :global(.rk-chat-shortcuts){overflow:visible!important}
+.ticketChat :global(.rk-chat-shortcuts>button){position:relative;flex:1 1 0%;overflow:visible}
+.ticketChat .filterCount{position:absolute;top:-4px;right:-2px;z-index:4;display:grid;place-items:center;min-width:12px;height:12px;padding:0 2px;box-sizing:border-box;border:1px solid rgba(255,255,255,.85);border-radius:999px;background:#f3d44e;color:#173452;font-size:6px;font-weight:900;line-height:1;box-shadow:0 2px 5px rgba(18,35,58,.25)}
