@@ -441,7 +441,7 @@ export default function KawanChatPage() {
   if (status === 'denied') return <main className="rk-chat-foundation"><section className="rk-chat-loading"><FiMessageCircle /><h1>Kawan Chat belum tersedia</h1><p>Akun ini belum memiliki keanggotaan internal aktif.</p></section></main>;
 
   return <main className={`rk-chat-foundation ${ticketChatStyles.ticketChat}`}>
-    <section className="rk-chat-shell" data-sidebar={sidebarOpen} data-detail={detailOpen} data-ticket-space={isTicketSpaceName(detail?.conversation.name??'')} data-commercial-space={isCommercialSpaceName(detail?.conversation.name??'')} data-project-space={detail?.conversation.kind==='project'}>
+    <section className="rk-chat-shell" data-sidebar={sidebarOpen} data-detail={detailOpen} data-ticket-space={isTicketSpaceName(detail?.conversation.name??'')} data-commercial-space={isCommercialSpaceName(detail?.conversation.name??'')} data-project-space={detail?.conversation.kind==='project'} data-direct-space={detail?.conversation.kind==='direct'}>
       <aside className="rk-chat-sidebar">
         <header><div><FiMessageCircle /><span><small>Ruang Kawan</small><strong>Kawan Chat</strong></span></div><button onClick={() => setSidebarOpen(false)} aria-label="Tutup daftar percakapan"><FiX /></button></header>
         <button className="rk-chat-new" onClick={() => setCreateOpen(true)} disabled={backendPending}><FiPlus /> Percakapan baru</button>
