@@ -1,0 +1,31 @@
+/* User-scoped Ruang Kawan theme. The selected theme is applied to the whole internal workspace. */
+html[data-rk-theme="light"]{color-scheme:light}
+html[data-rk-theme="dark"]{color-scheme:dark}
+html[data-rk-theme="dark"] body{background:#071321!important;color:#e4edf8!important}
+html[data-rk-theme="dark"] body :is(.rk-dashboard-foundation,.rk-chat-foundation,.rk-activity-foundation,.rk-work-foundation,.rk-content-foundation,.rk-notification-foundation,.rk-pos,.rk-pipeline-foundation,.rk-prospect-foundation){background-color:#071321!important;color:#e4edf8!important}
+html[data-rk-theme="dark"] body :is(.rk-dashboard-shell,.rk-activity-shell,.rk-work-shell,.rk-notification-shell,.rk-pos-board,.rk-pipeline-board,.rk-chat-shell,.rk-chat-sidebar,.rk-chat-main,.rk-chat-detail,.rk-chat-related){background-color:#0c1928!important;color:#e4edf8!important;border-color:#25374c!important}
+html[data-rk-theme="dark"] body :is(.rk-dashboard-module-grid article,.rk-dashboard-summary article,.rk-activity-layout>*,.rk-calendar-panel,.rk-day-panel,.rk-feed-panel,.rk-feed-list article,.rk-work-tabs,.rk-assignment-list article,.rk-assignment-detail,.rk-finance-content,.rk-notification-list article,.rk-pos-card,.rk-pos-analytics,.rk-pipeline-card,.rk-chat-conversation-head,.rk-chat-detail-empty,.rk-chat-profile-card,.rk-chat-meeting-card,.rk-chat-modal>*,.rk-chat-search-modal>*){background-color:#111f30!important;color:#e4edf8!important;border-color:#293c52!important}
+html[data-rk-theme="dark"] body :is(.rk-chat-message>div,.rk-chat-message[data-ticket-space=true]>div,.rk-chat-inline-replies,.rk-chat-inline-composer,.rk-chat-timeline,.rk-chat-composer,.rk-chat-upload-queue,.rk-chat-mention-menu,.rk-chat-action-modal,.rk-chat-action-grid){background-color:#132338!important;color:#e4edf8!important;border-color:#2b4058!important}
+html[data-rk-theme="dark"] body :is(.rk-chat-message,.rk-chat-sender,.rk-chat-conversation-head h1,.rk-chat-sidebar strong,.rk-chat-detail h2,.rk-chat-detail h3,.rk-chat-shell button,.rk-chat-shell input,.rk-chat-shell textarea,.rk-chat-shell select,.rk-work-shell h1,.rk-work-shell h2,.rk-work-shell h3,.rk-activity-shell h1,.rk-activity-shell h2,.rk-notification-shell strong,.rk-dashboard-shell h1,.rk-dashboard-shell h2,.rk-pos h1,.rk-pos h2,.rk-pos h3){color:#e4edf8!important}
+html[data-rk-theme="dark"] body :is(.rk-chat-shell p,.rk-chat-shell small,.rk-chat-shell time,.rk-chat-shell label,.rk-work-shell p,.rk-work-shell small,.rk-activity-shell p,.rk-activity-shell small,.rk-notification-shell p,.rk-notification-shell small,.rk-dashboard-shell p,.rk-dashboard-shell small,.rk-pos p,.rk-pos small){color:#9aacc0!important}
+html[data-rk-theme="dark"] body :is(.rk-chat-shell input,.rk-chat-shell textarea,.rk-chat-shell select,.rk-work-shell input,.rk-work-shell textarea,.rk-work-shell select,.rk-activity-shell input,.rk-activity-shell select,.rk-pos input,.rk-pos textarea,.rk-pos select){background:#0b1726!important;border-color:#31465d!important;color:#e4edf8!important}
+html[data-rk-theme="dark"] body .rk-mini-nav{background:rgba(5,16,29,.96)!important}
+html[data-rk-theme="dark"] body .rk-mini-nav :is(a,button){color:#d3dfec}
+html[data-rk-theme="dark"] body .rk-mini-nav :is(a[data-active=true],button[data-active=true]){background:#244b70!important;color:#fff!important}
+html[data-rk-theme="dark"] body .rk-more-dropdown,html[data-rk-theme="dark"] body .rk-profile-dropdown{background:#102034!important;border:1px solid #2a4057!important;color:#e4edf8!important}
+html[data-rk-theme="dark"] body .rk-more-dropdown :is(a,button),html[data-rk-theme="dark"] body .rk-profile-dropdown :is(a,button){color:#e4edf8!important}
+html[data-rk-theme="dark"] body .rk-chat-main[data-ticket-space=true]{background:#0a1726!important}
+html[data-rk-theme="dark"] body .rk-chat-conversation-head[data-ticket-space=true]{background:#102137!important;border-color:#2b4058!important}
+html[data-rk-theme="dark"] body .rk-chat-message[data-ticket-space=true]>div{background:#132338!important;border-color:#2b4058!important;box-shadow:0 5px 16px rgba(0,0,0,.18)!important}
+html[data-rk-theme="dark"] body :is(.rk-chat-inline-thread,.rk-chat-inline-empty,.rk-chat-search-results>article){background:#101e2e!important;color:#e4edf8!important;border-color:#2b4058!important}
+html[data-rk-theme="dark"] body .rk-chat-shell :is(button:hover,a:hover){filter:brightness(1.12)}
+@media(prefers-reduced-motion:no-preference){body{transition:background-color .18s ease,color .18s ease}}
+
+/* Shared workspace cards and forms also follow the selected theme. */
+html[data-rk-theme="dark"] body :is([class^="rk-"],[class*=" rk-"]){border-color:#293c52}
+html[data-rk-theme="dark"] body :is([class*="-foundation"],[class*="-shell"],[class*="-sidebar"],[class*="-main"],[class*="-content"],[class*="-panel"],[class*="-card"],[class*="-list"],[class*="-board"],[class*="-toolbar"],[class*="-detail"],[class*="-modal"],[class*="-table"]){background-color:#101d2d;color:#e4edf8}
+html[data-rk-theme="dark"] body :is([class^="rk-"],[class*=" rk-"]) :is(h1,h2,h3,h4,strong,label,dt,dd,th,td){color:#e4edf8}
+html[data-rk-theme="dark"] body :is([class^="rk-"],[class*=" rk-"]) :is(p,small,span,li,caption){color:#aab9ca}
+html[data-rk-theme="dark"] body :is([class^="rk-"],[class*=" rk-"]) :is(input,textarea,select){background-color:#0b1726;color:#e4edf8;border-color:#31465d}
+html[data-rk-theme="dark"] body :is([class^="rk-"],[class*=" rk-"]) :is(button,a){border-color:#31465d}
+html[data-rk-theme="dark"] body .rk-mini-nav :is(a[data-active=true],button[data-active=true]){background:#244b70!important;color:#fff!important}

@@ -4,6 +4,12 @@ import { FormEvent, useEffect, useState } from 'react';
 import { FiArrowRight, FiEye, FiEyeOff } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
+function landingPath(user: { user_metadata?: Record<string, unknown> } | null | undefined) {
+  const candidate = (user?.user_metadata?.rk_workspace_settings as { home_path?: unknown } | undefined)?.home_path;
+  const allowed = ['/ruang-kawan/dashboard/','/ruang-kawan/chat/','/ruang-kawan/activity/','/ruang-kawan/marketing/','/ruang-kawan/projects/','/ruang-kawan/kpi/','/ruang-kawan/finance/','/ruang-kawan/finance-pilot/'];
+  return typeof candidate === 'string' && allowed.includes(candidate) ? candidate : '/ruang-kawan/dashboard/';
+}
+
 export default function LoginPanel() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,7 +25,7 @@ export default function LoginPanel() {
 
     const supabase = createClient();
     void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) window.location.replace('/ruang-kawan/dashboard/');
+      if (data.session) window.location.replace(landingPath(data.session.user));
     });
   }, []);
 
@@ -45,7 +51,7 @@ export default function LoginPanel() {
     setBusy('password');
     setError('');
     const supabase = createClient();
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (loginError) {
       setError('Email atau password tidak sesuai, atau akun belum didaftarkan.');
@@ -53,7 +59,7 @@ export default function LoginPanel() {
       return;
     }
 
-    window.location.assign('/ruang-kawan/dashboard/');
+    window.location.assign(landingPath(loginData.session?.user));
   }
 
   return (

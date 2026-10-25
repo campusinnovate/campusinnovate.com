@@ -24,7 +24,10 @@ export default function RuangKawanCallbackPage() {
           return;
         }
       }
-      window.location.replace('/ruang-kawan/dashboard/');
+      const { data: { session } } = await supabase.auth.getSession();
+      const candidate = (session?.user.user_metadata?.rk_workspace_settings as { home_path?: unknown } | undefined)?.home_path;
+      const allowed = ['/ruang-kawan/dashboard/','/ruang-kawan/chat/','/ruang-kawan/activity/','/ruang-kawan/marketing/','/ruang-kawan/projects/','/ruang-kawan/kpi/','/ruang-kawan/finance/','/ruang-kawan/finance-pilot/'];
+      window.location.replace(typeof candidate === 'string' && allowed.includes(candidate) ? candidate : '/ruang-kawan/dashboard/');
     })();
   }, []);
 
