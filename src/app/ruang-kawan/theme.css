@@ -301,3 +301,329 @@ html[data-rk-theme="dark"] body .rk-chat-shell .rk-chat-file :is(span,strong,sma
 html[data-rk-theme="dark"] body .rk-chat-shell .rk-chat-sync :is(span,strong,small) {
   color: var(--rk-text-secondary) !important;
 }
+
+
+/* Project Management: lift white cards, lists, and modals into the shared dark system. */
+html[data-rk-theme="dark"] body .rk-project-list > button,
+html[data-rk-theme="dark"] body .rk-project-workspace,
+html[data-rk-theme="dark"] body .rk-project-gates article,
+html[data-rk-theme="dark"] body .rk-project-overview > div,
+html[data-rk-theme="dark"] body .rk-project-task-list > button,
+html[data-rk-theme="dark"] body .rk-project-team article,
+html[data-rk-theme="dark"] body .rk-project-records > button,
+html[data-rk-theme="dark"] body .rk-project-modal > form,
+html[data-rk-theme="dark"] body .rk-project-modal > form > :is(header,footer),
+html[data-rk-theme="dark"] body .rk-project-form fieldset {
+  background: var(--rk-surface) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-project-list > button[data-active="true"],
+html[data-rk-theme="dark"] body .rk-project-task-list > button:hover {
+  background: var(--rk-surface-hover) !important;
+  border-color: #557ca1 !important;
+}
+html[data-rk-theme="dark"] body .rk-project-gates article[data-state="approved"],
+html[data-rk-theme="dark"] body .rk-project-gates article[data-state="locked"] {
+  color: #86e0b7 !important;
+  background: rgba(49,151,111,.18) !important;
+}
+html[data-rk-theme="dark"] body .rk-project-gates article[data-state="waiting_approval"] {
+  color: #ead17d !important;
+  background: rgba(161,123,43,.2) !important;
+}
+html[data-rk-theme="dark"] body .rk-project-list em,
+html[data-rk-theme="dark"] body .rk-project-records > button > span {
+  color: #c8b5dd !important;
+  background: #2c2438 !important;
+}
+html[data-rk-theme="dark"] body .rk-project-list em[data-status="At Risk"],
+html[data-rk-theme="dark"] body .rk-project-records > button > span[data-type="risk"],
+html[data-rk-theme="dark"] body .rk-project-records > button > span[data-type="issue"] {
+  color: #ffaaa3 !important;
+  background: rgba(181,75,69,.2) !important;
+}
+html[data-rk-theme="dark"] body .rk-project-list em[data-status="Completed"],
+html[data-rk-theme="dark"] body .rk-project-list em[data-status="Archived"],
+html[data-rk-theme="dark"] body .rk-project-records > button > span[data-type="decision"],
+html[data-rk-theme="dark"] body .rk-project-records > button > span[data-type="lesson_learned"] {
+  color: #86e0b7 !important;
+  background: rgba(49,151,111,.18) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-project-workspace,.rk-project-list,.rk-project-team,.rk-project-records) :is(small,dt,dd,p,em) {
+  color: var(--rk-text-secondary) !important;
+}
+html[data-rk-theme="dark"] body .rk-project-workspace :is(header button,.rk-project-section-title button,.rk-project-team article > button) {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-project-form :is(input,select,textarea) {
+  background: #0d1726 !important;
+  color: var(--rk-text) !important;
+  border-color: #34465d !important;
+}
+
+/* KPI: tabs, score cards, workspaces, setup panels, and dialogs. */
+html[data-rk-theme="dark"] body :is(.rk-kpi-mode-nav,.rk-kpi-view-switch,.rk-kpi-formula,.rk-kpi-config,.rk-kpi-config article,.rk-kpi-period-action,.rk-kpi-modal > form,.rk-kpi-modal header,.rk-kpi-modal footer) {
+  background: var(--rk-surface) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-kpi-stats article,.rk-kpi-workspace,.rk-kpi-results > button,.rk-kpi-config-items > div,.rk-kpi-config-items > div > button) {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-kpi-mode-nav button[data-active="false"],.rk-kpi-view-switch button[data-active="false"],.rk-kpi-toolbar button,.rk-kpi-config footer button) {
+  background: #1a2a3e !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-mode-nav button[data-active="true"],
+html[data-rk-theme="dark"] body .rk-kpi-view-switch button[data-active="true"] {
+  background: #234967 !important;
+  color: #f3f7fc !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-kpi-list > button,.rk-kpi-config-categories > div,.rk-kpi-formula span,.rk-kpi-review-note) {
+  background: #1a2a3e !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-list > button[data-active="true"],
+html[data-rk-theme="dark"] body .rk-kpi-results > button:hover {
+  background: var(--rk-surface-hover) !important;
+  border-color: #3c6688 !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-kpi-list,.rk-kpi-workspace,.rk-kpi-config,.rk-kpi-modal) :is(small,p,label,legend) {
+  color: var(--rk-text-secondary) !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-list > button > span {
+  background: rgba(49,151,111,.2) !important;
+  color: #86e0b7 !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-list > button > span[data-score="At Risk"],
+html[data-rk-theme="dark"] body .rk-kpi-list > button > span[data-score="Needs Attention"] {
+  background: rgba(181,75,69,.2) !important;
+  color: #ffaaa3 !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-workspace header em,
+html[data-rk-theme="dark"] body .rk-kpi-impact {
+  background: rgba(49,151,111,.18) !important;
+  color: #86e0b7 !important;
+  border-color: rgba(104,214,163,.32) !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-workspace header em[data-kpi-status="revision_requested"],
+html[data-rk-theme="dark"] body .rk-kpi-impact[data-error="true"] {
+  background: rgba(181,75,69,.2) !important;
+  color: #ffaaa3 !important;
+  border-color: rgba(255,141,150,.32) !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-impact-grid span,
+html[data-rk-theme="dark"] body .rk-kpi-period-action > button[data-danger] {
+  background: rgba(181,75,69,.18) !important;
+  color: #ffaaa3 !important;
+  border-color: rgba(255,141,150,.3) !important;
+}
+
+/* Ticket & Won Archive has local light gradients that need explicit dark surfaces. */
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__statCard"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__archivePanel"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__toolbar"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__switcher"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__search"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__periodControl"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__layoutSwitch"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__valueRow"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__pics"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__empty"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__ticketForm"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__picPicker"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__documentPicker"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__documentChip"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__fileDrop"] {
+  background-image: none !important;
+  background-color: var(--rk-surface) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__statCard"] :is(small,em) {
+  color: var(--rk-text-secondary) !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__statCard"] strong,
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__ticketCard"] h3,
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__wonCard"] h3 {
+  color: var(--rk-text) !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__toolbar"] button[data-active="true"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__switcher"] button[data-active="true"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__layoutSwitch"] button[data-active="true"] {
+  background: #234967 !important;
+  color: #f3f7fc !important;
+  border-color: #3c6688 !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__toolbar"] button[data-active="false"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__switcher"] button[data-active="false"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__layoutSwitch"] button[data-active="false"] {
+  background: #1a2a3e !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__ticketActionRow"] :is(button,a),
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__cardFooter"] button,
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__formHeader"] > button {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__ticketActionRow"] [data-danger],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__cardFooter"] [data-danger] {
+  background: rgba(181,75,69,.18) !important;
+  color: #ffaaa3 !important;
+  border-color: rgba(255,141,150,.32) !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__statusPill"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__wonPill"] {
+  background: rgba(49,151,111,.18) !important;
+  color: #86e0b7 !important;
+  border-color: rgba(104,214,163,.32) !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__statusPill"][data-rru="response"] {
+  background: rgba(161,123,43,.2) !important;
+  color: #ead17d !important;
+  border-color: rgba(245,200,76,.3) !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__statusPill"][data-rru="unreachable"] {
+  background: rgba(181,75,69,.2) !important;
+  color: #ffaaa3 !important;
+  border-color: rgba(255,141,150,.32) !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__ticketCard"] :is(.ticketCode,.service,.metaGrid span,.detailBlock small,.detailBlock p,.pics p,.valueRow > span,.valueRow strong,.discussionReady) {
+  color: var(--rk-text-secondary) !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__ticketForm"] :is(input,select,textarea),
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__search"] input,
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__periodControl"] :is(select,input) {
+  background: #0d1726 !important;
+  color: var(--rk-text) !important;
+  border-color: #34465d !important;
+}
+
+/* Legacy Finance workspace and modal layers. */
+html[data-rk-theme="dark"] body .rk-finance-workspace {
+  background: var(--rk-canvas) !important;
+  color: var(--rk-text) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-finance-topbar,.rk-finance-subnav,.rk-finance-overview > article,.rk-finance-planning > article,.rk-finance-table,.rk-finance-metric-grid article,.rk-finance-summary-row article,.rk-finance-dashboard-grid > article,.rk-score-components,.rk-finance-note,.rk-finance-modal > section,.rk-finance-modal > section > header,.rk-finance-modal > section > footer,.rk-finance-event-groups article,.rk-finance-review > div) {
+  background: var(--rk-surface) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-finance-overview article > div,.rk-finance-planning article > div,.rk-finance-line,.rk-finance-table th,.rk-finance-table td,.rk-finance-modal footer,.rk-finance-event-groups button,.rk-finance-form label) {
+  border-color: var(--rk-border) !important;
+  color: var(--rk-text-secondary) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-finance-topbar h1,.rk-finance-page-heading h2,.rk-finance-table header h2,.rk-finance-dashboard-grid h3,.rk-score-components h3,.rk-finance-overview header h2,.rk-finance-planning header h2,.rk-finance-overview article > div b,.rk-finance-planning article > div strong,.rk-finance-line strong,.rk-finance-line > b,.rk-finance-table td strong,.rk-finance-event-groups h3,.rk-finance-review strong) {
+  color: var(--rk-text) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-finance-topbar p,.rk-finance-page-heading p,.rk-finance-table td small,.rk-finance-table > header p,.rk-finance-dashboard-grid header p,.rk-finance-progress-row small,.rk-finance-note,.rk-finance-overview article > div small,.rk-finance-planning article > div small,.rk-finance-event-groups button small) {
+  color: var(--rk-text-secondary) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-finance-topbar select,.rk-finance-filter select,.rk-finance-filter input,.rk-finance-form input,.rk-finance-form select,.rk-finance-form textarea) {
+  background: #0d1726 !important;
+  color: var(--rk-text) !important;
+  border-color: #34465d !important;
+}
+html[data-rk-theme="dark"] body .rk-finance-subnav button { color: var(--rk-text-secondary) !important; }
+html[data-rk-theme="dark"] body .rk-finance-subnav button[data-active="true"] { color: #8fcaff !important; border-color: #75b8ed !important; }
+html[data-rk-theme="dark"] body :is(.rk-finance-alerts article,.rk-finance-line [data-status],.rk-finance-table [data-status],.rk-finance-review > div,.rk-finance-review p) {
+  background: #1a2a3e !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-finance-alerts article[data-tone="healthy"],.rk-finance-line [data-status="AMAN"],.rk-finance-line [data-status="REKONSILIASI"],.rk-finance-table [data-status="Approved"],.rk-finance-table [data-status="AKTIF"],.rk-finance-table [data-status="Aktif"],.rk-finance-table [data-status="LUNAS"],.rk-finance-table [data-status="TERDANAI"]) {
+  background: rgba(49,151,111,.18) !important;
+  color: #86e0b7 !important;
+  border-color: rgba(104,214,163,.32) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-finance-alerts article[data-tone="critical"],.rk-finance-line [data-status="PERLU TAMBAH"],.rk-finance-line [data-status="SELISIH"],.rk-finance-table [data-status="OVERDUE"],.rk-finance-table [data-status="GAP"]) {
+  background: rgba(181,75,69,.18) !important;
+  color: #ffaaa3 !important;
+  border-color: rgba(255,141,150,.32) !important;
+}
+html[data-rk-theme="dark"] body .rk-finance-alerts article[data-tone="warning"] {
+  background: rgba(161,123,43,.2) !important;
+  color: #ead17d !important;
+  border-color: rgba(245,200,76,.3) !important;
+}
+
+/* Finance Pilot: local CSS module also needs dark-aware surfaces and controls. */
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] {
+  background: var(--rk-canvas) !important;
+  color: var(--rk-text) !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] :is(
+  [class*="__globalControls"],[class*="__workspaceNav"],[class*="__dataState"],[class*="__panel"],
+  [class*="__metrics"] article,[class*="__revenueMetrics"] article,[class*="__taskList"] button,
+  [class*="__invoiceList"] article,[class*="__receiptPanel"],[class*="__journalList"] article,
+  [class*="__projectCard"],[class*="__fundList"] label,[class*="__formula"],[class*="__reconciliation"],
+  [class*="__coverage"],[class*="__reportTabs"],[class*="__statement"] button,[class*="__targetStatus"],
+  [class*="__approvalBox"],[class*="__settingsGrid"],[class*="__masterList"],[class*="__rolePreview"],
+  [class*="__preservation"],[class*="__empty"]
+) {
+  background: var(--rk-surface) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] :is(
+  [class*="__rolePreview"] select,[class*="__globalControls"] select,[class*="__form"] input,
+  [class*="__form"] select,[class*="__form"] textarea,[class*="__receiptForm"] input,[class*="__receiptForm"] select,
+  [class*="__reconciliation"] input,[class*="__fundList"] input
+) {
+  background: #0d1726 !important;
+  color: var(--rk-text) !important;
+  border-color: #34465d !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] :is(
+  [class*="__workspaceNav"] button:not([data-active="true"]),
+  [class*="__reportTabs"] button:not([data-active="true"]),
+  [class*="__statement"] button:not(:first-child),
+  [class*="__secondary"],
+  [class*="__actions"] button
+) {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] :is(
+  [class*="__workspaceNav"] button[data-active="true"],
+  [class*="__reportTabs"] button[data-active="true"]
+) {
+  background: #234967 !important;
+  color: #f3f7fc !important;
+  border-color: #3c6688 !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] :is(
+  h1,h2,h3,h4,strong,b,label,dt,dd,th,td,legend
+) { color: var(--rk-text) !important; }
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] :is(p,small,time) {
+  color: var(--rk-text-secondary) !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] [class*="__preservation"] {
+  background: rgba(49,151,111,.12) !important;
+  color: #b8e9d2 !important;
+  border-color: rgba(104,214,163,.25) !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] [class*="__dataState"] {
+  background: #172b3b !important;
+  color: var(--rk-text-secondary) !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] [class*="__metrics"] article,
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] [class*="__revenueMetrics"] article {
+  background: var(--rk-surface-raised) !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] :is(button[data-primary="true"],.primary) {
+  background: var(--rk-accent) !important;
+  color: var(--rk-accent-ink) !important;
+  border-color: transparent !important;
+}
