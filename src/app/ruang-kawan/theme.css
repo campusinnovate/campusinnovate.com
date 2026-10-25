@@ -195,3 +195,11 @@ html[data-rk-theme="dark"] body .rk-push-control {
 html[data-rk-theme="dark"] body .rk-push-control :is(strong,b,label,p,small,span) {
   color: var(--rk-text-secondary) !important;
 }
+
+/* Every Ruang Kawan page foundation must use the same dark canvas, including Marketing. */
+html[data-rk-theme="dark"] body :is([class*="-foundation"]) {
+  background-color: var(--rk-canvas) !important;
+  background-image: none !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
