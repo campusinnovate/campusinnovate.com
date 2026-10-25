@@ -185,3 +185,13 @@ html[data-rk-theme="dark"] body :is(.rk-more-dropdown,.rk-profile-dropdown) :is(
 @media (prefers-reduced-motion: no-preference) {
   html[data-rk-theme] body { transition: background-color .18s ease,color .18s ease; }
 }
+/* Settings device-notification control is a standalone surface, not a nested card. */
+html[data-rk-theme="dark"] body .rk-push-control {
+  background: var(--rk-surface-raised) !important;
+  border: 1px solid var(--rk-border) !important;
+  color: var(--rk-text) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.2) !important;
+}
+html[data-rk-theme="dark"] body .rk-push-control :is(strong,b,label,p,small,span) {
+  color: var(--rk-text-secondary) !important;
+}
