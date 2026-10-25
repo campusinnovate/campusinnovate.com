@@ -232,3 +232,35 @@ html[data-rk-theme="dark"] body .rk-pos button > span {
   color: var(--rk-text-secondary) !important;
   border: 1px solid #38516b !important;
 }
+
+/* Pipeline lane counts and state chips use the same dark color language. */
+html[data-rk-theme="dark"] body .rk-pos-board > div > header > span {
+  background: #243950 !important;
+  color: var(--rk-text-secondary) !important;
+  border: 1px solid #38516b !important;
+}
+html[data-rk-theme="dark"] body .rk-pos-board footer span[data-state] {
+  background: #243247 !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: #3a4d64 !important;
+}
+html[data-rk-theme="dark"] body .rk-pos-board footer span[data-state="qualified"] {
+  background: rgba(49,151,111,.2) !important;
+  color: #86e0b7 !important;
+  border-color: rgba(104,214,163,.32) !important;
+}
+html[data-rk-theme="dark"] body .rk-pos-board footer span[data-state="pending"] {
+  background: rgba(161,123,43,.2) !important;
+  color: #ead17d !important;
+  border-color: rgba(245,200,76,.3) !important;
+}
+html[data-rk-theme="dark"] body .rk-pos-board header small[data-ticketed="true"] {
+  background: rgba(49,151,111,.2) !important;
+  color: #86e0b7 !important;
+  border-color: rgba(104,214,163,.32) !important;
+}
+html[data-rk-theme="dark"] body .rk-pos-board header em {
+  background: #243247 !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: #3a4d64 !important;
+}
