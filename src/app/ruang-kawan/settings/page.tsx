@@ -82,6 +82,7 @@ export default function WorkspaceSettingsPage() {
     setSaving(false);
     if (updateError) { setError('Pengaturan belum tersimpan. Coba lagi.'); return; }
     applyTheme(settings.theme);
+    window.dispatchEvent(new CustomEvent('kawan-settings-updated', { detail: { theme: settings.theme } }));
     setNotice('Pengaturan berhasil disimpan.');
   }
 
