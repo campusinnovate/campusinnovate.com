@@ -765,3 +765,20 @@ html[data-rk-theme="dark"] body .rk-chat-shell[data-direct-space="true"] .rk-cha
 html[data-rk-theme="dark"] body .rk-chat-shell[data-direct-space="true"] .rk-chat-message[data-own="true"] > div {
   background: #1d344a !important;
 }
+
+
+/* Finance journal cards and table variants render their own flow/status chips. */
+html[data-rk-theme="dark"] body .rk-finance-workspace :is(.rk-journal-cards,.rk-journal-table) :is([data-flow],[data-status]) {
+  background: #1b3045 !important;
+  color: #c8d9eb !important;
+  border-color: #344b63 !important;
+  opacity: 1 !important;
+}
+html[data-rk-theme="dark"] body .rk-finance-workspace :is(.rk-journal-cards,.rk-journal-table) [data-flow="in"] {
+  background: rgba(49,151,111,.18) !important;
+  color: #b8e9d2 !important;
+}
+html[data-rk-theme="dark"] body .rk-finance-workspace :is(.rk-journal-cards,.rk-journal-table) [data-flow="out"] {
+  background: rgba(201,132,63,.16) !important;
+  color: #f1c694 !important;
+}
