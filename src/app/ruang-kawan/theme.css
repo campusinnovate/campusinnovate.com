@@ -20,3 +20,12 @@ html[data-rk-theme="dark"] body .rk-chat-message[data-ticket-space=true]>div{bac
 html[data-rk-theme="dark"] body :is(.rk-chat-inline-thread,.rk-chat-inline-empty,.rk-chat-search-results>article){background:#101e2e!important;color:#e4edf8!important;border-color:#2b4058!important}
 html[data-rk-theme="dark"] body .rk-chat-shell :is(button:hover,a:hover){filter:brightness(1.12)}
 @media(prefers-reduced-motion:no-preference){body{transition:background-color .18s ease,color .18s ease}}
+
+/* Shared workspace cards and forms also follow the selected theme. */
+html[data-rk-theme="dark"] body :is([class^="rk-"],[class*=" rk-"]){border-color:#293c52}
+html[data-rk-theme="dark"] body :is([class*="-foundation"],[class*="-shell"],[class*="-sidebar"],[class*="-main"],[class*="-content"],[class*="-panel"],[class*="-card"],[class*="-list"],[class*="-board"],[class*="-toolbar"],[class*="-detail"],[class*="-modal"],[class*="-table"]){background-color:#101d2d;color:#e4edf8}
+html[data-rk-theme="dark"] body :is([class^="rk-"],[class*=" rk-"]) :is(h1,h2,h3,h4,strong,label,dt,dd,th,td){color:#e4edf8}
+html[data-rk-theme="dark"] body :is([class^="rk-"],[class*=" rk-"]) :is(p,small,span,li,caption){color:#aab9ca}
+html[data-rk-theme="dark"] body :is([class^="rk-"],[class*=" rk-"]) :is(input,textarea,select){background-color:#0b1726;color:#e4edf8;border-color:#31465d}
+html[data-rk-theme="dark"] body :is([class^="rk-"],[class*=" rk-"]) :is(button,a){border-color:#31465d}
+html[data-rk-theme="dark"] body .rk-mini-nav :is(a[data-active=true],button[data-active=true]){background:#244b70!important;color:#fff!important}
