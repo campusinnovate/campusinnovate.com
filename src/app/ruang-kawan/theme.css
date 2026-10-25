@@ -1021,3 +1021,35 @@ html[data-rk-theme="dark"] body .ma2-open-pipeline:hover,html[data-rk-theme="dar
 .ma3-notebook section{padding:0 28px 28px}.ma3-notebook section header{margin:0 -28px;padding:12px 18px;border-bottom:1px solid var(--rk-border,#ddd);gap:8px;background:var(--rk-surface-raised,#fafafa)}.ma3-notebook header button{padding:6px 8px;background:transparent;color:var(--rk-accent,#886511);border:0}.ma3-notebook header span{font-size:16px;color:var(--rk-text-muted,#64748b)}.ma3-notebook textarea{line-height:1.9;min-height:420px}.ma3-notebook aside button{padding:18px 20px}.ma3-notebook aside button strong{font-size:18px}.ma3-notebook aside button p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:16px}
 @media(max-width:1100px){.rk-activity-v2 .ma2-calendar-layout{grid-template-columns:1fr}.ma3-notebook{grid-template-columns:220px 1fr}.ma4-note-folders{grid-column:1/-1;flex-direction:row;align-items:center}.ma4-note-folders small{margin-top:0;margin-left:auto}}
 @media(max-width:700px){.ma3-notebook{grid-template-columns:1fr}.ma4-note-folders{flex-wrap:wrap}.rk-activity-v2 .ma2-agenda-card>.ma2-card-head small{white-space:normal}}
+
+/* Pipeline dark activity panel and lead/contact editor surfaces. */
+html[data-rk-theme="dark"] body .rk-pos-activity {
+  background:linear-gradient(120deg,var(--rk-surface-raised),var(--rk-surface-hover)) !important;
+  color:var(--rk-text) !important;
+  border:1px solid var(--rk-border);
+}
+html[data-rk-theme="dark"] body .rk-pos-activity small {color:var(--rk-text-secondary) !important}
+html[data-rk-theme="dark"] body .rk-pos-activity :is(strong,svg) {color:var(--rk-text) !important}
+html[data-rk-theme="dark"] body .rk-pos-modal {background:rgb(3 9 18 / .78) !important}
+html[data-rk-theme="dark"] body .rk-pos-modal > form,
+html[data-rk-theme="dark"] body .rk-pos-modal > form > header,
+html[data-rk-theme="dark"] body .rk-pos-modal > form > footer,
+html[data-rk-theme="dark"] body .rk-pos-modal .rk-pos-form,
+html[data-rk-theme="dark"] body .rk-pos-modal fieldset {
+  background:var(--rk-surface) !important;
+  color:var(--rk-text) !important;
+  border-color:var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-pos-modal :is(h2,legend,label,strong) {color:var(--rk-text) !important}
+html[data-rk-theme="dark"] body .rk-pos-modal :is(p,small) {color:var(--rk-text-secondary) !important}
+html[data-rk-theme="dark"] body .rk-pos-modal :is(input,select,textarea,option) {
+  background:var(--rk-canvas) !important;color:var(--rk-text) !important;border-color:var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-pos-modal :is(input,textarea)::placeholder {color:var(--rk-text-muted) !important;opacity:1}
+html[data-rk-theme="dark"] body .rk-pos-modal :is(button,.rk-pos-checks label) {
+  background:var(--rk-surface-raised) !important;color:var(--rk-text) !important;border-color:var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-pos-modal button[data-primary] {background:var(--rk-accent) !important;color:var(--rk-accent-ink) !important}
+html[data-rk-theme="dark"] body .rk-pos-modal .rk-pos-modal-error {color:var(--rk-red) !important}
+html[data-rk-theme="dark"] body .rk-pos-next[data-overdue=true] {color:var(--rk-red) !important}
+html[data-rk-theme="dark"] body .rk-pos-modal :is(input,textarea,select,button):focus-visible {outline:2px solid var(--rk-blue);outline-offset:2px}
