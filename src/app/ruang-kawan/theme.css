@@ -987,3 +987,24 @@ html[data-rk-theme="dark"] body .ma2-open-pipeline:hover,html[data-rk-theme="dar
   .ma2-tabs button{padding:8px 10px}
 }
 @media(prefers-reduced-motion:reduce){.ma2-view,.ma2-add,.ma2-tabs button,.ma2-days>button{animation:none!important;transition:none!important}}
+
+/* My Activity: readable forms and inline notebook */
+.rk-activity-v2 :is(p,small,label,input,textarea,select,button,a,em,.ma2-meta,.ma2-work-details,.ma2-event-chips span){font-size:16px;line-height:1.5}
+.rk-activity-v2 .rk-activity-modal > form{background:var(--rk-surface,#fff)!important;color:var(--rk-text,#172538)!important;border:1px solid var(--rk-border,#dce2eb);padding:28px;max-height:90vh;overflow:auto;box-shadow:0 24px 90px #0006}
+.rk-activity-v2 .rk-activity-modal :is(label,h2,p,small){color:inherit!important}
+.rk-activity-v2 .rk-activity-modal :is(input,select,textarea){font-size:16px!important;line-height:1.6;background:var(--rk-surface-raised,#f5f7fb)!important;color:var(--rk-text,#172538)!important;border:1px solid var(--rk-border,#cad5e2)!important;padding:12px}
+.rk-activity-v2 .rk-activity-modal header,.rk-activity-v2 .rk-activity-modal footer{background:transparent!important}
+.rk-activity-v2 .ma2-event-chips span{white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+.rk-activity-v2 .ma2-days > button{min-height:140px}
+.rk-activity-v2 .ma2-agenda-item{width:100%;text-align:left;background:transparent;border:0;color:inherit;cursor:pointer}
+.ma3-notebook{display:grid;grid-template-columns:minmax(220px,30%) 1fr;min-height:480px;border:1px solid var(--rk-border,#dce2eb);border-radius:20px;overflow:hidden;background:var(--rk-surface,#fff)}
+.ma3-notebook aside{border-right:1px solid var(--rk-border,#dce2eb);background:var(--rk-surface-raised,#f5f7fb);max-height:650px;overflow:auto}
+.ma3-notebook aside button{display:block;width:100%;padding:20px;text-align:left;color:inherit;background:transparent;border:0;border-bottom:1px solid var(--rk-border,#dce2eb)}
+.ma3-notebook aside button[data-selected=true]{background:#d5a93622;border-left:4px solid #d5a936}
+.ma3-notebook aside p{overflow-wrap:anywhere;margin:8px 0;color:var(--rk-text-secondary,#526076)}
+.ma3-notebook section{display:flex;flex-direction:column;min-width:0;padding:24px;gap:16px}
+.ma3-notebook header{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.ma3-notebook header span{margin-right:auto}
+.ma3-notebook section>input,.ma3-notebook textarea{width:100%;border:0;background:transparent!important;color:inherit!important;outline-offset:4px;padding:12px;font:inherit}
+.ma3-notebook section>input{font-size:24px!important;font-weight:700}.ma3-notebook textarea{min-height:340px;resize:vertical;font-size:16px;line-height:1.8}
+.ma2-notes-toolbar{flex-wrap:wrap;gap:12px}.ma2-notes-toolbar label{display:flex;align-items:center;gap:8px}.ma2-notes-toolbar input[type=checkbox]{width:auto}
+@media(max-width:700px){.ma3-notebook{grid-template-columns:1fr}.ma3-notebook aside{max-height:220px;border-right:0}.rk-activity-v2 .ma2-calendar-layout{display:block}.rk-activity-v2 .ma2-month-grid{overflow-x:auto}.rk-activity-v2 .ma2-days,.rk-activity-v2 .ma2-weekdays{min-width:700px}}
