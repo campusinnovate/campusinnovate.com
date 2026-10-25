@@ -4,7 +4,13 @@ import { FormEvent, useEffect, useState } from 'react';
 import { FiArrowRight, FiEye, FiEyeOff } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
-function landingPath(user: { user_metadata?: Record<string, unknown> } | null | undefined) {\n  const candidate = (user?.user_metadata?.rk_workspace_settings as { home_path?: unknown } | undefined)?.home_path;\n  const allowed = ['/ruang-kawan/dashboard/','/ruang-kawan/chat/','/ruang-kawan/activity/','/ruang-kawan/marketing/','/ruang-kawan/projects/','/ruang-kawan/kpi/','/ruang-kawan/finance/','/ruang-kawan/finance-pilot/'];\n  return typeof candidate === 'string' && allowed.includes(candidate) ? candidate : '/ruang-kawan/dashboard/';\n}\n\nexport default function LoginPanel() {
+function landingPath(user: { user_metadata?: Record<string, unknown> } | null | undefined) {
+  const candidate = (user?.user_metadata?.rk_workspace_settings as { home_path?: unknown } | undefined)?.home_path;
+  const allowed = ['/ruang-kawan/dashboard/','/ruang-kawan/chat/','/ruang-kawan/activity/','/ruang-kawan/marketing/','/ruang-kawan/projects/','/ruang-kawan/kpi/','/ruang-kawan/finance/','/ruang-kawan/finance-pilot/'];
+  return typeof candidate === 'string' && allowed.includes(candidate) ? candidate : '/ruang-kawan/dashboard/';
+}
+
+export default function LoginPanel() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
