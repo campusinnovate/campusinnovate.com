@@ -782,3 +782,26 @@ html[data-rk-theme="dark"] body .rk-finance-workspace :is(.rk-journal-cards,.rk-
   background: rgba(201,132,63,.16) !important;
   color: #f1c694 !important;
 }
+
+
+/* Improve contrast on the ticket announcement's light gradient badges. */
+html[data-rk-theme="dark"] body :is([class*="ticketChat"],[class*="ticket-chat"]) [class*="ticketBadge"] {
+  background: #243c57 !important;
+  background-image: none !important;
+  color: #c7e6fb !important;
+  border: 1px solid #3c5b78 !important;
+}
+html[data-rk-theme="dark"] body :is([class*="ticketChat"],[class*="ticket-chat"]) [class*="ticketAnnouncement"] > header small {
+  background: #4b2934 !important;
+  color: #ffd2dc !important;
+  border-color: #75404e !important;
+}
+
+/* Finance journal transaction event labels ("Jenis") are rendered as em tags. */
+html[data-rk-theme="dark"] body .rk-finance-workspace .rk-journal-table td:nth-child(4) em {
+  background: #1b3045 !important;
+  background-image: none !important;
+  color: #c8d9eb !important;
+  border: 1px solid #344b63 !important;
+  opacity: 1 !important;
+}
