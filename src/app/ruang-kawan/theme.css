@@ -627,3 +627,33 @@ html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__
   color: var(--rk-accent-ink) !important;
   border-color: transparent !important;
 }
+
+
+/* Final contrast polish for navigation and compact indicators. */
+html[data-rk-theme="dark"] body .rk-work-nav :is(a,button) {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text-secondary) !important;
+  border: 1px solid var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-project-nav,.rk-kpi-nav) :is(a,button) {
+  color: #8fcaff !important;
+}
+html[data-rk-theme="dark"] body .rk-project-list footer > span {
+  background: #2b3b50 !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-flow > i {
+  background: #34475d !important;
+}
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__statIcon"],
+html[data-rk-theme="dark"] body [class*="ticketing-module__"][class*="__archiveIcon"] {
+  background: #20364d !important;
+  color: #8fcaff !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] [class*="__headerActions"] button:not([data-primary="true"]) {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] [class*="__header"] > div:first-child > a {
+  color: #8fcaff !important;
+}
