@@ -657,3 +657,111 @@ html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__
 html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] [class*="__header"] > div:first-child > a {
   color: #8fcaff !important;
 }
+
+
+/* Remaining dark theme surfaces: KPI, Digital Office, Finance and direct chat. */
+html[data-rk-theme="dark"] body :is(.rk-doc-foundation,.rk-report-foundation) {
+  background: var(--rk-canvas) !important;
+  color: var(--rk-text) !important;
+}
+html[data-rk-theme="dark"] body :is(
+  .rk-doc-stats > article,.rk-doc-overview > div,.rk-doc-register,.rk-doc-table,
+  .rk-doc-table > button,.rk-doc-cards > article,.rk-doc-drawer,.rk-doc-modal > section,
+  .rk-report-metrics > article,.rk-report-layout > aside,.rk-report-workspace,
+  .rk-report-sections > section,.rk-report-history > article,.rk-report-empty,
+  .rk-report-modal > section
+) {
+  background: var(--rk-surface) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.18) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-doc-tabs,.rk-report-layout > aside) button {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-doc-shell,.rk-report-shell) :is(h1,h2,h3,h4,strong,b,th,td,label,dt,dd) {
+  color: var(--rk-text) !important;
+}
+html[data-rk-theme="dark"] body :is(.rk-doc-shell,.rk-report-shell) :is(p,small,time,span) {
+  color: var(--rk-text-secondary);
+}
+html[data-rk-theme="dark"] body :is(.rk-doc-shell,.rk-report-shell) :is(input,select,textarea) {
+  background: #0d1726 !important;
+  color: var(--rk-text) !important;
+  border-color: #34465d !important;
+}
+html[data-rk-theme="dark"] body .rk-report-workspace :is(header,footer) {
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-report-layout > aside button[data-active="true"],
+html[data-rk-theme="dark"] body .rk-doc-tabs button[data-active="true"] {
+  background: #234967 !important;
+  color: #f3f7fc !important;
+  border-color: #3c6688 !important;
+}
+
+/* KPI insight cards are rendered outside the main KPI board styles. */
+html[data-rk-theme="dark"] body .rk-kpi-insights .rk-kpi-widget {
+  background: var(--rk-surface) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.18) !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-insights .rk-kpi-widget :is(h3,strong,b,label,summary) {
+  color: var(--rk-text) !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-insights .rk-kpi-widget :is(p,small,span) {
+  color: var(--rk-text-secondary) !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-insights .rk-kpi-widget :is(button,select) {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-coverage b {
+  background: #17283d !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-kpi-bar progress {
+  color: #63a9e8;
+  background: #293b50;
+  accent-color: #63a9e8;
+}
+
+/* Finance transaction and document type pills should not stay pale in dark mode. */
+html[data-rk-theme="dark"] body .rk-finance-table :is([data-flow],[data-doc-status]) {
+  background: #1b3045 !important;
+  color: #c8d9eb !important;
+  border-color: #344b63 !important;
+}
+html[data-rk-theme="dark"] body .rk-finance-table [data-flow="in"],
+html[data-rk-theme="dark"] body .rk-finance-table [data-doc-status="paid"] {
+  background: rgba(49,151,111,.18) !important;
+  color: #b8e9d2 !important;
+}
+html[data-rk-theme="dark"] body .rk-finance-table [data-flow="out"] {
+  background: rgba(201,132,63,.16) !important;
+  color: #f1c694 !important;
+}
+html[data-rk-theme="dark"] body main[class*="finance-pilot-module__"][class*="__page"] :is([data-flow],[data-doc-status],[data-status]) {
+  background: #1b3045 !important;
+  color: #c8d9eb !important;
+  border-color: #344b63 !important;
+}
+
+/* Personal messages use an opaque surface with no glass or translucency. */
+html[data-rk-theme="dark"] body .rk-chat-shell[data-direct-space="true"] .rk-chat-message > div {
+  background: #17283d !important;
+  color: var(--rk-text) !important;
+  border: 1px solid #34465d !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+html[data-rk-theme="dark"] body .rk-chat-shell[data-direct-space="true"] .rk-chat-message[data-own="true"] > div {
+  background: #1d344a !important;
+}
