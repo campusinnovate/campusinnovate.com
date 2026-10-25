@@ -264,3 +264,40 @@ html[data-rk-theme="dark"] body .rk-pos-board header em {
   color: var(--rk-text-secondary) !important;
   border-color: #3a4d64 !important;
 }
+
+
+/* Chat controls and date markers should stay inside the dark surface palette. */
+html[data-rk-theme="dark"] body .rk-chat-shell :is(
+  .rk-chat-conversation-head button[aria-label],
+  .rk-chat-shell button.rk-chat-mobile-back
+) {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-chat-shell button[aria-label="Pilih reaksi"],
+html[data-rk-theme="dark"] body .rk-chat-shell .rk-chat-message button[data-active="false"] {
+  background: #243247 !important;
+  color: var(--rk-text-secondary) !important;
+  border: 1px solid #3a4d64 !important;
+}
+html[data-rk-theme="dark"] body .rk-chat-shell .rk-chat-related-tabs button[data-active="false"] {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-chat-shell .rk-chat-file,
+html[data-rk-theme="dark"] body .rk-chat-shell .rk-chat-sync {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-chat-shell time {
+  background: #243247 !important;
+  color: var(--rk-text-secondary) !important;
+  border: 1px solid var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-chat-shell .rk-chat-file :is(span,strong,small),
+html[data-rk-theme="dark"] body .rk-chat-shell .rk-chat-sync :is(span,strong,small) {
+  color: var(--rk-text-secondary) !important;
+}
