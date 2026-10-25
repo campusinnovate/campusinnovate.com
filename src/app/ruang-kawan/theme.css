@@ -226,3 +226,9 @@ html[data-rk-theme="dark"] body .rk-pos .rk-pos-heading :is(a[href*="prospect-in
   color: var(--rk-text) !important;
   border-color: var(--rk-border) !important;
 }
+
+html[data-rk-theme="dark"] body .rk-pos button > span {
+  background: #243950 !important;
+  color: var(--rk-text-secondary) !important;
+  border: 1px solid #38516b !important;
+}
