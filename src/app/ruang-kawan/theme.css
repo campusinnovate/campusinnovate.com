@@ -203,3 +203,26 @@ html[data-rk-theme="dark"] body :is([class*="-foundation"]) {
   color: var(--rk-text) !important;
   border-color: var(--rk-border) !important;
 }
+
+/* Pipeline filter chips and segmented controls should not fall back to white pills. */
+html[data-rk-theme="dark"] body .rk-pos button[data-active="true"] {
+  background: #234967 !important;
+  color: #f3f7fc !important;
+  border-color: #3c6688 !important;
+}
+html[data-rk-theme="dark"] body .rk-pos button[data-active="false"],
+html[data-rk-theme="dark"] body .rk-pos button:not([data-active]) {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text-secondary) !important;
+  border-color: var(--rk-border) !important;
+}
+html[data-rk-theme="dark"] body .rk-pos .rk-pos-heading button {
+  background: var(--rk-accent) !important;
+  color: var(--rk-accent-ink) !important;
+  border-color: transparent !important;
+}
+html[data-rk-theme="dark"] body .rk-pos .rk-pos-heading :is(a[href*="prospect-inbox"],a[href*="tickets"]) {
+  background: var(--rk-surface-raised) !important;
+  color: var(--rk-text) !important;
+  border-color: var(--rk-border) !important;
+}
