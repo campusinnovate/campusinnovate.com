@@ -9,6 +9,7 @@ type CanvaLink = {
   url: string;
   preview_url: string | null;
   normalized_url: string;
+  design_title: string | null;
   title_hint: string | null;
   shared_at: string;
   sender_name: string;
@@ -21,7 +22,7 @@ type Period = 'all' | 'month' | 'year';
 type Kind = 'Semua' | 'Proposal' | 'Deck' | 'Company profile' | 'Lainnya';
 
 function contentKind(item: CanvaLink): Exclude<Kind, 'Semua'> {
-  const text = `${item.title_hint ?? ''} ${item.url} ${item.conversation_name}`.toLowerCase();
+  const text = `${item.design_title ?? ''} ${item.title_hint ?? ''} ${item.url} ${item.conversation_name}`.toLowerCase();
   if (/company profile|company-profile|compro|profil perusahaan/.test(text)) return 'Company profile';
   if (/proposal|penawaran|offering/.test(text)) return 'Proposal';
   if (/deck|pitch|ppt|powerpoint|presentasi/.test(text)) return 'Deck';
@@ -60,7 +61,7 @@ export default function CanvaLibrary() {
       const rows = (data ?? []) as CanvaLink[];
       setItems(rows);
       setError('');
-      if (!resolving.current && rows.some((item) => !item.preview_url && item.url.includes('canva.link/'))) {
+      if (!resolving.current && rows.some((item) => !item.design_title)) {
         resolving.current = true;
         try {
           const resolved = await client.functions.invoke('canva-preview-resolver');
@@ -95,7 +96,7 @@ export default function CanvaLibrary() {
     const needle = query.trim().toLowerCase();
     return items.filter((item) => {
       const date = new Date(item.shared_at);
-      const searchable = `${item.title_hint ?? ''} ${item.url} ${item.sender_name} ${item.conversation_name}`.toLowerCase();
+      const searchable = `${item.design_title ?? ''} ${item.title_hint ?? ''} ${item.url} ${item.sender_name} ${item.conversation_name}`.toLowerCase();
       if (needle && !searchable.includes(needle)) return false;
       if (kind !== 'Semua' && contentKind(item) !== kind) return false;
       if (period === 'month' && item.shared_at.slice(0, 7) !== month) return false;
@@ -142,7 +143,7 @@ export default function CanvaLibrary() {
       <div className="rk-canva-grid">
         {filtered.map((item) => {
           const preview = canvaPreview(item.preview_url ?? item.url);
-          const title = item.title_hint?.trim() || `${contentKind(item)} Canva`;
+          const title = item.design_title?.trim() || item.title_hint?.trim() || `${contentKind(item)} Canva`;
           return <article className="rk-canva-card" key={item.normalized_url}>
             <div className="rk-canva-preview">
               {preview ? <iframe src={preview} title={`Preview Canva: ${title}`} loading="lazy" allowFullScreen /> : <div className="rk-canva-preview-fallback"><span>CANVA</span><strong>Desain Canva</strong><small>Pratinjau tidak tersedia untuk link ini. Buka desain untuk melihat halaman.</small></div>}
