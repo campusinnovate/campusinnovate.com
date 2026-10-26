@@ -20,3 +20,7 @@ verify_jwt = false
 [functions.whatsapp-send]
 # Handler validates getUser(), active membership and existing Pipeline permissions.
 verify_jwt = false
+
+[functions.canva-preview-resolver]
+# Only authenticated Marketing users may resolve saved Canva shortlinks.
+verify_jwt = true
