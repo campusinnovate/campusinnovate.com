@@ -23,7 +23,7 @@ function response(value: unknown, status: number, origin: string | null) {
 async function resolveCanvaDesign(shortUrl: string): Promise<string | null> {
   let current: URL;
   try { current = new URL(shortUrl); } catch { return null; }
-  if (current.protocol !== 'https:' || current.hostname.toLowerCase() !== 'canva.link') return null;
+  if (current.protocol !== 'https:') return null;
 
   for (let hop = 0; hop < 5; hop += 1) {
     const host = current.hostname.toLowerCase();
@@ -50,6 +50,34 @@ async function resolveCanvaDesign(shortUrl: string): Promise<string | null> {
   return null;
 }
 
+function decodeHtml(value: string) {
+  return value.replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&#39;', "'")
+    .replaceAll('&#x27;', "'").replaceAll('&lt;', '<').replaceAll('&gt;', '>')
+    .replace(/\s+\|\s+Canva$/i, '').trim().slice(0, 180);
+}
+
+async function fetchDesignTitle(designUrl: string): Promise<string | null> {
+  let url: URL;
+  try { url = new URL(designUrl); } catch { return null; }
+  if (!['canva.com', 'www.canva.com'].includes(url.hostname.toLowerCase()) || !url.pathname.startsWith('/design/')) return null;
+  const path = url.pathname.replace(/\/(edit|view)\/?$/i, '');
+  try {
+    const result = await fetch(`${url.origin}${path}/view?embed`, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CampusInnovateCanvaPreview/1.0)' },
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!result.ok) return null;
+    const html = (await result.text()).slice(0, 750_000);
+    const metaTag = [...html.matchAll(/<meta\b[^>]*>/gi)].map((match) => match[0]).find((tag) => /\b(?:property|name)=["'](?:og:title|twitter:title)["']/i.test(tag));
+    const metaTitle = metaTag?.match(/\bcontent=["']([^"']+)["']/i)?.[1];
+    const pageTitle = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
+    const title = decodeHtml(metaTitle ?? pageTitle ?? '');
+    return title || null;
+  } catch { return null; }
+}
+
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin');
   if (req.method === 'OPTIONS') return response({}, 204, origin);
@@ -68,14 +96,18 @@ Deno.serve(async (req: Request) => {
   const { data: rows, error: libraryError } = await caller.rpc('marketing_canva_library');
   if (libraryError) return response({ error: 'Marketing access required' }, 403, origin);
 
-  const unresolved = (rows ?? []).filter((row: { id: string; url: string; preview_url: string | null }) =>
-    row.url.startsWith('https://canva.link/') && !row.preview_url
+  const unresolved = (rows ?? []).filter((row: { id: string; url: string; preview_url: string | null; design_title: string | null }) =>
+    !row.design_title
   ).slice(0, 25);
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const outcomes = await Promise.all(unresolved.map(async (row: { id: string; url: string }) => {
     const previewUrl = await resolveCanvaDesign(row.url);
-    if (!previewUrl) return false;
-    const { error } = await admin.from('chat_canva_links').update({ preview_url: previewUrl }).eq('id', row.id).is('preview_url', null);
+    const designTitle = previewUrl ? await fetchDesignTitle(previewUrl) : null;
+    if (!previewUrl && !designTitle) return false;
+    const patch: Record<string, string> = {};
+    if (previewUrl) patch.preview_url = previewUrl;
+    if (designTitle) patch.design_title = designTitle;
+    const { error } = await admin.from('chat_canva_links').update(patch).eq('id', row.id);
     return !error;
   }));
 
