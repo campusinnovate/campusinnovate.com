@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FiClock, FiExternalLink, FiFileText, FiRefreshCw, FiSearch } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
 type CanvaLink = {
   id: string;
   url: string;
+  preview_url: string | null;
   normalized_url: string;
   title_hint: string | null;
   shared_at: string;
@@ -47,15 +48,29 @@ export default function CanvaLibrary() {
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(false);
   const [error, setError] = useState('');
+  const resolving = useRef(false);
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
-    const { data, error: rpcError } = await createClient().rpc('marketing_canva_library');
+    const client = createClient();
+    const { data, error: rpcError } = await client.rpc('marketing_canva_library');
     if (rpcError) {
       setError('Galeri belum dapat dimuat. Coba muat ulang.');
     } else {
-      setItems((data ?? []) as CanvaLink[]);
+      const rows = (data ?? []) as CanvaLink[];
+      setItems(rows);
       setError('');
+      if (!resolving.current && rows.some((item) => !item.preview_url && item.url.includes('canva.link/'))) {
+        resolving.current = true;
+        try {
+          const resolved = await client.functions.invoke('canva-preview-resolver');
+          if (!resolved.error && Number(resolved.data?.resolved ?? 0) > 0) {
+            const refreshed = await client.rpc('marketing_canva_library');
+            if (!refreshed.error) setItems((refreshed.data ?? []) as CanvaLink[]);
+          }
+        } catch { /* Preview resolution is optional; the card still opens the original link. */ }
+        finally { resolving.current = false; }
+      }
     }
     setLoading(false);
   }, []);
@@ -126,11 +141,11 @@ export default function CanvaLibrary() {
 
       <div className="rk-canva-grid">
         {filtered.map((item) => {
-          const preview = canvaPreview(item.url);
+          const preview = canvaPreview(item.preview_url ?? item.url);
           const title = item.title_hint?.trim() || `${contentKind(item)} Canva`;
           return <article className="rk-canva-card" key={item.normalized_url}>
             <div className="rk-canva-preview">
-              {preview ? <iframe src={preview} title={`Preview Canva: ${title}`} loading="lazy" allowFullScreen /> : <div className="rk-canva-preview-fallback"><span>CANVA</span><strong>Preview mengikuti izin tautan</strong><small>Buka desain untuk melihat halaman dan menggeser slide.</small></div>}
+              {preview ? <iframe src={preview} title={`Preview Canva: ${title}`} loading="lazy" allowFullScreen /> : <div className="rk-canva-preview-fallback"><span>CANVA</span><strong>Desain Canva</strong><small>Pratinjau tidak tersedia untuk link ini. Buka desain untuk melihat halaman.</small></div>}
               <span className="rk-canva-kind">{contentKind(item)}</span>
             </div>
             <div className="rk-canva-card-body">
