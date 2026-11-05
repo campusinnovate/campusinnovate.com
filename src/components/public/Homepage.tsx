@@ -128,7 +128,7 @@ function ServiceDetail({ detail, icon: Icon }: ServiceDetailProps) {
 }
 
 function WorkfolioCard({ project, index, onOpen, preload = false }: { project: WorkfolioProject; index: number; onOpen: () => void; preload?: boolean }) {
-  const preserveFrame = project.services.some((service) => service === 'Digital System' || service === 'Creative & Media');
+  const preserveFrame = project.imageFit ? project.imageFit === 'contain' : project.services.some((service) => service === 'Digital System' || service === 'Creative & Media');
   return (
     <article className="workfolio-card" data-project-slug={project.slug}>
       <div className={`workfolio-card-media ${preserveFrame ? 'has-contain-media' : ''}`}>
@@ -162,7 +162,7 @@ type WorkfolioModalProps = {
 
 function WorkfolioModal({ projects, index, onChange, onClose }: WorkfolioModalProps) {
   const project = projects[index];
-  const preserveFrame = project.services.some((service) => service === 'Digital System' || service === 'Creative & Media');
+  const preserveFrame = project.imageFit ? project.imageFit === 'contain' : project.services.some((service) => service === 'Digital System' || service === 'Creative & Media');
   const gallery = project.gallery?.length ? project.gallery : [project.image];
   const [photoIndex, setPhotoIndex] = useState(0);
   const previousProject = () => onChange((index - 1 + projects.length) % projects.length);

@@ -9,6 +9,9 @@ export const navigation = [
 ] as const;
 
 export const clientMarks = [
+  { name: 'Noortura Preschool', logo: '/assets/site-2026/logos/normalized/noortura.png' },
+  { name: 'Badan Informasi Geospasial', logo: '/assets/site-2026/logos/normalized/big.png' },
+  { name: 'PT Geo Investama Mandiri', logo: '/assets/site-2026/logos/normalized/geo-investama-mandiri.png' },
   { name: 'IPB University', logo: '/assets/site-2026/logos/normalized/ipb.png' },
   { name: 'Kementerian Lingkungan Hidup dan Kehutanan', logo: '/assets/site-2026/logos/normalized/klhk.png' },
   { name: 'WUNPROQ', logo: '/assets/site-2026/logos/normalized/wunproq.png' },
@@ -222,6 +225,7 @@ export type WorkfolioProject = {
   logoText?: string;
   image: string;
   imageAlt: string;
+  imageFit?: 'cover' | 'contain';
   gallery?: readonly string[];
   logoSurface?: 'light' | 'soft' | 'dark';
   services: readonly string[];
@@ -229,6 +233,48 @@ export type WorkfolioProject = {
 };
 
 export const workfolioProjects: readonly WorkfolioProject[] = [
+  {
+    slug: "noortura-open-house",
+    title: "Noortura Open House 2026",
+    client: "Noortura Preschool",
+    year: "2026",
+    logo: "/assets/site-2026/logos/normalized/noortura.png",
+    image: "/images/workfolio/noortura-open-house/gallery-01.webp",
+    gallery: ["/images/workfolio/noortura-open-house/gallery-01.webp", "/images/workfolio/noortura-open-house/gallery-02.webp", "/images/workfolio/noortura-open-house/gallery-03.webp", "/images/workfolio/noortura-open-house/gallery-04.webp", "/images/workfolio/noortura-open-house/gallery-05.webp", "/images/workfolio/noortura-open-house/gallery-06.webp"],
+    imageFit: "cover",
+    logoSurface: "light",
+    imageAlt: "Families and children exploring the Noortura Preschool Open House",
+    services: ["Event & Experience", "Digital System", "Creative & Media"],
+    description: "An experiential open house themed Return to Your Rhythm, held on 26 September 2026 at Swiss-Belcourt Bogor. Event support connected the family activity journey with a dedicated event website, digital RSVP, and documentation.",
+  },
+  {
+    slug: "big-sql-training-batch-1",
+    title: "SQL Training — Batch 1",
+    client: "Badan Informasi Geospasial",
+    year: "2026",
+    logo: "/assets/site-2026/logos/normalized/big.png",
+    image: "/images/workfolio/big-sql-batch-1/gallery-01.webp",
+    gallery: ["/images/workfolio/big-sql-batch-1/gallery-01.webp", "/images/workfolio/big-sql-batch-1/gallery-02.webp", "/images/workfolio/big-sql-batch-1/gallery-03.webp", "/images/workfolio/big-sql-batch-1/gallery-04.webp", "/images/workfolio/big-sql-batch-1/gallery-05.webp"],
+    imageFit: "cover",
+    logoSurface: "light",
+    imageAlt: "SQL training Batch 1 at Badan Informasi Geospasial with classroom sessions and hands-on practice",
+    services: ["Training & Development", "Training Support"],
+    description: "Training support for SQL Batch 1 at Badan Informasi Geospasial, supporting on-site activities and documenting classroom learning, hands-on practice, and participant interactions.",
+  },
+  {
+    slug: "big-sql-training-batch-2",
+    title: "SQL Training — Batch 2",
+    client: "Badan Informasi Geospasial",
+    year: "2026",
+    logo: "/assets/site-2026/logos/normalized/big.png",
+    image: "/images/workfolio/big-sql-batch-2/gallery-01.webp",
+    gallery: ["/images/workfolio/big-sql-batch-2/gallery-01.webp", "/images/workfolio/big-sql-batch-2/gallery-02.webp", "/images/workfolio/big-sql-batch-2/gallery-03.webp", "/images/workfolio/big-sql-batch-2/gallery-04.webp", "/images/workfolio/big-sql-batch-2/gallery-05.webp"],
+    imageFit: "cover",
+    logoSurface: "light",
+    imageAlt: "SQL training Batch 2 at Badan Informasi Geospasial with practical exercises and participant discussions",
+    services: ["Training & Development", "Training Support"],
+    description: "Training support for SQL Batch 2 at Badan Informasi Geospasial, supporting the learning activities and documenting practical exercises, group discussions, and the training atmosphere.",
+  },
   {
     slug: 'wunproq',
     title: 'World University Network for Productive Waqf',
