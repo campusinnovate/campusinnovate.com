@@ -23,6 +23,10 @@ function WhatsAppCTA({ placement, compact = false, label }: { placement: string;
 }
 
 const selectedProjects = [
+  { slug: 'noortura-open-house', format: 'Open house', role: 'Dukungan pelaksanaan open house, alur aktivitas keluarga, website acara, RSVP digital, dan dokumentasi.', alt: 'Keluarga mengikuti aktivitas di Noortura Open House' },
+  { slug: 'big-sql-training-batch-1', format: 'Pelatihan teknis', role: 'Dukungan operasional di lokasi dan dokumentasi sesi kelas serta praktik SQL Batch 1.', alt: 'Peserta pelatihan SQL Batch 1 di Badan Informasi Geospasial' },
+  { slug: 'big-sql-training-batch-2', format: 'Pelatihan teknis', role: 'Dukungan pelaksanaan pelatihan dan dokumentasi praktik, diskusi, serta suasana kelas SQL Batch 2.', alt: 'Peserta pelatihan SQL Batch 2 di Badan Informasi Geospasial' },
+  { slug: 'geo-investama-lidar-batch-1', format: 'Pelatihan teknis', role: 'Dukungan operasional dan dokumentasi pelatihan pengolahan data LiDAR dengan DJI Terra dan TerraSolid.', alt: 'Foto bersama peserta pelatihan LiDAR Batch 1 PT Geo Investama Mandiri' },
   { slug: 'wunproq', format: 'Konferensi', role: 'Event management, pengalaman peserta, branding acara, dan materi komunikasi pendukung.', photo: '/images/workfolio/wunproq/gallery-07.webp', alt: 'Panggung dan peserta konferensi WUNPROQ 2026' },
   { slug: 'klhk-capacity-building', format: 'Capacity building & outbound', role: 'Rancangan aktivitas, engagement peserta, koordinasi operasional lapangan, dan pelaksanaan kegiatan.', photo: '/images/workfolio/klhk/cover.webp', alt: 'Peserta kegiatan capacity building KLHK bersama tim Campus Innovate' },
   { slug: 'see-ipb', format: 'Expo kampus', role: 'Event management, persiapan operasional, dan koordinasi pelaksanaan di lokasi.', photo: '/images/workfolio/see-ipb/gallery-01.webp', alt: 'Aktivitas peserta di area Student Entrepreneur Expo IPB' },
@@ -101,9 +105,9 @@ export default function EventManagementPage() {
       </section>
       <section id="portofolio" className={`${styles.section} ${styles.portfolio}`} aria-labelledby="portfolio-title">
         <div className={styles.container}>
-          <div className={styles.sectionIntro}><div><p className={styles.eyebrow}>BUKTI KERJA</p><h2 id="portfolio-title">Lihat kegiatan<br />yang <em>kami bantu kelola.</em></h2></div><p>Konferensi, capacity building, hingga expo kampus. Berikut dokumentasi dan peran Campus Innovate pada proyek terpilih.</p></div>
+          <div className={styles.sectionIntro}><div><p className={styles.eyebrow}>BUKTI KERJA</p><h2 id="portfolio-title">Lihat kegiatan<br />yang <em>kami bantu kelola.</em></h2></div><p>Dari open house dan pelatihan teknis hingga konferensi, capacity building, dan expo kampus. Lihat dokumentasi dan peran Campus Innovate pada setiap kegiatan.</p></div>
           <div className={styles.projectGrid}>{selectedProjects.map(({ project, format, role, photo, alt }) => <article key={project.slug} className={styles.project}>
-            <div className={styles.projectPhoto}><Image src={photo} alt={alt} fill sizes="(max-width: 700px) 100vw, (max-width: 1000px) 45vw, 32vw" /><span>{format}</span></div>
+            <div className={styles.projectPhoto}><Image src={photo ?? project.image} alt={alt} fill sizes="(max-width: 800px) 100vw, (max-width: 1000px) 50vw, 25vw" /><span>{format}</span></div>
             <div className={styles.projectBody}><div className={styles.projectMeta}><span>{project.client === 'Kementerian Lingkungan Hidup dan Kehutanan' ? 'KLHK' : project.client}</span><span>{project.year}</span></div><h3>{project.title}</h3><p><strong>Peran Campus Innovate</strong>{role}</p></div>
           </article>)}</div>
           <div className={styles.workfolioRow}><p>Jelajahi proyek dan kolaborasi Campus Innovate lainnya.</p><a className={styles.workfolioCTA} href="/home/#workfolio">Lihat Semua Workfolio <FiArrowRight aria-hidden="true" /></a></div>
