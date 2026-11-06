@@ -7113,3 +7113,28 @@ html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="followup"]{color:#a
 html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="stalled"]{color:#e6c69d!important;background:rgba(130,91,47,.2)!important;border-color:rgba(182,137,80,.35)!important}
 html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="risk"]{color:#f0afb5!important;background:rgba(157,53,66,.2)!important;border-color:rgba(211,106,119,.38)!important}
 html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="active"]{color:#c5d3df!important;background:#1a2939!important;border-color:#34475a!important}
+
+/* Pipeline refinement: single deadline state and clearer service identity */
+.rk-pos-owner-name{display:block;margin:0 0 8px;padding:0;color:#526879;font-size:11px;font-weight:500;line-height:1.35}
+.rk-pos-card[data-service="event"]{border-top:4px solid #c68a4d!important;background:linear-gradient(145deg,#fff8ef 0%,#fff 72%)}
+.rk-pos-card[data-service="digital"]{border-top:4px solid #3c8fa3!important;background:linear-gradient(145deg,#eff9fa 0%,#fff 72%)}
+.rk-pos-service-chip[data-service="event"]{color:#81562b;background:#f8ead9;border-color:#e9c9a2}
+.rk-pos-service-chip[data-service="digital"]{color:#236570;background:#dff1f3;border-color:#a9d4d9}
+.rk-pos-statuses>[data-tone="done"]{color:#176846;background:#e7f5ed;border-color:#c5e8d3}
+.rk-pos-statuses>[data-tone="overdue"]{color:#8b2635;background:#fbe7e9;border-color:#efb9c0}
+.rk-pos-statuses>[data-tone="today"]{color:#863d18;background:#ffeadc;border-color:#f3c4a7}
+.rk-pos-statuses>[data-tone="deadline"]{color:#805716;background:#fff2d8;border-color:#f1d99f}
+.rk-pos-statuses>[data-tone="followup"]{color:#155d79;background:#e5f3f8;border-color:#c8e4ef}
+.rk-pos-statuses>[data-tone="scheduled"]{color:#526879;background:#eff3f6;border-color:#dfe7ec}
+.rk-pos-statuses>[data-tone="no-date"]{color:#72552a;background:#f7f0df;border-color:#eaddb8}
+html[data-rk-theme="dark"] body .rk-pos-owner-name{color:#c6d5e1!important}
+html[data-rk-theme="dark"] body .rk-pos-card[data-service="event"]{border-top-color:#d6a36e!important;background:linear-gradient(145deg,rgba(129,88,49,.16),#162638 75%)!important}
+html[data-rk-theme="dark"] body .rk-pos-card[data-service="digital"]{border-top-color:#66b3c0!important;background:linear-gradient(145deg,rgba(46,125,141,.18),#162638 75%)!important}
+html[data-rk-theme="dark"] body .rk-pos-service-chip[data-service="event"]{color:#efd0aa!important;background:rgba(160,108,57,.25)!important;border-color:rgba(207,157,102,.48)!important}
+html[data-rk-theme="dark"] body .rk-pos-service-chip[data-service="digital"]{color:#b6e6e9!important;background:rgba(41,130,145,.24)!important;border-color:rgba(91,176,187,.48)!important}
+html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="overdue"]{color:#f3aeb7!important;background:rgba(161,46,62,.25)!important;border-color:rgba(219,106,120,.48)!important}
+html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="today"]{color:#ffc29a!important;background:rgba(174,83,35,.23)!important;border-color:rgba(223,136,89,.45)!important}
+html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="deadline"]{color:#f1d08f!important;background:rgba(165,116,34,.2)!important;border-color:rgba(209,160,71,.35)!important}
+html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="followup"]{color:#a7dced!important;background:rgba(36,119,147,.2)!important;border-color:rgba(87,168,194,.35)!important}
+html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="scheduled"]{color:#c5d3df!important;background:#1a2939!important;border-color:#34475a!important}
+html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="no-date"]{color:#e6cf9b!important;background:rgba(132,103,41,.2)!important;border-color:rgba(180,149,76,.38)!important}
