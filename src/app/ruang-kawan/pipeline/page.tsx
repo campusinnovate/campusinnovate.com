@@ -174,7 +174,7 @@ export default function Page() {
     <section className="rk-pos-filters"><div className="rk-pos-filter-main"><label><FiSearch /><input value={filters.query} onChange={e => patch({ query: e.target.value })} placeholder="Cari lead, PIC, kode..."/></label><select value={filters.stage} onChange={e => patch({ stage: e.target.value })}><option value="all">Semua stage</option>{stages.map(x => <option key={x}>{x}</option>)}</select><select value={filters.owner} onChange={e => patch({ owner: e.target.value })}><option value="all">Semua owner</option>{members.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select><button data-active={advanced} onClick={() => setAdvanced(!advanced)}><FiFilter /> Filter lanjut</button><select aria-label="View pribadi" defaultValue="" onChange={e => { const view = savedViews.find(v => v.id === e.target.value); if (view) setFilters({ ...baseFilters, ...view.filters }); }}><option value="">Pilih view pribadi</option>{savedViews.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select><button onClick={() => void saveView()}><FiSave /> Simpan view</button></div><div className="rk-pos-quick">{[['all', 'Semua'], ['mine', 'My leads'], ['today', 'Due today'], ['overdue', 'Overdue'], ['upcoming', 'Upcoming 7 days'], ['missing', 'Missing contact'], ['waiting', 'Waiting reply']].map(([v, n]) => <button key={v} data-active={filters.quick === v} onClick={() => patch({ quick: v })}>{n}</button>)}</div>{advanced ? <div className="rk-pos-filter-more"><select value={filters.priority} onChange={e => patch({ priority: e.target.value })}><option value="all">Semua priority</option><option>High</option><option>Medium</option><option>Low</option></select><select value={filters.leadSource} onChange={e => patch({ leadSource: e.target.value })}><option value="all">Semua lead source</option>{leadSources.map(x => <option key={x}>{x}</option>)}</select><select value={filters.qualification} onChange={e => patch({ qualification: e.target.value })}><option value="all">Semua qualification</option><option value="pending">Pending</option><option value="qualified">Qualified</option><option value="disqualified">Disqualified</option></select><label>Expected close<input type="month" value={filters.closeMonth} onChange={e => patch({ closeMonth: e.target.value })}/></label><label>Min value<input type="number" value={filters.minValue} onChange={e => patch({ minValue: e.target.value })}/></label><label>Max value<input type="number" value={filters.maxValue} onChange={e => patch({ maxValue: e.target.value })}/></label><label>Stale ≥ hari<input type="number" value={filters.staleDays} onChange={e => patch({ staleDays: e.target.value })}/></label><button onClick={() => setFilters(baseFilters)}>Reset</button></div> : null}</section>{message ? <p className="rk-pos-alert">{message}</p> : null}{error ? <p className="rk-pos-alert" data-error>{error}</p> : null}
     {mode === 'analytics' ? <Analytics leads={filtered} sources={sources}/> : <><div className="rk-pos-viewbar"><span><strong>{boardLeads.length}</strong> lead masuk · {periodLabel(period,periodMonth,periodYear)}</span><div>{selected.length ? <button onClick={() => void bulk()}>Pindahkan {selected.length}</button> : null}<button data-active={layout === 'board'} onClick={() => setLayout('board')}><FiBriefcase /> Board</button><button data-active={layout === 'list'} onClick={() => setLayout('list')}><FiList /> List</button></div></div>{layout === 'board' ? <section className="rk-pos-board">{stages.map(stage => <div key={stage}><header><strong>{stage}</strong><span>{boardLeads.filter(l => l.stage === stage).length}</span></header><section>{boardLeads.filter(l => l.stage === stage).map(l => <Card key={l.id} l={l} edit={edit} contact={setContact} remove={removeLead} can={l.owner_membership_id === me ? canSelf : canTeam} canTicket={canTicketing}/>)}</section></div>)}</section> : <section className="rk-pos-table"><header><span><input type="checkbox" aria-label="Pilih semua lead pada periode" checked={boardLeads.length > 0 && boardLeads.every(l => selected.includes(l.id))} onChange={e => setSelected(e.target.checked ? Array.from(new Set([...selected, ...boardLeads.map(l => l.id)])) : selected.filter(id => !boardLeads.some(l => l.id === id)))}/></span><span>Lead</span><span>Stage / aktivitas</span><span>PIC</span><span>Penawaran</span><span>Deal</span><span>Next action</span><span /></header>{boardLeads.map(l => <article key={l.id}><input type="checkbox" checked={selected.includes(l.id)} onChange={e => setSelected(e.target.checked ? [...selected, l.id] : selected.filter(x => x !== l.id))}/><span><strong>{l.account_name}</strong><small>{l.lead_code} · Masuk {l.date_added}</small><small className="rk-pos-service-chip" data-service={serviceCategory(l.source_name)}>{serviceLabel(l.source_name)}</small>{l.commercial_ticket_id?<small data-ticketed="true">Sudah masuk Ticket</small>:null}</span><span><strong>{l.stage}</strong><small>{l.activity_type}</small><StatusBadges lead={l}/></span><span>{l.owner_name}</span><b>{amount(confirmedValue(l,'proposal_value'))}</b><b>{isWon(l) ? amount(confirmedValue(l,'won_value')) : '—'}</b><span><strong>{l.next_action}</strong><small>{l.due_date}</small></span>{(l.owner_membership_id === me ? canSelf : canTeam) || canTicketing ? <span>{canTicketing?<Link href={ticketUrlForLead(l)} aria-label={(l.commercial_ticket_id?'Buka':'Buat') + ' ticket ' + l.account_name} title={l.commercial_ticket_id?'Buka ticket':'Buat ticket'} data-ticketed={Boolean(l.commercial_ticket_id)}><FiBriefcase /></Link>:null}{(l.owner_membership_id === me ? canSelf : canTeam) ? <><button type="button" aria-label={'Edit ' + l.account_name} title="Edit lead" onClick={() => edit(l)}><FiEdit3 /></button><button type="button" aria-label={'Hapus ' + l.account_name} title={l.commercial_ticket_id || l.handover_ticket_id ? "Arsipkan lead; tiket tetap tersimpan" : "Hapus lead permanen"} onClick={() => removeLead(l)}><FiTrash2 /></button></> : null}</span> : <span />}</article>)}</section>}</>}{open ? <LeadForm f={form} set={setForm} sources={sources} members={members} saving={saving} error={error} close={() => setOpen(false)} save={save}/> : null}{contact ? <Contact l={contact} close={() => setContact(null)} done={async () => { setContact(null); setMessage('Aktivitas kontak tercatat otomatis.'); await load(); }}/> : null}</main>;
 }
-type PipelineBadge = { label: string; tone: 'done' | 'cold' | 'deadline' | 'followup' | 'stalled' | 'risk' | 'active' };
+type PipelineBadge = { label: string; tone: 'done' | 'overdue' | 'today' | 'deadline' | 'followup' | 'scheduled' | 'no-date' };
 function serviceCategory(sourceName: string): 'event' | 'digital' | 'other' {
     const name = sourceName.toLowerCase();
     if (/event management|event experience|event/.test(name)) return 'event';
@@ -189,24 +189,21 @@ function pipelineBadges(lead: Lead): PipelineBadge[] {
     const stage = lead.stage.toLowerCase();
     const complete = lead.workflow_status === 'done' || /^(won|lost|closed|done|complete|completed|selesai)$/.test(stage);
     if (complete) return [{ label: 'Selesai', tone: 'done' }];
-    const badges: PipelineBadge[] = [];
-    if (/cold/.test(stage) || /cold/.test((lead.qualification_outcome || '').toLowerCase())) badges.push({ label: 'Cold', tone: 'cold' });
+
     const todayMs = Date.parse(`${today()}T00:00:00Z`);
     const dueMs = lead.due_date ? Date.parse(`${lead.due_date.slice(0, 10)}T00:00:00Z`) : NaN;
-    const dueDays = Number.isFinite(dueMs) ? Math.round((dueMs - todayMs) / 86400000) : NaN;
-    const lastTouch = lead.last_contact_date || lead.updated_at?.slice(0, 10) || lead.date_added;
-    const touchMs = lastTouch ? Date.parse(`${lastTouch.slice(0, 10)}T00:00:00Z`) : NaN;
-    const idleDays = Number.isFinite(touchMs) ? Math.max(0, Math.floor((todayMs - touchMs) / 86400000)) : 0;
-    const closeMs = lead.expected_close_date ? Date.parse(`${lead.expected_close_date}T00:00:00Z`) : NaN;
-    if (dueDays < 0) badges.push({ label: 'Tenggat lewat', tone: dueDays <= -7 ? 'risk' : 'deadline' });
-    else if (dueDays <= 3) badges.push({ label: dueDays === 0 ? 'Tenggat hari ini' : 'Tenggat dekat', tone: 'deadline' });
-    if (/follow.?up|hubungi|kontak|reply|balas|respon/i.test(`${lead.next_action} ${lead.activity_type}`) && dueDays <= 7) badges.push({ label: 'Perlu follow-up', tone: 'followup' });
-    if (idleDays >= 7) badges.push({ label: 'Mandek', tone: 'stalled' });
-    if (dueDays <= -7 || idleDays >= 21 || (Number.isFinite(closeMs) && closeMs < todayMs)) badges.push({ label: 'Beresiko', tone: 'risk' });
-    return badges.length ? badges : [{ label: 'Aktif', tone: 'active' }];
+    if (!Number.isFinite(dueMs)) return [{ label: 'Belum ada tenggat', tone: 'no-date' }];
+
+    const dueDays = Math.round((dueMs - todayMs) / 86400000);
+    if (dueDays < 0) return [{ label: `Terlambat · H+${Math.abs(dueDays)}`, tone: 'overdue' }];
+    if (dueDays === 0) return [{ label: 'Tenggat hari ini', tone: 'today' }];
+    if (dueDays <= 3) return [{ label: `Tenggat · H-${dueDays}`, tone: 'deadline' }];
+    if (dueDays <= 7) return [{ label: `Perlu follow-up · H-${dueDays}`, tone: 'followup' }];
+    return [{ label: `Terjadwal · H-${dueDays}`, tone: 'scheduled' }];
 }
 function StatusBadges({ lead }: { lead: Lead }) {
-    return <span className="rk-pos-statuses">{pipelineBadges(lead).map((badge, index) => <small key={badge.tone + index} data-tone={badge.tone}>{badge.label}</small>)}</span>;
+    const status = pipelineBadges(lead)[0];
+    return <span className="rk-pos-statuses"><small data-tone={status.tone}>{status.label}</small></span>;
 }
 function Card({ l, can, canTicket, edit, contact, remove }: {
     l: Lead;
@@ -221,7 +218,7 @@ function Card({ l, can, canTicket, edit, contact, remove }: {
         <header><span>{l.lead_code}</span>{l.commercial_ticket_id ? <small data-ticketed="true">Sudah masuk Ticket</small> : null}<em>{l.priority}</em></header>
         <h3>{l.account_name}</h3>
         <div className="rk-pos-card-meta">
-            <span className="rk-pos-owner-chip"><b>PIC Pipeline</b>{l.owner_name || 'Belum ditentukan'}</span>
+            <span className="rk-pos-owner-name">{l.owner_name || 'Belum ditentukan'}</span>
             <span className="rk-pos-service-chip" data-service={service}>{serviceLabel(l.source_name)}</span>
         </div>
         <p>{l.contact_name ? `Kontak: ${l.contact_name}` : 'Kontak belum diisi'}</p>
