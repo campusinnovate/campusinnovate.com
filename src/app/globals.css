@@ -7138,3 +7138,35 @@ html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="deadline"]{color:#f
 html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="followup"]{color:#a7dced!important;background:rgba(36,119,147,.2)!important;border-color:rgba(87,168,194,.35)!important}
 html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="scheduled"]{color:#c5d3df!important;background:#1a2939!important;border-color:#34475a!important}
 html[data-rk-theme="dark"] body .rk-pos-statuses>[data-tone="no-date"]{color:#e6cf9b!important;background:rgba(132,103,41,.2)!important;border-color:rgba(180,149,76,.38)!important}
+
+/* Clean pipeline card hierarchy: plain PIC and service text */
+.rk-pos-card{display:flex;flex-direction:column;gap:0;padding:16px 16px 13px;border:1px solid #dbe4ea;border-top-width:4px;border-radius:14px;box-shadow:0 5px 16px rgba(25,70,106,.055)}
+.rk-pos-card>header{min-height:20px;gap:8px}
+.rk-pos-card>header>span{font-size:10px;letter-spacing:.035em}
+.rk-pos-card>header em{padding:3px 7px;border:1px solid #e4eaf0;border-radius:6px;background:#f4f7f9;color:#65798a;font-size:9px}
+.rk-pos-card h3{margin:9px 0 5px;font-size:16px;line-height:1.3;letter-spacing:-.02em;color:#1c3a52}
+.rk-pos-card-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
+.rk-pos-owner-name{display:block;margin:0;padding:0;color:#536c7e;font-size:11px;font-weight:550;line-height:1.35}
+.rk-pos-service-name{display:block;color:#64798a;font-size:10px;font-weight:600;line-height:1.3;text-align:right}
+.rk-pos-service-name[data-service="event"]{color:#876641}
+.rk-pos-service-name[data-service="digital"]{color:#356e7b}
+.rk-pos-card>p{margin:0 0 9px;color:#778997;font-size:10px;line-height:1.4}
+.rk-pos-statuses{margin:0 0 10px}
+.rk-pos-statuses>small{padding:4px 8px;border-radius:7px;font-size:10px}
+.rk-pos-activity{min-height:48px;padding:9px 10px;border:1px solid #e4edf2;border-radius:9px;background:#f5f9fb}
+.rk-pos-card dl{gap:8px;margin:10px 0}
+.rk-pos-card dl div{padding:8px 9px;border-color:#e7edf1;border-radius:9px;background:rgba(255,255,255,.62)}
+.rk-pos-card dt{font-size:9px;letter-spacing:.015em}
+.rk-pos-card dd{margin-top:4px;font-size:12px}
+.rk-pos-next{min-height:42px;padding:7px 2px}
+.rk-pos-card>footer{margin-top:auto;padding-top:10px}
+.rk-pos-table .rk-pos-service-name{width:max-content;margin-top:3px;text-align:left;font-size:10px}
+html[data-rk-theme="dark"] body .rk-pos-card h3{color:#ecf4fa!important}
+html[data-rk-theme="dark"] body .rk-pos-owner-name{color:#c6d5e1!important}
+html[data-rk-theme="dark"] body .rk-pos-service-name{color:#b8c7d4!important}
+html[data-rk-theme="dark"] body .rk-pos-service-name[data-service="event"]{color:#e1c19c!important}
+html[data-rk-theme="dark"] body .rk-pos-service-name[data-service="digital"]{color:#a8dbe0!important}
+html[data-rk-theme="dark"] body .rk-pos-card>header em{color:#c6d2dd!important;background:#1a2939!important;border-color:#34475a!important}
+html[data-rk-theme="dark"] body .rk-pos-activity{background:#1a2d3d!important;border-color:#2a4052!important}
+html[data-rk-theme="dark"] body .rk-pos-card dl div{background:rgba(16,29,43,.34)!important;border-color:#304255!important}
+@media(max-width:520px){.rk-pos-card{padding:14px}.rk-pos-card h3{font-size:15px}.rk-pos-card-meta{align-items:flex-start;flex-direction:column;gap:2px}.rk-pos-service-name{text-align:left}}
