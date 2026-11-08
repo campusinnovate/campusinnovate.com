@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react';
 import { FiArrowLeft, FiCalendar, FiCheckCircle, FiEdit2, FiFlag, FiPlus, FiRefreshCw, FiTarget, FiTrash2, FiTrendingUp, FiUsers, FiX } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
@@ -243,7 +243,7 @@ export default function BusinessStrategyPage() {
     <section className="bs-pillars">
       {pillars.map(pillar => {
         const list = visible.filter(item => item.pillar === pillar.key);
-        return <article className="bs-pillar" key={pillar.key} style={{ '--pillar-accent': pillar.accent, '--pillar-soft': pillar.soft } as React.CSSProperties}>
+        return <article className="bs-pillar" key={pillar.key} style={{ '--pillar-accent': pillar.accent, '--pillar-soft': pillar.soft } as CSSProperties}>
           <header><div className="bs-pillar-heading"><span>{pillar.icon}</span><div><h2>{pillar.title}</h2><p>{pillar.subtitle}</p></div></div><button type="button" onClick={() => startCreate(pillar.key)} aria-label={'Tambah strategi ' + pillar.title} title="Tambah strategi"><FiPlus/></button></header>
           {list.length ? <div className="bs-strategy-list">{list.map(item => {
             const percent = ratio(item), status = strategyState(item);
