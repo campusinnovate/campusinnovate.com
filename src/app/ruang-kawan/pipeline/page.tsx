@@ -226,7 +226,9 @@ function StatusBadges({ lead, currentDate }: { lead: Lead; currentDate: string }
     const status = pipelineBadges(lead, currentDate)[0];
     return <span className="rk-pos-statuses"><small data-tone={status.tone}>{status.label}</small></span>;
 }
-function Card({ l, currentDate, can, canTicket, edit, contact, remove }: {\n    l: Lead;\n    currentDate: string;
+function Card({ l, currentDate, can, canTicket, edit, contact, remove }: {
+    l: Lead;
+    currentDate: string;
     can: boolean;
     canTicket: boolean;
     edit: (x: Lead) => void;
