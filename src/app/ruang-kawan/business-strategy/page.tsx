@@ -49,6 +49,10 @@ const pillars: { key: Pillar; title: string; subtitle: string; accent: string; s
   { key: 'bottomline', title: 'Bottomline', subtitle: 'Administrasi, keuangan, dan kontrol bisnis', accent: '#8d67a9', soft: '#f3ecf7', icon: '04' },
 ];
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+const currentMonthKey = () => today().slice(0, 7);
+const monthEnd = (key: string) => { const [year, month] = key.split('-').map(Number); return new Date(year, month, 0).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }); };
+const shiftMonth = (key: string, amount: number) => { const [year, month] = key.split('-').map(Number); const date = new Date(year, month - 1 + amount, 1); return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 7); };
+const monthName = (key: string) => { const [year, month] = key.split('-').map(Number); return new Date(year, month - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }); };
 const afterDays = (days: number) => {
   const d = new Date(today() + 'T12:00:00');
   d.setDate(d.getDate() + days);
@@ -81,55 +85,83 @@ function strategyState(item: Strategy, asOf = today()) {
   if (expected - percent >= 20) return { label: 'Perlu perhatian', tone: 'risk' };
   return { label: 'Berjalan', tone: 'active' };
 }
-function TrendChart({ strategies, snapshots }: { strategies: Strategy[]; snapshots: Snapshot[] }) {
-  const chart = useMemo(() => {
-    const now = new Date(today() + 'T12:00:00');
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
-      const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-      return {
-        key: d.toLocaleDateString('en-CA'),
-        label: d.toLocaleDateString('id-ID', { month: 'short' }),
-        end: last.toLocaleDateString('en-CA'),
-      };
-    });
-    const series = pillars.map(pillar => ({
-      ...pillar,
-      points: months.map(month => {
-        const values = strategies.filter(item => item.pillar === pillar.key && item.starts_on <= month.end);
-        const progresses = values.map(item => {
-          const history = snapshots.filter(s => s.strategy_id === item.id && s.recorded_on <= month.end).sort((a, b) => b.recorded_on.localeCompare(a.recorded_on));
-          const value = history[0] ? Number(history[0].value) : (item.created_at.slice(0, 10) <= month.end ? Number(item.current_value) : NaN);
-          return Number.isFinite(value) ? Math.max(0, Math.min(100, value / Number(item.target_value) * 100)) : NaN;
-        }).filter(Number.isFinite);
-        return progresses.length ? progresses.reduce((sum, value) => sum + value, 0) / progresses.length : null;
-      }),
-    }));
-    return { months, series };
-  }, [strategies, snapshots]);
-  const x = (i: number) => 46 + i * 132;
-  const y = (v: number) => 214 - Math.min(100, Math.max(0, v)) * 1.78;
-  const hasData = chart.series.some(s => s.points.some(v => v !== null));
-  return <section className="bs-panel bs-trend">
-    <header className="bs-panel-head"><div><span className="bs-eyebrow">PROGRES STRATEGI</span><h2>Perkembangan tiap pilar</h2><p>Rata-rata progres sasaran dari catatan pembaruan yang tersimpan.</p></div></header>
-    <div className="bs-chart-wrap">
-      {hasData ? <>
-        <div className="bs-legend">{chart.series.map(s => <span key={s.key}><i style={{ background: s.accent }}/>{s.title}</span>)}</div>
-        <svg className="bs-chart" viewBox="0 0 760 260" role="img" aria-label="Grafik progres rata-rata strategi per pilar selama enam bulan">
-          {[0, 25, 50, 75, 100].map(t => <g key={t}><line x1="42" x2="710" y1={y(t)} y2={y(t)} className="bs-gridline"/><text x="4" y={y(t) + 4} className="bs-axis">{t}%</text></g>)}
-          {chart.series.map(s => {
-            const coords = s.points.map((point, index) => point === null ? null : [x(index), y(point)] as [number, number]).filter(Boolean) as [number, number][];
-            if (!coords.length) return null;
-            const path = coords.map((point, index) => (index ? 'L' : 'M') + point[0] + ' ' + point[1]).join(' ');
-            return <g key={s.key}><path d={path} fill="none" stroke={s.accent} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>{coords.map((point, index) => <circle key={index} cx={point[0]} cy={point[1]} r="4" fill={s.accent} stroke="white" strokeWidth="2"/>)}</g>;
+function reportValues(strategies: Strategy[], snapshots: Snapshot[], month: string) {
+  const through = monthEnd(month);
+  return pillars.map(pillar => {
+    const items = strategies.filter(item => item.pillar === pillar.key && item.starts_on <= through);
+    const values = items.map(item => {
+      const history = snapshots
+        .filter(snapshot => snapshot.strategy_id === item.id && snapshot.recorded_on <= through)
+        .sort((a, b) => b.recorded_on.localeCompare(a.recorded_on));
+      const value = history[0] ? Number(history[0].value) : (item.updated_at.slice(0, 10) <= through ? Number(item.current_value) : null);
+      return value === null || !Number.isFinite(value) || Number(item.target_value) <= 0
+        ? null
+        : Math.max(0, Math.min(100, value / Number(item.target_value) * 100));
+    }).filter((value): value is number => value !== null);
+    return { ...pillar, score: values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null, count: items.length, reported: values.length };
+  });
+}
+function StrategicBalance({ strategies, snapshots, month, onMonthChange }: { strategies: Strategy[]; snapshots: Snapshot[]; month: string; onMonthChange: (value: string) => void }) {
+  const availableMonths = useMemo(() => Array.from({ length: 12 }, (_, index) => shiftMonth(currentMonthKey(), -11 + index)), []);
+  const current = useMemo(() => reportValues(strategies, snapshots, month), [strategies, snapshots, month]);
+  const previous = useMemo(() => reportValues(strategies, snapshots, shiftMonth(month, -1)), [strategies, snapshots, month]);
+  const values = current.filter(item => item.score !== null);
+  const highest = values.length ? values.reduce((best, item) => item.score! > best.score! ? item : best) : null;
+  const lowest = values.length ? values.reduce((worst, item) => item.score! < worst.score! ? item : worst) : null;
+  const gap = highest && lowest ? Math.round(highest.score! - lowest.score!) : 0;
+  const deltas = current.map(item => {
+    const before = previous.find(old => old.key === item.key)?.score;
+    return { ...item, delta: item.score !== null && before !== null && before !== undefined ? Math.round(item.score - before) : null };
+  });
+  const changed = deltas.filter(item => item.delta !== null).sort((a, b) => Math.abs(b.delta!) - Math.abs(a.delta!));
+  const center = [350, 174] as const;
+  const corner: Record<Pillar, readonly [number, number]> = {
+    topline: [80, 34], middleline: [620, 34], bottomline: [620, 314], foundation: [80, 314],
+  };
+  const point = (key: Pillar, score: number) => {
+    const destination = corner[key], strength = Math.max(0, Math.min(100, score)) / 100;
+    return [center[0] + (destination[0] - center[0]) * strength, center[1] + (destination[1] - center[1]) * strength] as const;
+  };
+  const polygon = (set: typeof current) => {
+    const points = set.filter(item => item.score !== null).map(item => point(item.key, item.score!));
+    return points.length > 1 ? points.map((p, index) => (index ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ') + (points.length === 4 ? ' Z' : '') : '';
+  };
+  const currentPath = polygon(current), previousPath = polygon(previous);
+  return <section className="bs-panel bs-balance">
+    <header className="bs-panel-head bs-balance-head">
+      <div><span className="bs-eyebrow">LAPORAN STRATEGI</span><h2>Keseimbangan empat pilar</h2><p>Posisi tiap pilar menunjukkan rata-rata hasil aktual dibanding target pada bulan laporan.</p></div>
+      <label className="bs-month-select"><span>Bulan laporan</span><select value={month} onChange={event => onMonthChange(event.target.value)}>{availableMonths.map(key => <option key={key} value={key}>{monthName(key)}</option>)}</select></label>
+    </header>
+    <div className="bs-balance-layout">
+      <div className="bs-balance-map">
+        <div className="bs-map-legend"><span><i className="bs-legend-current"/> {monthName(month)}</span><span><i className="bs-legend-previous"/> {monthName(shiftMonth(month, -1))}</span></div>
+        <svg className="bs-map" viewBox="0 0 700 350" role="img" aria-label={'Peta hasil empat pilar untuk ' + monthName(month)}>
+          <path d="M80 34 H620 V314 H80 Z" className="bs-map-boundary"/>
+          <path d="M350 174 L80 34 M350 174 L620 34 M350 174 L620 314 M350 174 L80 314" className="bs-map-axis"/>
+          <circle cx="350" cy="174" r="3" className="bs-map-center"/>
+          {pillars.map(pillar => {
+            const p = corner[pillar.key];
+            return <g key={pillar.key}><text x={p[0] + (p[0] < 350 ? 0 : -2)} y={p[1] + (p[1] < 174 ? -13 : -25)} textAnchor={p[0] < 350 ? 'start' : 'end'} className="bs-map-label">{pillar.title}</text><text x={p[0] + (p[0] < 350 ? 0 : -2)} y={p[1] + (p[1] < 174 ? 2 : -10)} textAnchor={p[0] < 350 ? 'start' : 'end'} className="bs-map-count">{pillar.subtitle}</text></g>;
           })}
-          {chart.months.map((month, index) => <text key={month.key} x={x(index)} y="246" textAnchor="middle" className="bs-axis">{month.label}</text>)}
+          {previousPath ? <path d={previousPath} className={previous.every(item => item.score !== null) ? 'bs-map-previous' : 'bs-map-previous bs-map-partial'}/> : null}
+          {currentPath ? <path d={currentPath} className={current.every(item => item.score !== null) ? 'bs-map-current' : 'bs-map-current bs-map-partial'}/> : null}
+          {current.map(item => {
+            if (item.score === null) return null;
+            const p = point(item.key, item.score);
+            return <g key={item.key}><circle cx={p[0]} cy={p[1]} r="7" fill={item.accent} className="bs-map-point"/><text x={p[0]} y={p[1] - 11} textAnchor="middle" className="bs-map-value">{Math.round(item.score)}%</text></g>;
+          })}
         </svg>
-      </> : <div className="bs-chart-empty"><FiTrendingUp/><strong>Grafik progres akan terbentuk otomatis</strong><span>Catat nilai progres saat strategi diperbarui untuk melihat perubahannya dari waktu ke waktu.</span></div>}
+        <div className="bs-pillar-scores">{current.map(item => <div key={item.key} style={{ '--pillar-accent': item.accent } as CSSProperties}><span><i/>{item.title}</span><strong>{item.score === null ? 'Belum ada laporan' : Math.round(item.score) + '%'}</strong><small>{item.reported} dari {item.count} strategi punya catatan progres</small></div>)}</div>
+      </div>
+      <aside className="bs-interpretation">
+        <span className="bs-eyebrow">INTERPRETASI PERIODE</span><h3>{monthName(month)}</h3>
+        {highest && lowest ? <div className="bs-insight-main"><span>Pencapaian tertinggi</span><strong>{highest.title} · {Math.round(highest.score!)}%</strong><p>{gap > 0 ? lowest.title + ' berada ' + gap + ' poin persentase di bawah ' + highest.title + '.' : 'Keempat pilar berada pada capaian yang seimbang.'} Gunakan selisih ini sebagai bahan evaluasi alokasi fokus dan target.</p></div> : <div className="bs-insight-empty">Belum ada laporan progres yang tersimpan untuk periode ini. Perbarui nilai progres strategi agar evaluasi bulanan mulai terbentuk.</div>}
+        {changed.length ? <div className="bs-insight-change"><strong>Perubahan dari bulan sebelumnya</strong>{changed.slice(0, 3).map(item => <div key={item.key}><span>{item.title}</span><b className={item.delta! >= 0 ? 'up' : 'down'}>{item.delta! > 0 ? '+' : ''}{item.delta} poin</b></div>)}</div> : <div className="bs-insight-change"><strong>Perubahan dari bulan sebelumnya</strong><p>Perlu catatan progres di dua periode untuk membandingkan hasil.</p></div>}
+        <p className="bs-insight-note">Interpretasi dihitung dari laporan progres yang tersimpan. Selisih capaian memberi sinyal untuk dibahas, bukan kesimpulan sebab-akibat.</p>
+      </aside>
     </div>
   </section>;
 }
-
 export default function BusinessStrategyPage() {
   const [access, setAccess] = useState<Access | null>(null);
   const [founders, setFounders] = useState<Founder[]>([]);
@@ -137,6 +169,8 @@ export default function BusinessStrategyPage() {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'denied'>('loading');
   const [periodFilter, setPeriodFilter] = useState<'all' | Period>('all');
+  const [reportMonth, setReportMonth] = useState(currentMonthKey());
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState<StrategyForm>(freshForm());
   const [saving, setSaving] = useState(false);
@@ -238,29 +272,36 @@ export default function BusinessStrategyPage() {
 
     <section className="bs-filters"><div><span>Periode target</span><strong>Filter rencana founder</strong></div><div className="bs-filter-pills">{(['all','weekly','monthly','quarterly','annual','custom'] as const).map(value=><button key={value} type="button" data-active={periodFilter===value} onClick={()=>setPeriodFilter(value)}>{value==='all'?'Semua':periodLabel(value)}</button>)}</div></section>
 
-    <TrendChart strategies={visible} snapshots={snapshots}/>
+    <StrategicBalance strategies={strategies} snapshots={snapshots} month={reportMonth} onMonthChange={setReportMonth}/>
 
-    <section className="bs-pillars">
-      {pillars.map(pillar => {
-        const list = visible.filter(item => item.pillar === pillar.key);
-        return <article className="bs-pillar" key={pillar.key} style={{ '--pillar-accent': pillar.accent, '--pillar-soft': pillar.soft } as CSSProperties}>
-          <header><div className="bs-pillar-heading"><span>{pillar.icon}</span><div><h2>{pillar.title}</h2><p>{pillar.subtitle}</p></div></div><button type="button" onClick={() => startCreate(pillar.key)} aria-label={'Tambah strategi ' + pillar.title} title="Tambah strategi"><FiPlus/></button></header>
-          {list.length ? <div className="bs-strategy-list">{list.map(item => {
-            const percent = ratio(item), status = strategyState(item);
-            return <section className="bs-strategy-card" key={item.id}>
-              <div className="bs-strategy-top"><span className={'bs-state ' + status.tone}>{status.label}</span><span className="bs-period">{periodLabel(item.period_type)}</span></div>
-              <h3>{item.title}</h3>
-              {item.description ? <p className="bs-description">{item.description}</p> : null}
-              <div className="bs-metric-label">{item.metric_name}</div>
-              <div className="bs-progress-values"><strong>{formatMetric(Number(item.current_value),item.unit_label)}</strong><span>Target {formatMetric(Number(item.target_value),item.unit_label)}</span></div>
-              <div className="bs-progress-track"><i style={{ width: Math.min(100,percent) + '%' }}/></div>
-              <div className="bs-progress-caption"><span>{Math.round(percent)}% progres</span><span>{Math.max(0,Math.ceil(Number(item.target_value)-Number(item.current_value)))} {item.unit_label} tersisa</span></div>
-              <div className="bs-strategy-meta"><span><FiUsers/>{ownerName(item.owner_membership_id)}</span><span><FiCalendar/>{dateLabel(item.starts_on)} – {dateLabel(item.due_on)}</span></div>
-              <footer><span>Diperbarui {dateLabel(item.updated_at.slice(0,10))}</span><div><button type="button" onClick={() => startEdit(item)} aria-label={'Edit ' + item.title} title="Edit strategi"><FiEdit2/></button><button type="button" onClick={() => void remove(item)} aria-label={'Hapus ' + item.title} title="Hapus strategi"><FiTrash2/></button></div></footer>
-            </section>;
-          })}</div> : <div className="bs-pillar-empty"><span>Belum ada strategi</span><button type="button" onClick={() => startCreate(pillar.key)}>Tambah rencana <FiPlus/></button></div>}
-        </article>;
-      })}
+    <section className="bs-strategy-section">
+      <div className="bs-strategy-toolbar"><div><span className="bs-eyebrow">RENCANA DAN EKSEKUSI</span><h2>Strategi per pilar</h2></div><div className="bs-view-switch" role="group" aria-label="Tampilan strategi"><button type="button" aria-pressed={viewMode === 'board'} onClick={() => setViewMode('board')}>Pilar</button><button type="button" aria-pressed={viewMode === 'list'} onClick={() => setViewMode('list')}>List</button></div></div>
+      {viewMode === 'board' ? <section className="bs-pillars">
+        {pillars.map(pillar => {
+          const list = visible.filter(item => item.pillar === pillar.key);
+          return <article className="bs-pillar" key={pillar.key} style={{ '--pillar-accent': pillar.accent, '--pillar-soft': pillar.soft } as CSSProperties}>
+            <header><div className="bs-pillar-heading"><span>{pillar.icon}</span><div><h2>{pillar.title}</h2><p>{pillar.subtitle}</p></div></div><button type="button" onClick={() => startCreate(pillar.key)} aria-label={'Tambah strategi ' + pillar.title} title="Tambah strategi"><FiPlus/></button></header>
+            {list.length ? <div className="bs-strategy-list">{list.map(item => {
+              const percent = ratio(item), status = strategyState(item);
+              return <section className="bs-strategy-card" key={item.id}>
+                <div className="bs-strategy-top"><span className={'bs-state ' + status.tone}>{status.label}</span><span className="bs-period">{periodLabel(item.period_type)}</span></div>
+                <h3>{item.title}</h3>
+                {item.description ? <p className="bs-description">{item.description}</p> : null}
+                <div className="bs-metric-label">{item.metric_name}</div>
+                <div className="bs-progress-values"><strong>{formatMetric(Number(item.current_value),item.unit_label)}</strong><span>Target {formatMetric(Number(item.target_value),item.unit_label)}</span></div>
+                <div className="bs-progress-track"><i style={{ width: Math.min(100,percent) + '%' }}/></div>
+                <div className="bs-progress-caption"><span>{Math.round(percent)}% progres</span><span>{Math.max(0,Math.ceil(Number(item.target_value)-Number(item.current_value)))} {item.unit_label} tersisa</span></div>
+                <div className="bs-strategy-meta"><span><FiUsers/>{ownerName(item.owner_membership_id)}</span><span><FiCalendar/>{dateLabel(item.starts_on)} – {dateLabel(item.due_on)}</span></div>
+                <footer><span>Diperbarui {dateLabel(item.updated_at.slice(0,10))}</span><div><button type="button" onClick={() => startEdit(item)} aria-label={'Edit ' + item.title} title="Edit strategi"><FiEdit2/></button><button type="button" onClick={() => void remove(item)} aria-label={'Hapus ' + item.title} title="Hapus strategi"><FiTrash2/></button></div></footer>
+              </section>;
+            })}</div> : <div className="bs-pillar-empty"><span>Belum ada strategi</span><button type="button" onClick={() => startCreate(pillar.key)}>Tambah rencana <FiPlus/></button></div>}
+          </article>;
+        })}
+      </section> : <div className="bs-list-table-wrap"><table className="bs-list-table"><thead><tr><th>Pilar</th><th>Strategi / hasil</th><th>Progres</th><th>Status</th><th>PIC founder</th><th>Tenggat</th><th></th></tr></thead><tbody>{visible.length ? visible.map(item => {
+        const pillar = pillars.find(value => value.key === item.pillar)!;
+        const percent = ratio(item), status = strategyState(item);
+        return <tr key={item.id} style={{ '--pillar-accent': pillar.accent } as CSSProperties}><td><span className="bs-list-pillar">{pillar.title}</span></td><td><strong>{item.title}</strong><small>{item.metric_name} · {formatMetric(Number(item.current_value),item.unit_label)} / {formatMetric(Number(item.target_value),item.unit_label)}</small></td><td><div className="bs-list-progress"><i><b style={{ width: Math.min(100,percent) + '%' }}/></i><strong>{Math.round(percent)}%</strong></div></td><td><span className={'bs-state ' + status.tone}>{status.label}</span></td><td>{ownerName(item.owner_membership_id)}</td><td>{dateLabel(item.due_on)}</td><td className="bs-list-actions"><button type="button" onClick={() => startEdit(item)} aria-label={'Edit ' + item.title}><FiEdit2/></button><button type="button" onClick={() => void remove(item)} aria-label={'Hapus ' + item.title}><FiTrash2/></button></td></tr>;
+      }) : <tr><td colSpan={7} className="bs-empty-row">Belum ada strategi pada filter ini.</td></tr>}</tbody></table></div>}
     </section>
 
     {notice ? <div className="bs-notice" role="status">{notice}<button type="button" onClick={() => setNotice('')}><FiX/></button></div> : null}
