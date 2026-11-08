@@ -203,24 +203,23 @@ function pipelineBadges(lead: Lead, currentDate: string): PipelineBadge[] {
     const closeMs = lead.expected_close_date ? Date.parse(`${lead.expected_close_date.slice(0, 10)}T00:00:00Z`) : NaN;
 
     if ((dueDays !== null && dueDays <= -7) || (Number.isFinite(closeMs) && closeMs < dayMs)) {
-        return [{ label: dueDays !== null && dueDays < 0 ? `Beresiko · H+${Math.abs(dueDays)}` : 'Beresiko', tone: 'risk' }];
+        return [{ label: 'Beresiko', tone: 'risk' }];
     }
-    if (dueDays !== null && dueDays < 0) return [{ label: `Tenggat lewat · H+${Math.abs(dueDays)}`, tone: 'deadline' }];
-    if (dueDays === 0) return [{ label: 'Tenggat hari ini', tone: 'today' }];
-    if (dueDays !== null && dueDays <= 3) return [{ label: `Tenggat · H-${dueDays}`, tone: 'deadline' }];
+    if (dueDays !== null && dueDays < 0) return [{ label: 'Tenggat', tone: 'deadline' }];
+    if (dueDays === 0 || (dueDays !== null && dueDays <= 3)) return [{ label: 'Tenggat', tone: dueDays === 0 ? 'today' : 'deadline' }];
 
     const repliedOrEngaged = /respond|response|repl(y|ied)|merespons|membalas|tertarik|meeting|pertemuan|qualified|proposal|negotiat|presentasi|deal/i.test(context);
     const recentOutreach = idleDays <= 2 && /hubungi|dihubungi|contact|outreach|follow.?up|kontak|pesan|email|whatsapp|linkedin|initial chat/i.test(activity);
     const explicitCold = /cold|unreachable|tidak dapat dihubungi|tidak merespons|belum membalas|no response|no reply|seen/i.test(context);
     if (explicitCold && !repliedOrEngaged && !recentOutreach && idleDays >= 3) return [{ label: 'Cold', tone: 'cold' }];
 
+    if (idleDays >= 7 && !repliedOrEngaged) return [{ label: 'Mandek', tone: 'stalled' }];
+
     const expectedFollowup = /follow.?up|hubungi|kontak|reply|balas|respon|menunggu/i.test(activity);
-    if (idleDays >= 7 && !repliedOrEngaged) return [{ label: `Mandek · ${idleDays} hari`, tone: 'stalled' }];
-    if (expectedFollowup || (dueDays !== null && dueDays <= 7)) {
-        return [{ label: dueDays !== null && dueDays > 0 ? `Perlu follow-up · H-${dueDays}` : 'Perlu follow-up', tone: 'followup' }];
+    if (expectedFollowup || dueDays === null || (dueDays !== null && dueDays <= 7)) {
+        return [{ label: 'Perlu follow-up', tone: 'followup' }];
     }
-    if (dueDays !== null) return [{ label: `Terjadwal · H-${dueDays}`, tone: 'scheduled' }];
-    return [{ label: 'Aktif', tone: 'active' }];
+    return [{ label: 'Terjadwal', tone: 'scheduled' }];
 }
 function StatusBadges({ lead, currentDate }: { lead: Lead; currentDate: string }) {
     const status = pipelineBadges(lead, currentDate)[0];
