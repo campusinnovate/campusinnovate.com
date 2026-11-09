@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react';
-import { FiArrowLeft, FiCalendar, FiCheckCircle, FiEdit2, FiFlag, FiPlus, FiRefreshCw, FiTarget, FiTrash2, FiTrendingUp, FiUsers, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiBookOpen, FiCalendar, FiCheckCircle, FiChevronDown, FiEdit2, FiFlag, FiPlus, FiRefreshCw, FiTarget, FiTrash2, FiTrendingUp, FiUsers, FiX } from 'react-icons/fi';
 import { createClient } from '@/lib/supabase/client';
 
 type Pillar = 'foundation' | 'topline' | 'middleline' | 'bottomline';
@@ -271,6 +271,17 @@ export default function BusinessStrategyPage() {
     </section>
 
     <section className="bs-filters"><div><span>Periode target</span><strong>Filter rencana founder</strong></div><div className="bs-filter-pills">{(['all','weekly','monthly','quarterly','annual','custom'] as const).map(value=><button key={value} type="button" data-active={periodFilter===value} onClick={()=>setPeriodFilter(value)}>{value==='all'?'Semua':periodLabel(value)}</button>)}</div></section>
+
+    <details className="bs-guide">
+      <summary><span className="bs-guide-icon"><FiBookOpen/></span><span><strong>Panduan empat pilar</strong><small>Bingung strategi ini masuk ke mana? Lihat definisi dan contoh.</small></span><FiChevronDown className="bs-guide-chevron"/></summary>
+      <div className="bs-guide-grid">
+        <article style={{ '--pillar-accent': '#6177bd' } as CSSProperties}><span>01 · FOUNDATION</span><h3>Merancang bisnis</h3><p>Menentukan model bisnis, visi-misi, strategi, business plan, layanan, dan desain proses bisnis.</p><small>Contoh: menetapkan target pasar dan merancang alur prospek sampai handover.</small></article>
+        <article style={{ '--pillar-accent': '#c58a48' } as CSSProperties}><span>02 · TOPLINE</span><h3>Menghasilkan peluang</h3><p>Menarik, mengkualifikasi, dan mengonversi prospek menjadi proposal serta deal.</p><small>Contoh: LinkedIn outreach, qualified leads, meeting, proposal, dan target penawaran/deal.</small></article>
+        <article style={{ '--pillar-accent': '#278b8d' } as CSSProperties}><span>03 · MIDDLELINE</span><h3>Membangun sistem dan menjalankan layanan</h3><p>Mengubah rancangan Foundation menjadi sistem kerja dan delivery yang benar-benar dipakai.</p><small>Contoh: CRM untuk mendukung Topline; ticketing, handover, Project Space, vendor, dan delivery proyek.</small></article>
+        <article style={{ '--pillar-accent': '#8d67a9' } as CSSProperties}><span>04 · BOTTOMLINE</span><h3>Menjaga profit dan ketersediaan kas</h3><p>Mengelola P&amp;L, arus kas, biaya, piutang, kewajiban, dan administrasi keuangan.</p><small>Contoh: memproyeksikan kas saat pembayaran proyek belum masuk atau proyek tertahan.</small></article>
+      </div>
+      <p className="bs-guide-rule"><strong>Cara cepat membedakan:</strong> rancangan prosesnya = Foundation; sistem untuk menjalankannya = Middleline; hasil penjualan = Topline; dampak profit dan kas = Bottomline. Jika proyek mangkrak, Middleline menangani pemulihan delivery dan Bottomline memetakan dampak keuangan serta kebutuhan kas.</p>
+    </details>
 
     <StrategicBalance strategies={strategies} snapshots={snapshots} month={reportMonth} onMonthChange={setReportMonth}/>
 
