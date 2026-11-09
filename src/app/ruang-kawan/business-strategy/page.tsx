@@ -7,6 +7,10 @@ import { createClient } from '@/lib/supabase/client';
 
 type Pillar = 'foundation' | 'topline' | 'middleline' | 'bottomline';
 type Period = 'weekly' | 'monthly' | 'quarterly' | 'annual' | 'custom';
+type TargetBasis = 'historical' | 'pipeline' | 'capacity' | 'commitment' | 'experiment' | 'other';
+type MetricDirection = 'increase' | 'decrease';
+type ReviewCadence = 'weekly' | 'monthly' | 'quarterly';
+type Checkpoint = { label: string; due_on: string; target_value: number };
 type Access = { membership_status?: string; position_name?: string | null; full_name?: string | null };
 type Founder = { membership_id: string; full_name: string; position_name: string };
 type Strategy = {
@@ -17,6 +21,15 @@ type Strategy = {
   metric_name: string;
   target_value: number;
   current_value: number;
+  baseline_value: number | null;
+  metric_direction: MetricDirection;
+  target_basis: TargetBasis;
+  target_rationale: string | null;
+  leading_indicator: string | null;
+  guardrail_value: number | null;
+  assumptions: string | null;
+  review_cadence: ReviewCadence;
+  checkpoints: Checkpoint[];
   unit_label: string;
   period_type: Period;
   starts_on: string;
@@ -34,6 +47,15 @@ type StrategyForm = {
   metric_name: string;
   target_value: string;
   current_value: string;
+  baseline_value: string;
+  metric_direction: MetricDirection;
+  target_basis: TargetBasis;
+  target_rationale: string;
+  leading_indicator: string;
+  guardrail_value: string;
+  assumptions: string;
+  review_cadence: ReviewCadence;
+  checkpoints: { label: string; due_on: string; target_value: string }[];
   unit_label: string;
   period_type: Period;
   starts_on: string;
@@ -61,8 +83,30 @@ const afterDays = (days: number) => {
 const freshForm = (pillar: Pillar = 'topline', owner = ''): StrategyForm => ({
   id: null, pillar, title: '', description: '', metric_name: '', target_value: '', current_value: '0',
   unit_label: 'lead', period_type: 'monthly', starts_on: today(), due_on: afterDays(30), owner_membership_id: owner,
+  baseline_value: '0', metric_direction: 'increase', target_basis: 'historical', target_rationale: '', leading_indicator: '', guardrail_value: '', assumptions: '', review_cadence: 'monthly', checkpoints: [],
 });
-const ratio = (item: Strategy) => item.target_value > 0 ? Math.max(0, Math.min(100, Number(item.current_value) / Number(item.target_value) * 100)) : 0;
+const progressForValue = (item: Pick<Strategy, 'target_value' | 'baseline_value' | 'metric_direction'>, value: number) => {
+  const baseline = item.baseline_value ?? (item.metric_direction === 'increase' ? 0 : item.target_value);
+  const span = item.metric_direction === 'increase' ? item.target_value - baseline : baseline - item.target_value;
+  if (!Number.isFinite(span) || span <= 0) return 0;
+  const progress = item.metric_direction === 'increase' ? (value - baseline) / span : (baseline - value) / span;
+  return Math.max(0, Math.min(100, progress * 100));
+};
+const ratio = (item: Strategy) => progressForValue(item, Number(item.current_value));
+const plannedProgress = (item: Strategy, asOf = today()) => {
+  if (asOf <= item.starts_on) return 0;
+  if (asOf >= item.due_on) return 100;
+  const stops = [
+    { date: item.starts_on, progress: 0 },
+    ...(item.checkpoints || []).filter(point => point.due_on > item.starts_on && point.due_on < item.due_on).map(point => ({ date: point.due_on, progress: progressForValue(item, point.target_value) })).sort((a, b) => a.date.localeCompare(b.date)),
+    { date: item.due_on, progress: 100 },
+  ];
+  const rightIndex = stops.findIndex(stop => stop.date >= asOf);
+  const left = stops[Math.max(0, rightIndex - 1)], right = stops[Math.max(1, rightIndex)];
+  const total = Date.parse(right.date + 'T00:00:00Z') - Date.parse(left.date + 'T00:00:00Z');
+  const elapsed = Date.parse(asOf + 'T00:00:00Z') - Date.parse(left.date + 'T00:00:00Z');
+  return total > 0 ? left.progress + (right.progress - left.progress) * elapsed / total : right.progress;
+};
 const number = (value: number) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(Number(value) || 0);
 const money = (value: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value) || 0);
 const formatMetric = (value: number, unit: string) => /^(rp|idr|rupiah)$/i.test(unit.trim()) ? money(value) : number(value) + (unit ? ' ' + unit : '');
@@ -71,18 +115,22 @@ const dateLabel = (date: string) => date ? new Date(date + 'T00:00:00').toLocale
 const formFor = (item: Strategy): StrategyForm => ({
   id: item.id, pillar: item.pillar, title: item.title, description: item.description ?? '', metric_name: item.metric_name,
   target_value: String(item.target_value), current_value: String(item.current_value), unit_label: item.unit_label,
+  baseline_value: item.baseline_value == null ? '' : String(item.baseline_value), metric_direction: item.metric_direction || 'increase', target_basis: item.target_basis || 'historical',
+  target_rationale: item.target_rationale ?? '', leading_indicator: item.leading_indicator ?? '', guardrail_value: item.guardrail_value == null ? '' : String(item.guardrail_value),
+  assumptions: item.assumptions ?? '', review_cadence: item.review_cadence || 'monthly', checkpoints: (item.checkpoints || []).map(point => ({ ...point, target_value: String(point.target_value) })),
   period_type: item.period_type, starts_on: item.starts_on, due_on: item.due_on, owner_membership_id: item.owner_membership_id,
 });
 function strategyState(item: Strategy, asOf = today()) {
   const percent = ratio(item);
+  const guardrail = item.guardrail_value;
+  const breachesGuardrail = guardrail !== null && (item.metric_direction === 'increase' ? Number(item.current_value) < guardrail : Number(item.current_value) > guardrail);
   if (percent >= 100) return { label: 'Tercapai', tone: 'done' };
   if (item.due_on < asOf) return { label: 'Berisiko', tone: 'risk' };
   if (item.starts_on > asOf) return { label: 'Terjadwal', tone: 'planned' };
-  const start = Date.parse(item.starts_on + 'T00:00:00Z');
-  const end = Date.parse(item.due_on + 'T00:00:00Z');
-  const now = Date.parse(asOf + 'T00:00:00Z');
-  const expected = end > start ? Math.min(100, Math.max(0, (now - start) / (end - start) * 100)) : 100;
-  if (expected - percent >= 20) return { label: 'Perlu perhatian', tone: 'risk' };
+  if (breachesGuardrail) return { label: 'Di bawah batas', tone: 'risk' };
+  const gap = plannedProgress(item, asOf) - percent;
+  if (gap >= 20) return { label: 'Tertinggal', tone: 'risk' };
+  if (gap >= 8) return { label: 'Perlu perhatian', tone: 'attention' };
   return { label: 'Berjalan', tone: 'active' };
 }
 function reportValues(strategies: Strategy[], snapshots: Snapshot[], month: string) {
@@ -96,7 +144,7 @@ function reportValues(strategies: Strategy[], snapshots: Snapshot[], month: stri
       const value = history[0] ? Number(history[0].value) : (item.updated_at.slice(0, 10) <= through ? Number(item.current_value) : null);
       return value === null || !Number.isFinite(value) || Number(item.target_value) <= 0
         ? null
-        : Math.max(0, Math.min(100, value / Number(item.target_value) * 100));
+        : progressForValue(item, value);
     }).filter((value): value is number => value !== null);
     return { ...pillar, score: values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null, count: items.length, reported: values.length };
   });
@@ -208,6 +256,15 @@ export default function BusinessStrategyPage() {
   const done = visible.filter(item => ratio(item) >= 100).length;
   const ownerName = (id: string) => founders.find(person => person.membership_id === id)?.full_name || 'PIC belum tersedia';
   const updateField = (key: keyof StrategyForm, value: string) => setForm(current => ({ ...current, [key]: value }));
+  const addCheckpoint = () => setForm(current => ({
+    ...current,
+    checkpoints: [...current.checkpoints, { label: 'Milestone ' + (current.checkpoints.length + 1), due_on: new Date((Date.parse(current.starts_on + 'T12:00:00Z') + Date.parse(current.due_on + 'T12:00:00Z')) / 2).toISOString().slice(0, 10), target_value: current.target_value }],
+  }));
+  const updateCheckpoint = (index: number, key: 'label' | 'due_on' | 'target_value', value: string) => setForm(current => ({
+    ...current,
+    checkpoints: current.checkpoints.map((point, pointIndex) => pointIndex === index ? { ...point, [key]: value } : point),
+  }));
+  const removeCheckpoint = (index: number) => setForm(current => ({ ...current, checkpoints: current.checkpoints.filter((_, pointIndex) => pointIndex !== index) }));
 
   function startCreate(pillar: Pillar = 'topline') {
     setError('');
@@ -223,16 +280,30 @@ export default function BusinessStrategyPage() {
     event.preventDefault();
     setError('');
     const target = Number(form.target_value), currentValue = Number(form.current_value);
-    if (!form.title.trim() || !form.metric_name.trim() || !form.owner_membership_id || !form.starts_on || !form.due_on || !Number.isFinite(target) || target <= 0 || !Number.isFinite(currentValue) || currentValue < 0) {
+    const baselineValue = form.baseline_value.trim() ? Number(form.baseline_value) : (form.metric_direction === 'increase' ? 0 : NaN);
+    const guardrailValue = form.guardrail_value.trim() ? Number(form.guardrail_value) : null;
+    const checkpoints = form.checkpoints.map(point => ({ label: point.label.trim(), due_on: point.due_on, target_value: Number(point.target_value) }));
+    if (!form.title.trim() || !form.metric_name.trim() || !form.owner_membership_id || !form.starts_on || !form.due_on || !Number.isFinite(target) || target <= 0 || !Number.isFinite(currentValue) || !Number.isFinite(baselineValue) || currentValue < 0) {
       setError('Lengkapi nama strategi, ukuran, target, PIC founder, dan periode yang valid.');
       return;
     }
     if (form.due_on < form.starts_on) { setError('Tanggal selesai tidak boleh sebelum tanggal mulai.'); return; }
+    if ((form.metric_direction === 'increase' && target <= baselineValue) || (form.metric_direction === 'decrease' && target >= baselineValue)) {
+      setError('Target harus lebih tinggi dari baseline untuk indikator yang naik, atau lebih rendah untuk indikator yang turun.'); return;
+    }
+    if (guardrailValue !== null && (!Number.isFinite(guardrailValue) || guardrailValue < 0)) { setError('Batas penjaga harus berupa angka nol atau lebih.'); return; }
+    if (checkpoints.some(point => !point.label || !point.due_on || !Number.isFinite(point.target_value) || point.due_on <= form.starts_on || point.due_on >= form.due_on)) {
+      setError('Setiap milestone perlu nama, angka target, dan tanggal di antara tanggal mulai dan tenggat.'); return;
+    }
     setSaving(true);
     const sb = createClient();
     const payload = {
       pillar: form.pillar, title: form.title.trim(), description: form.description.trim() || null,
       metric_name: form.metric_name.trim(), target_value: target, current_value: currentValue,
+      baseline_value: baselineValue, metric_direction: form.metric_direction, target_basis: form.target_basis,
+      target_rationale: form.target_rationale.trim() || null, leading_indicator: form.leading_indicator.trim() || null,
+      guardrail_value: guardrailValue, assumptions: form.assumptions.trim() || null, review_cadence: form.review_cadence,
+      checkpoints: checkpoints.sort((a, b) => a.due_on.localeCompare(b.due_on)),
       unit_label: form.unit_label.trim(), period_type: form.period_type,
       starts_on: form.starts_on, due_on: form.due_on, owner_membership_id: form.owner_membership_id,
     };
@@ -301,7 +372,16 @@ export default function BusinessStrategyPage() {
                 <div className="bs-metric-label">{item.metric_name}</div>
                 <div className="bs-progress-values"><strong>{formatMetric(Number(item.current_value),item.unit_label)}</strong><span>Target {formatMetric(Number(item.target_value),item.unit_label)}</span></div>
                 <div className="bs-progress-track"><i style={{ width: Math.min(100,percent) + '%' }}/></div>
-                <div className="bs-progress-caption"><span>{Math.round(percent)}% progres</span><span>{Math.max(0,Math.ceil(Number(item.target_value)-Number(item.current_value)))} {item.unit_label} tersisa</span></div>
+                <div className="bs-progress-caption"><span>{Math.round(percent)}% progres</span><span>{Math.max(0,Math.ceil(Math.abs(Number(item.target_value)-Number(item.current_value))))} {item.unit_label} tersisa</span></div>
+                <details className="bs-target-plan"><summary>Dasar & rencana target <FiChevronDown/></summary><div>
+                  <p><b>Baseline:</b> {formatMetric(item.baseline_value ?? (item.metric_direction === 'increase' ? 0 : item.target_value), item.unit_label)} → <b>target:</b> {formatMetric(item.target_value, item.unit_label)} · {item.metric_direction === 'increase' ? 'naik' : 'turun'}</p>
+                  <p><b>Dasar:</b> {({historical:'Data historis',pipeline:'Data pipeline',capacity:'Kapasitas tim',commitment:'Komitmen founder',experiment:'Eksperimen',other:'Pertimbangan lain'} as Record<TargetBasis,string>)[item.target_basis || 'historical']} · review {({weekly:'mingguan',monthly:'bulanan',quarterly:'kuartalan'} as Record<ReviewCadence,string>)[item.review_cadence || 'monthly']}</p>
+                  {item.target_rationale ? <p><b>Alasan target:</b> {item.target_rationale}</p> : null}
+                  {item.leading_indicator ? <p><b>Indikator awal:</b> {item.leading_indicator}</p> : null}
+                  {item.guardrail_value !== null ? <p><b>Batas penjaga:</b> {formatMetric(item.guardrail_value, item.unit_label)}</p> : null}
+                  {item.assumptions ? <p><b>Asumsi:</b> {item.assumptions}</p> : null}
+                  {item.checkpoints?.length ? <ol>{item.checkpoints.map((point, index) => <li key={index}><span>{point.label}</span><b>{formatMetric(point.target_value, item.unit_label)}</b><small>{dateLabel(point.due_on)}</small></li>)}</ol> : <p>Belum ada milestone; progres dibandingkan dengan tenggat strategi.</p>}
+                </div></details>
                 <div className="bs-strategy-meta"><span><FiUsers/>{ownerName(item.owner_membership_id)}</span><span><FiCalendar/>{dateLabel(item.starts_on)} – {dateLabel(item.due_on)}</span></div>
                 <footer><span>Diperbarui {dateLabel(item.updated_at.slice(0,10))}</span><div><button type="button" onClick={() => startEdit(item)} aria-label={'Edit ' + item.title} title="Edit strategi"><FiEdit2/></button><button type="button" onClick={() => void remove(item)} aria-label={'Hapus ' + item.title} title="Hapus strategi"><FiTrash2/></button></div></footer>
               </section>;
@@ -323,17 +403,29 @@ export default function BusinessStrategyPage() {
         <label className="wide">Pilar<select value={form.pillar} onChange={e=>updateField('pillar',e.target.value)}>{pillars.map(p=><option key={p.key} value={p.key}>{p.title}</option>)}</select></label>
         <label className="wide">Nama strategi<input autoFocus value={form.title} onChange={e=>updateField('title',e.target.value)} placeholder="Contoh: Tingkatkan revenue layanan event" required/></label>
         <label className="wide">Deskripsi dan arah tindakan<textarea value={form.description} onChange={e=>updateField('description',e.target.value)} placeholder="Apa hasil bisnis yang ingin dicapai dan pendekatan utamanya?"/></label>
-        <fieldset className="wide"><legend>Ukuran keberhasilan</legend><div className="bs-form-grid">
-          <label>Indikator<input value={form.metric_name} onChange={e=>updateField('metric_name',e.target.value)} placeholder="Contoh: Revenue bulan November" required/></label>
+        <fieldset className="wide"><legend>Ukuran dan arah target</legend><p className="bs-field-help">Target boleh ditentukan founder. Catat baseline dan dasar angkanya agar evaluasi bulan depan punya pembanding.</p><div className="bs-form-grid">
+          <label>Indikator<input value={form.metric_name} onChange={e=>updateField('metric_name',e.target.value)} placeholder="Contoh: Revenue gross profit bulanan" required/></label>
           <label>Satuan<input value={form.unit_label} onChange={e=>updateField('unit_label',e.target.value)} placeholder="Rp / leads / venue" required/></label>
-          <label>Target<input type="number" min="0.01" step="any" value={form.target_value} onChange={e=>updateField('target_value',e.target.value)} required/></label>
-          <label>Progres saat ini<input type="number" min="0" step="any" value={form.current_value} onChange={e=>updateField('current_value',e.target.value)} required/></label>
+          <label>Arah indikator<select value={form.metric_direction} onChange={e=>updateField('metric_direction',e.target.value)}><option value="increase">Makin tinggi makin baik</option><option value="decrease">Makin rendah makin baik</option></select></label>
+          <label>Baseline / posisi awal<input type="number" min="0" step="any" value={form.baseline_value} onChange={e=>updateField('baseline_value',e.target.value)} placeholder={form.metric_direction === 'increase' ? '0 jika belum ada data' : 'Wajib untuk target turun'} required={form.metric_direction === 'decrease'}/></label>
+          <label>Target akhir<input type="number" min="0" step="any" value={form.target_value} onChange={e=>updateField('target_value',e.target.value)} required/></label>
+          <label>Progres aktual<input type="number" min="0" step="any" value={form.current_value} onChange={e=>updateField('current_value',e.target.value)} required/></label>
+          <label>Dasar menetapkan target<select value={form.target_basis} onChange={e=>updateField('target_basis',e.target.value)}><option value="historical">Data historis</option><option value="pipeline">Pipeline / peluang tersedia</option><option value="capacity">Kapasitas tim</option><option value="commitment">Komitmen founder</option><option value="experiment">Eksperimen / validasi</option><option value="other">Pertimbangan lain</option></select></label>
+          <label>Batas penjaga (opsional)<input type="number" min="0" step="any" value={form.guardrail_value} onChange={e=>updateField('guardrail_value',e.target.value)} placeholder={form.metric_direction === 'increase' ? 'Batas minimum' : 'Batas maksimum'}/></label>
+          <label className="wide">Kenapa target ini dipilih?<textarea value={form.target_rationale} onChange={e=>updateField('target_rationale',e.target.value)} placeholder="Contoh: rata-rata 3 bulan Rp35 juta, pipeline Rp70 juta, kapasitas delivery 2 proyek; target Rp55 juta."/></label>
+          <label className="wide">Indikator awal / leading indicator<textarea value={form.leading_indicator} onChange={e=>updateField('leading_indicator',e.target.value)} placeholder="Aktivitas yang lebih cepat menunjukkan peluang target tercapai, misalnya qualified leads per minggu."/></label>
+          <label className="wide">Asumsi dan risiko utama<textarea value={form.assumptions} onChange={e=>updateField('assumptions',e.target.value)} placeholder="Catat asumsi yang perlu dicek saat review."/></label>
         </div></fieldset>
-        <fieldset className="wide"><legend>Jangka waktu dan PIC</legend><div className="bs-form-grid">
-          <label>Jangka waktu<select value={form.period_type} onChange={e=>updateField('period_type',e.target.value)}><option value="weekly">Mingguan</option><option value="monthly">Bulanan</option><option value="quarterly">Kuartalan</option><option value="annual">Tahunan</option><option value="custom">Khusus</option></select></label>
+        <fieldset className="wide"><legend>Periode, checkpoint, dan PIC</legend><p className="bs-field-help">Jangka target dan frekuensi evaluasi berbeda. Tambahkan checkpoint bila target perlu dicapai bertahap.</p><div className="bs-form-grid">
+          <label>Jangka target<select value={form.period_type} onChange={e=>updateField('period_type',e.target.value)}><option value="weekly">Mingguan</option><option value="monthly">Bulanan</option><option value="quarterly">Kuartalan</option><option value="annual">Tahunan</option><option value="custom">Khusus</option></select></label>
+          <label>Frekuensi review<select value={form.review_cadence} onChange={e=>updateField('review_cadence',e.target.value)}><option value="weekly">Mingguan</option><option value="monthly">Bulanan</option><option value="quarterly">Kuartalan</option></select></label>
           <label>PIC founder<select value={form.owner_membership_id} onChange={e=>updateField('owner_membership_id',e.target.value)} required><option value="">Pilih CEO, CTO, atau COO</option>{founders.map(person=><option key={person.membership_id} value={person.membership_id}>{person.full_name} · {person.position_name}</option>)}</select></label>
           <label>Mulai<input type="date" value={form.starts_on} onChange={e=>updateField('starts_on',e.target.value)} required/></label>
           <label>Tenggat<input type="date" value={form.due_on} onChange={e=>updateField('due_on',e.target.value)} required/></label>
+        </div>
+        <div className="bs-checkpoint-editor"><div><strong>Checkpoint / milestone</strong><button type="button" onClick={addCheckpoint}><FiPlus/> Tambah milestone</button></div>
+          {form.checkpoints.map((point,index)=><div className="bs-checkpoint-row" key={index}><label>Nama<input value={point.label} onChange={e=>updateCheckpoint(index,'label',e.target.value)} placeholder="Contoh: pipeline qualified"/></label><label>Tanggal<input type="date" value={point.due_on} onChange={e=>updateCheckpoint(index,'due_on',e.target.value)}/></label><label>Nilai target<input type="number" min="0" step="any" value={point.target_value} onChange={e=>updateCheckpoint(index,'target_value',e.target.value)}/></label><button type="button" onClick={()=>removeCheckpoint(index)} aria-label="Hapus milestone"><FiTrash2/></button></div>)}
+          {!form.checkpoints.length ? <small>Opsional. Contoh target tahunan: tetapkan hasil per kuartal untuk melihat pergeseran fokus.</small> : null}
         </div></fieldset>
       </div>
       {error ? <p className="bs-modal-error" role="alert">{error}</p> : null}

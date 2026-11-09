@@ -1394,3 +1394,45 @@ html[data-rk-theme="dark"] body .bs-guide>summary small,html[data-rk-theme="dark
 html[data-rk-theme="dark"] body .bs-guide-grid article{background:rgba(18,32,47,.7)}
 html[data-rk-theme="dark"] body .bs-guide-rule{color:#aab9c6;background:rgba(36,53,69,.76)}
 html[data-rk-theme="dark"] body .bs-guide-rule strong{color:#c6d9e7}
+
+/* Target planning: rationale, guardrails and time-bound checkpoints */
+.bs-field-help{grid-column:1/-1;margin:-2px 0 2px;color:#718596;font-size:12px;line-height:1.55}
+.bs-form-grid label.wide{grid-column:1/-1}
+.bs-form-grid textarea{min-height:76px;resize:vertical}
+.bs-checkpoint-editor{margin-top:14px;padding:14px;border:1px solid var(--bs-line);border-radius:14px;background:rgba(236,243,247,.48)}
+.bs-checkpoint-editor>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.bs-checkpoint-editor>div:first-child strong{color:#395a70;font-size:13px}
+.bs-checkpoint-editor>div:first-child button{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #d7e5e8;border-radius:9px;color:#347c7e;background:#fff;font-size:11px;font-weight:750;cursor:pointer}
+.bs-checkpoint-editor>small{display:block;color:#8192a0;font-size:11px;line-height:1.5}
+.bs-checkpoint-row{display:grid;grid-template-columns:minmax(130px,1.2fr) minmax(120px,.9fr) minmax(120px,.9fr) 34px;align-items:end;gap:9px;margin:8px 0;padding:10px;border:1px solid var(--bs-line);border-radius:11px;background:rgba(255,255,255,.65)}
+.bs-checkpoint-row label{display:grid;gap:5px;color:#6d8190;font-size:10px;font-weight:700}
+.bs-checkpoint-row input{min-width:0;width:100%;height:36px;padding:0 9px;border:1px solid #d9e4e8;border-radius:8px;color:#29465b;background:#fff;font-size:12px}
+.bs-checkpoint-row>button{width:34px;height:34px;border:1px solid #f0dada;border-radius:8px;color:#b05a62;background:#fff;cursor:pointer}
+.bs-target-plan{margin:11px 0 2px;border-top:1px solid var(--bs-line);padding-top:9px}
+.bs-target-plan summary{display:flex;align-items:center;gap:7px;list-style:none;color:#657c8d;font-size:11px;font-weight:750;cursor:pointer}
+.bs-target-plan summary::-webkit-details-marker{display:none}
+.bs-target-plan summary svg{margin-left:auto;transition:transform .18s ease}
+.bs-target-plan[open] summary svg{transform:rotate(180deg)}
+.bs-target-plan>div{padding:8px 10px;margin-top:7px;border:1px solid var(--bs-line);border-radius:10px;background:rgba(239,245,247,.48)}
+.bs-target-plan p{margin:5px 0;color:#6d8190;font-size:10px;line-height:1.5}
+.bs-target-plan p b{color:#435e72}
+.bs-target-plan ol{display:grid;gap:4px;margin:8px 0 2px;padding:0;list-style:none}
+.bs-target-plan li{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.54);color:#607687;font-size:10px}
+.bs-target-plan li b{color:#395c70}.bs-target-plan li small{color:#8293a1;font-size:9px}
+.bs-state.attention{color:#9a6825;background:rgba(245,190,95,.17);border-color:rgba(206,153,57,.25)}
+html[data-rk-theme="dark"] body .bs-field-help{color:#aab9c6}
+html[data-rk-theme="dark"] body .bs-checkpoint-editor{background:rgba(18,32,47,.74);border-color:#34495c}
+html[data-rk-theme="dark"] body .bs-checkpoint-editor>div:first-child strong{color:#d4e1ea}
+html[data-rk-theme="dark"] body .bs-checkpoint-editor>div:first-child button{color:#a8d9d6;background:#1b3040;border-color:#355260}
+html[data-rk-theme="dark"] body .bs-checkpoint-row{background:rgba(24,40,55,.8);border-color:#3b4c5d}
+html[data-rk-theme="dark"] body .bs-checkpoint-row label{color:#aab9c6}
+html[data-rk-theme="dark"] body .bs-checkpoint-row input{color:#e0eaf0;background:#142332;border-color:#405468}
+html[data-rk-theme="dark"] body .bs-checkpoint-row>button{color:#f0a7a7;background:#26323f;border-color:#5d4449}
+html[data-rk-theme="dark"] body .bs-target-plan summary{color:#aabac7}
+html[data-rk-theme="dark"] body .bs-target-plan>div{background:rgba(18,32,47,.78);border-color:#34495c}
+html[data-rk-theme="dark"] body .bs-target-plan p{color:#aebdca}
+html[data-rk-theme="dark"] body .bs-target-plan p b,html[data-rk-theme="dark"] body .bs-target-plan li b{color:#d2e1eb}
+html[data-rk-theme="dark"] body .bs-target-plan li{color:#b3c2ce;background:rgba(36,53,69,.7)}
+html[data-rk-theme="dark"] body .bs-target-plan li small{color:#9aaebd}
+html[data-rk-theme="dark"] body .bs-state.attention{color:#f3d18e;background:rgba(180,126,44,.19);border-color:rgba(210,163,82,.28)}
+@media(max-width:680px){.bs-checkpoint-row{grid-template-columns:1fr 1fr}.bs-checkpoint-row label:first-child{grid-column:1/-1}.bs-checkpoint-row>button{justify-self:end}.bs-target-plan li{grid-template-columns:1fr auto}.bs-target-plan li small{grid-column:1/-1}}
