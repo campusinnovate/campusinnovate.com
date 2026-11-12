@@ -62,6 +62,16 @@ export default function ClientDatabasePage() {
   const [consentDraft,setConsentDraft] = useState<ConsentDraft>(emptyConsent());
   const [active,setActive] = useState<Contact|null>(null);
   const [busy,setBusy] = useState(false);
+  const [selectedKeys,setSelectedKeys] = useState<string[]>([]);
+  const [blastMode,setBlastMode] = useState<'email'|'whatsapp'|null>(null);
+  const [blastSubject,setBlastSubject] = useState('Informasi dari Campus Innovate');
+  const [blastMessage,setBlastMessage] = useState('');
+  const [blastTopic,setBlastTopic] = useState('Informasi layanan Campus Innovate');
+  const [blastStage,setBlastStage] = useState<'TOFU'|'MOFU'|'BOFU'>('TOFU');
+  const [blastOffset,setBlastOffset] = useState(0);
+  const [queueIndex,setQueueIndex] = useState(0);
+  const [emailDraftOpened,setEmailDraftOpened] = useState(false);
+  const [queueOpened,setQueueOpened] = useState(false);
 
   const load = useCallback(async (quiet=false) => {
     if(!quiet) setLoading(true);
@@ -101,6 +111,63 @@ export default function ClientDatabasePage() {
   const noEmail=filtered.filter(r=>!r.email).length;
   const stages=['TOFU','MOFU','BOFU'].map(stage=>({stage,count:filtered.filter(r=>r.last_contact_stage===stage).length}));
   const stageMax=Math.max(1,...stages.map(x=>x.count));
+  const selectedRows=filtered.filter(r=>selectedKeys.includes(r.identity_key));
+  const blastRecipients=selectedRows.filter(r=>blastMode==='email'?Boolean(r.email&&r.email_consented):blastMode==='whatsapp'?Boolean(r.whatsapp&&r.whatsapp_consented):false);
+  const emailBatch=blastRecipients.slice(blastOffset,blastOffset+25);
+  const whatsappBatch=blastRecipients.slice(0,25);
+  function toggleSelectAll(){
+    const eligible=filtered.filter(r=>(r.email&&r.email_consented)||(r.whatsapp&&r.whatsapp_consented)).map(r=>r.identity_key);
+    const all=eligible.length>0&&eligible.every(key=>selectedKeys.includes(key));
+    setSelectedKeys(all?selectedKeys.filter(key=>!eligible.includes(key)):Array.from(new Set([...selectedKeys,...eligible])));
+  }
+  function beginBlast(channel:'email'|'whatsapp'){
+    const eligible=selectedRows.filter(r=>channel==='email'?Boolean(r.email&&r.email_consented):Boolean(r.whatsapp&&r.whatsapp_consented));
+    if(!eligible.length){setNotice('Pilih kontak yang memiliki alamat '+(channel==='email'?'email':'WhatsApp')+' dan persetujuan komunikasi yang tercatat.');return}
+    setBlastOffset(0);setQueueIndex(0);setEmailDraftOpened(false);setQueueOpened(false);
+    setBlastMessage(channel==='email'?'Halo {{nama_pic}},\n\nKami dari Campus Innovate ingin berbagi informasi mengenai {{layanan}}. Apakah Bapak/Ibu berkenan menerima informasi lebih lanjut?\n\nJika tidak berkenan menerima pesan berikutnya, silakan beri tahu kami.\n\nSalam,\nCampus Innovate':'Halo {{nama_pic}}, kami dari Campus Innovate ingin berbagi informasi mengenai {{layanan}}. Apakah Bapak/Ibu berkenan menerima informasi lebih lanjut? Jika tidak berkenan menerima pesan berikutnya, silakan beri tahu kami.');
+    setBlastTopic('Informasi layanan Campus Innovate');setBlastStage('TOFU');setBlastMode(channel);
+  }
+  function personalizedMessage(row:Contact){
+    return blastMessage.replaceAll('{{nama_pic}}',row.pic_name||'Bapak/Ibu').replaceAll('{{perusahaan}}',row.company_name).replaceAll('{{layanan}}',row.service_interest||'layanan Campus Innovate');
+  }
+  function openEmailDraft(){
+    if(!emailBatch.length)return;
+    const bcc=emailBatch.map(r=>r.email).filter(Boolean).join(',');
+    const params=new URLSearchParams({view:'cm',fs:'1',bcc,su:blastSubject,body:blastMessage.replaceAll('{{nama_pic}}','Bapak/Ibu').replaceAll('{{perusahaan}}','').replaceAll('{{layanan}}','layanan Campus Innovate')});
+    window.open('https://mail.google.com/mail/?'+params.toString(),'_blank','noopener,noreferrer');
+    setEmailDraftOpened(true);
+  }
+  function openWhatsAppQueueItem(){
+    const row=whatsappBatch[queueIndex];if(!row)return;
+    const phone=(row.whatsapp||'').replace(/[^0-9]/g,'');
+    if(!phone){setNotice('Nomor WhatsApp kontak ini belum valid.');return}
+    window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(personalizedMessage(row)),'_blank','noopener,noreferrer');
+    setQueueOpened(true);
+  }
+  async function recordCampaignTouch(channel:'Email'|'WhatsApp',targets:Contact[]){
+    const sb=createClient();let saved=0;let failed=0;
+    for(const row of targets){
+      const {error}=await sb.rpc('log_marketing_client_touchpoint',{target_identity_key:row.identity_key,target_channel:channel,target_stage:blastStage,target_topic:blastTopic,target_at:new Date().toISOString()});
+      if(error)failed++;else saved++;
+    }
+    if(failed)setNotice(saved+' interaksi tercatat; '+failed+' gagal dicatat. Periksa ulang kontak tersebut.');
+    return {saved,failed};
+  }
+  async function confirmEmailSent(){
+    if(!emailDraftOpened||!emailBatch.length)return;
+    setBusy(true);const result=await recordCampaignTouch('Email',emailBatch);setBusy(false);
+    const remaining=Math.max(0,blastRecipients.length-blastOffset-emailBatch.length);
+    if(remaining){setBlastOffset(blastOffset+emailBatch.length);setEmailDraftOpened(false);setNotice('Draft batch pertama ditandai terkirim untuk '+result.saved+' kontak. Siapkan batch berikutnya dari '+remaining+' kontak tersisa.');}
+    else {setBlastMode(null);setSelectedKeys([]);if(!result.failed)setNotice('Interaksi email tercatat untuk '+result.saved+' kontak.');void load(true);}
+  }
+  async function confirmWhatsAppSent(){
+    if(!queueOpened)return;
+    const row=whatsappBatch[queueIndex];if(!row)return;
+    setBusy(true);const result=await recordCampaignTouch('WhatsApp',[row]);setBusy(false);
+    const next=queueIndex+1;setQueueOpened(false);
+    if(next<whatsappBatch.length){setQueueIndex(next);if(!result.failed)setNotice('Tercatat. Lanjutkan ke kontak '+(next+1)+' dari '+whatsappBatch.length+'.');}
+    else {const remaining=Math.max(0,blastRecipients.length-whatsappBatch.length);setBlastMode(null);setSelectedKeys([]);if(!result.failed)setNotice('Antrean WhatsApp selesai untuk '+whatsappBatch.length+' kontak.'+(remaining?' '+remaining+' kontak tersisa untuk batch berikutnya.':''));void load(true);}
+  }
 
   function openNew(){setActive(null);setDraft(emptyDraft());setError('');setModal('contact')}
   function openEdit(row:Contact){
@@ -172,19 +239,31 @@ export default function ClientDatabasePage() {
         <button type="button" className={styles.reset} onClick={()=>{setQuery('');setSourceFilter('all');setChannelFilter('all');setStageFilter('all');setServiceFilter('all');setOwnerFilter('all');setStatusFilter('all');setConsentFilter('all');setFromDate('');setToDate('')}}><FiFilter/> Reset</button>
       </div>
       {error?<p className={styles.alert} role="alert">{error}</p>:null}{notice?<p className={styles.notice} role="status">{notice}<button onClick={()=>setNotice('')}><FiX/></button></p>:null}
+      {!archiveMode?<div className={styles.bulkBar}><div className={styles.bulkInfo}><strong>{selectedRows.length} kontak dipilih</strong><span>Blast hanya menyertakan kontak dengan persetujuan yang tercatat.</span></div><button type="button" className={styles.selectEligible} onClick={toggleSelectAll}>{filtered.filter(r=>(r.email&&r.email_consented)||(r.whatsapp&&r.whatsapp_consented)).every(r=>selectedKeys.includes(r.identity_key))?'Batal pilih':'Pilih semua berizin'}</button><div className={styles.bulkActions}><button type="button" onClick={()=>beginBlast('email')} disabled={!selectedRows.length}><FiMail/> Email blast</button><button type="button" onClick={()=>beginBlast('whatsapp')} disabled={!selectedRows.length}><FiMessageCircle/> WhatsApp blast</button></div></div>:null}
       <div className={styles.tableWrap}>{loading?<div className={styles.empty}>Memuat database kontak…</div>:filtered.length?<table><thead><tr><th>Perusahaan & PIC</th><th>Kontak</th><th>Sentuhan terakhir</th><th>Sumber & PIC internal</th><th>Consent</th><th>Aksi</th></tr></thead><tbody>{filtered.map((row,index)=>{
         const manual=row.source_refs?.find(ref=>ref.kind==='manual');
         const sourceRef=row.source_refs?.find(ref=>ref.kind==='pipeline'||ref.kind==='prospect');
-        return <tr key={row.identity_key}><td><div className={styles.companyCell}><span className={styles.rowIndex}>{String(index+1).padStart(2,'0')}</span><div><strong>{row.company_name}</strong><span>{row.pic_name||'PIC belum dicatat'}{row.pic_role?' · '+row.pic_role:''}</span>{row.service_interest?<small>{row.service_interest}</small>:null}{row.address||row.city?<small className={styles.location}><FiMapPin/>{[row.address,row.city].filter(Boolean).join(', ')}</small>:null}</div></div></td>
+        return <tr key={row.identity_key}><td><div className={styles.companyCell}>{!archiveMode?<input aria-label={'Pilih '+row.company_name+' untuk blast'} className={styles.selectBox} type="checkbox" disabled={!((row.email_consented&&row.email)||(row.whatsapp_consented&&row.whatsapp))} checked={selectedKeys.includes(row.identity_key)} onChange={e=>setSelectedKeys(e.target.checked?Array.from(new Set([...selectedKeys,row.identity_key])):selectedKeys.filter(key=>key!==row.identity_key))}/>:null}<span className={styles.rowIndex}>{String(index+1).padStart(2,'0')}</span><div><strong>{row.company_name}</strong><span>{row.pic_name||'PIC belum dicatat'}{row.pic_role?' · '+row.pic_role:''}</span>{row.service_interest?<small>{row.service_interest}</small>:null}{row.address||row.city?<small className={styles.location}><FiMapPin/>{[row.address,row.city].filter(Boolean).join(', ')}</small>:null}</div></div></td>
           <td><div className={styles.contactCell}>{row.email?<a href={'mailto:'+row.email}><FiMail/>{row.email}</a>:<span className={styles.muted}>Email belum ada</span>}{row.whatsapp?<a target="_blank" rel="noreferrer" href={'https://wa.me/'+row.whatsapp.replace(/[^0-9]/g,'')}><FiMessageCircle/>{row.whatsapp}</a>:null}{row.phone&&row.phone!==row.whatsapp?<a href={'tel:'+row.phone}>{row.phone}</a>:null}</div></td>
           <td><div className={styles.touchCell}>{row.last_contact_at?<><strong>{labelDate(row.last_contact_at)}</strong><span>{row.last_contact_channel||'Channel belum dicatat'}{row.last_contact_stage?' · '+stageNames[row.last_contact_stage]:''}</span><p>{row.last_contact_topic||'Topik kontak belum dicatat'}</p></>:<span className={styles.muted}>Belum ada log kontak</span>}{row.internal_chat_at?<details><summary>Chat internal terkait <FiChevronDown/></summary><p>{row.internal_chat_topic}</p><small>{row.internal_chat_sender||'Tim'} · {labelDate(row.internal_chat_at)}</small></details>:null}</div></td>
           <td><div className={styles.sourceCell}><span>{row.source_label||'Sumber tidak diketahui'}</span>{row.lifecycle_status?<small>Status: {row.lifecycle_status}</small>:null}{row.owner_name?<small>PIC: {row.owner_name}</small>:null}</div></td>
           <td><div className={styles.consentCell}><span data-ok={row.email_consented}>Email {row.email_consented?'OK':'—'}</span><span data-ok={row.whatsapp_consented}>WhatsApp {row.whatsapp_consented?'OK':'—'}</span></div></td>
-          <td><div className={styles.actions}>{archiveMode?<button type="button" title="Pulihkan" onClick={()=>void restore(row)}><FiRefreshCw/></button>:<><button type="button" title="Catat kontak" onClick={()=>{setActive(row);setTouchDraft(emptyTouch());setModal('touch')}}><FiSend/></button><button type="button" title="Kelola izin email/WhatsApp" onClick={()=>{setActive(row);setConsentDraft({channel:'email',consented:row.email_consented,evidence:''});setModal('consent')}}><FiCheck/></button>{manual?<button type="button" title="Edit kontak manual" onClick={()=>openEdit(row)}><FiEdit2/></button>:sourceRef?<a title="Buka sumber" href={sourceHref(sourceRef)}><FiExternalLink/></a>:null}<button type="button" title={manual?'Hapus kontak':'Sembunyikan dari database'} onClick={()=>void remove(row)}>{manual&&row.source_refs.length===1?<FiX/>:<FiArchive/>}</button></>}</div></td>
+          <td><div className={styles.actions}>{archiveMode?<button type="button" title="Pulihkan" onClick={()=>void restore(row)}><FiRefreshCw/></button>:<><a className={styles.emailAction} title="Buka draft email" aria-label={'Kirim email ke '+row.company_name} href={row.email?'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(row.email)+'&su='+encodeURIComponent('Campus Innovate · Informasi layanan')+'&body='+encodeURIComponent('Halo '+(row.pic_name||'Bapak/Ibu')+',\n\nSaya dari Campus Innovate ingin berbagi informasi mengenai '+(row.service_interest||'layanan kami')+'. Apakah Bapak/Ibu berkenan menerima informasi lebih lanjut?\n\nSalam,\nCampus Innovate'):undefined} target="_blank" rel="noreferrer" onClick={e=>{if(!row.email){e.preventDefault();setNotice('Alamat email belum tersedia.')}else if(!row.email_consented){if(!window.confirm('Izin email untuk kontak ini belum tercatat. Lanjutkan ke draft email satu per satu?'))e.preventDefault()}}}><FiMail/></a><a className={styles.whatsappAction} title="Buka WhatsApp" aria-label={'Kirim WhatsApp ke '+row.company_name} href={row.whatsapp?'https://wa.me/'+row.whatsapp.replace(/[^0-9]/g,'')+'?text='+encodeURIComponent('Halo '+(row.pic_name||'Bapak/Ibu')+', saya dari Campus Innovate. Saya ingin berbagi informasi mengenai '+(row.service_interest||'layanan kami')+'. Apakah Bapak/Ibu berkenan menerima informasi lebih lanjut?'):undefined} target="_blank" rel="noreferrer" onClick={e=>{if(!row.whatsapp){e.preventDefault();setNotice('Nomor WhatsApp belum tersedia.')}else if(!row.whatsapp_consented){if(!window.confirm('Izin WhatsApp untuk kontak ini belum tercatat. Lanjutkan ke chat satu per satu?'))e.preventDefault()}}}><FiMessageCircle/></a><button type="button" title="Catat kontak" onClick={()=>{setActive(row);setTouchDraft(emptyTouch());setModal('touch')}}><FiSend/></button><button type="button" title="Kelola izin email/WhatsApp" onClick={()=>{setActive(row);setConsentDraft({channel:'email',consented:row.email_consented,evidence:''});setModal('consent')}}><FiCheck/></button>{manual?<button type="button" title="Edit kontak manual" onClick={()=>openEdit(row)}><FiEdit2/></button>:sourceRef?<a title="Buka sumber" href={sourceHref(sourceRef)}><FiExternalLink/></a>:null}<button type="button" title={manual?'Hapus kontak':'Sembunyikan dari database'} onClick={()=>void remove(row)}>{manual&&row.source_refs.length===1?<FiX/>:<FiArchive/>}</button></>}</div></td>
         </tr>;
       })}</tbody></table>:<div className={styles.empty}>{archiveMode?'Belum ada kontak yang diarsipkan.':'Tidak ada kontak yang cocok dengan filter.'}</div>}</div>
       <footer className={styles.tableFooter}><span><i/> Data sumber diperiksa otomatis tiap 45 detik.</span><span>Chat internal ditampilkan sebagai konteks, bukan bukti pesan terkirim ke klien.</span></footer>
     </section>
+
+    {blastMode?<div className={styles.overlay} onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setBlastMode(null)}}><section className={styles.modal+' '+styles.blastModal} role="dialog" aria-modal="true" aria-label={blastMode==='email'?'Email blast':'WhatsApp blast'}>
+      <header><div><span className={styles.eyebrow}>KAMPANYE KONTAK</span><h2>{blastMode==='email'?'Email blast':'WhatsApp blast'}</h2><p>{blastMode==='email'?'Draft dibuka di Gmail dengan penerima tersembunyi (BCC).':'Pesan dibuka satu per satu di WhatsApp; tekan Kirim di WhatsApp untuk mengirim.'}</p></div><button type="button" onClick={()=>setBlastMode(null)}><FiX/></button></header>
+      <div className={styles.blastSummary}><span><b>{blastMode==='email'?blastRecipients.length:blastRecipients.length}</b> kontak berizin</span><small>{blastMode==='email'?'Batch ini: '+emailBatch.length+' penerima (maksimal 25 per draft).':'Antrean: '+whatsappBatch.length+' chat (maksimal 25 per batch).'}</small></div>
+      {blastMode==='whatsapp'?<div className={styles.queueCard}><span>SEKARANG</span><strong>{whatsappBatch[queueIndex]?.company_name||'Antrean selesai'}</strong><small>{whatsappBatch[queueIndex]?.pic_name||''} · {queueIndex+1} dari {whatsappBatch.length}</small></div>:null}
+      {blastMode==='email'?<label className={styles.blastField}>Subjek email<input value={blastSubject} onChange={e=>setBlastSubject(e.target.value)} maxLength={180}/></label>:null}
+      <label className={styles.blastField}>Isi pesan<textarea value={blastMessage} onChange={e=>setBlastMessage(e.target.value)} required maxLength={4000} placeholder="Tulis pesan kampanye…"/></label>
+      <div className={styles.formGrid+' '+styles.blastMeta}><label>Tahap funnel untuk pencatatan<select value={blastStage} onChange={e=>setBlastStage(e.target.value as 'TOFU'|'MOFU'|'BOFU')}>{['TOFU','MOFU','BOFU'].map(s=><option key={s} value={s}>{stageNames[s]}</option>)}</select></label><label>Topik interaksi yang dicatat<input value={blastTopic} onChange={e=>setBlastTopic(e.target.value)} maxLength={1000}/></label></div>
+      <p className={styles.help}>{blastMode==='email'?'Draft Gmail belum terkirim sampai tombol Kirim ditekan di Gmail. Setelah mengirim, kembali dan konfirmasi di sini agar riwayat kontak tercatat.':'Isi pesan disiapkan ke chat WhatsApp. Setelah menekan Kirim di WhatsApp, kembali dan lanjutkan antrean agar setiap kontak tercatat.'} Data tanpa persetujuan channel ini tidak masuk ke penerima blast.</p>
+      <footer><button type="button" className={styles.ghost} onClick={()=>setBlastMode(null)} disabled={busy}>Tutup</button>{blastMode==='email'?<><button type="button" className={styles.primary} onClick={openEmailDraft} disabled={!emailBatch.length||!blastMessage.trim()}><FiMail/> Buka draft Gmail</button>{emailDraftOpened?<button type="button" className={styles.primary} onClick={()=>void confirmEmailSent()} disabled={busy}>{busy?'Mencatat…':'Saya sudah mengirim'}</button>:null}</>:<><button type="button" className={styles.primary} onClick={openWhatsAppQueueItem} disabled={!whatsappBatch.length||queueIndex>=whatsappBatch.length||!blastMessage.trim()}><FiMessageCircle/> Buka chat WhatsApp</button>{queueOpened?<button type="button" className={styles.primary} onClick={()=>void confirmWhatsAppSent()} disabled={busy}>{busy?'Mencatat…':'Sudah dikirim · lanjut'}</button>:null}</>}</footer>
+    </section></div>:null}
 
     {modal?<div className={styles.overlay} onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}><form className={styles.modal} onSubmit={modal==='contact'?saveContact:modal==='touch'?saveTouch:saveConsent}>
       <header><div><span className={styles.eyebrow}>{modal==='contact'?'DATABASE CLIENT':modal==='touch'?'LOG INTERAKSI':'PREFERENSI KONTAK'}</span><h2>{modal==='contact'?(draft.id?'Edit kontak manual':'Tambah kontak'):modal==='touch'?'Catat kontak terbaru':'Kelola izin komunikasi'}</h2></div><button type="button" onClick={()=>setModal(null)}><FiX/></button></header>
