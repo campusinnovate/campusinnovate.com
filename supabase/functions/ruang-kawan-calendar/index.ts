@@ -484,10 +484,104 @@ async function uploadChatAttachment(req: Request, origin: string | null) {
   return json({ ready: true, attachment: { id: registered.data, name: safeName, url: fileUrl, mime_type: uploaded.mimeType ?? metadata.mimeType, size_bytes: Number(uploaded.size ?? file.size) }, sharing }, 200, origin);
 }
 
+
+async function sendMarketingClientEmailCampaign(req:Request,origin:string|null,body:Record<string,any>){
+  const auth=await authenticatedClient(req);if(!auth)return json({error:'Sesi tidak valid.'},401,origin);
+  const {data:accessData}=await auth.client.rpc('get_my_access');const access=Array.isArray(accessData)?accessData[0]:accessData;
+  if(access?.membership_status!=='active'||!access?.permissions?.includes('pipeline.view'))return json({error:'Akses Database Client ditolak.'},403,origin);
+  const {data:actorId}=await auth.client.rpc('current_membership_id');if(!actorId)return json({error:'Keanggotaan aktif tidak ditemukan.'},403,origin);
+  const campaignId=String(body.campaign_id??'');
+  const identities=Array.isArray(body.identity_keys)?[...new Set(body.identity_keys.map((x:any)=>String(x)))] as string[]:[];
+  const subjectTemplate=String(body.subject??'').trim();
+  const template=String(body.message??'').trim();
+  const reason=String(body.reason??'').trim();
+  const postalAddress=String(body.postal_address??'').trim();
+  const stage=String(body.stage??'TOFU');
+  const topic=String(body.topic??'Email blast Database Client').trim();
+  if(!/^[0-9a-f-]{36}$/i.test(campaignId)||!identities.length||identities.length>100||identities.some(x=>x.length>300)||cleanHeader(subjectTemplate).length<2||cleanHeader(subjectTemplate).length>160||template.length<1||template.length>3000||reason.length<5||reason.length>500||postalAddress.length<5||postalAddress.length>300||!['TOFU','MOFU','BOFU'].includes(stage)||!topic||topic.length>1000){
+    return json({error:'Isi campaign belum valid. Maksimal 100 kontak; isi subjek, alasan relevan, alamat kantor, dan topik.'},400,origin);
+  }
+  const {data:workspace,error:workspaceError}=await auth.client.rpc('client_database_workspace');
+  if(workspaceError)return json({error:'Daftar Database Client tidak dapat diverifikasi.'},403,origin);
+  const records=Array.isArray(workspace?.records)?workspace.records:[];
+  const byIdentity=new Map(records.map((r:Record<string,any>)=>[String(r.identity_key),r]));
+  const requested=identities.map(identity=>({identity,row:byIdentity.get(identity)}));
+  const eligible=requested.filter(x=>x.row&&x.row.email_consented===true&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(x.row.email??'')));
+  const skipped=requested.filter(x=>!eligible.includes(x)).map(x=>({identity_key:x.identity,status:'skipped',error:'Kontak tidak memiliki email valid atau izin email aktif.'}));
+  if(!eligible.length)return json({error:'Tidak ada penerima terpilih yang memiliki alamat email valid dan izin email aktif.',results:skipped},422,origin);
+  const {data:connection,error:connectionError}=await service.from('google_calendar_connections').select('*').eq('google_account_email','innovatecampus@gmail.com').eq('is_active',true).order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  if(connectionError||!connection)return json({error:'Akun email Campus Innovate belum tersambung. Hubungkan kembali akun tersebut dari Google Workspace.'},409,origin);
+  if(!(connection.granted_scopes??[]).includes(GMAIL_SEND_SCOPE))return json({error:'Akun Campus Innovate belum memberi izin kirim Gmail. Hubungkan ulang Google Workspace dengan izin gmail.send.'},409,origin);
+  const {data:priorRows,error:priorError}=await service.from('marketing_client_email_deliveries').select('identity_key,status').eq('campaign_id',campaignId);
+  if(priorError)return json({error:'Status campaign belum dapat diverifikasi. Jangan kirim ulang dulu.'},500,origin);
+  const priorMap=new Map((priorRows??[]).map((r:any)=>[String(r.identity_key),String(r.status)]));
+  const newCount=eligible.filter(x=>!priorMap.has(x.identity)).length;
+  const dayStart=new Date();dayStart.setUTCHours(0,0,0,0);
+  const {count:sentToday,error:countError}=await service.from('marketing_client_email_deliveries').select('id',{count:'exact',head:true}).eq('status','sent').gte('sent_at',dayStart.toISOString());
+  if(countError)return json({error:'Batas kirim hari ini belum dapat dicek. Campaign dibatalkan.'},500,origin);
+  if((sentToday??0)+newCount>100)return json({error:'Batas internal 100 email/hari tercapai. Lanjutkan besok atau gunakan layanan email marketing khusus.'},429,origin);
+  const results=[...skipped];let sent=0,failed=0,alreadySent=0;
+  for(const item of eligible){
+    const row=item.row as Record<string,any>;
+    const priorStatus=priorMap.get(item.identity);
+    if(priorStatus){
+      if(priorStatus==='sent'){alreadySent++;results.push({identity_key:item.identity,status:'already_sent'});}
+      else results.push({identity_key:item.identity,status:priorStatus==='sending'?'unknown':priorStatus,error:'Status request sebelumnya harus diperiksa sebelum mencoba lagi.'});
+      continue;
+    }
+    const {data:claim,error:claimError}=await service.from('marketing_client_email_deliveries').insert({
+      campaign_id:campaignId,identity_key:item.identity,recipient_email:String(row.email).trim().toLowerCase(),
+      requested_by_membership_id:actorId,status:'sending'
+    }).select('id').single();
+    if(claimError||!claim){failed++;results.push({identity_key:item.identity,status:'failed',error:'Status pengiriman tidak bisa dikunci; pesan tidak dikirim.'});continue;}
+    const fill=(value:string)=>value.replaceAll('{{nama_pic}}',String(row.pic_name||'Bapak/Ibu')).replaceAll('{{perusahaan}}',String(row.company_name||'')).replaceAll('{{layanan}}',String(row.service_interest||'layanan Campus Innovate')).replaceAll('{{alasan}}',reason);
+    const textBody=fill(template).trim();
+    if(/\{\{[^}]+\}\}|\[(?:alasan|alamat kantor)[^\]]*\]/i.test(textBody)){
+      await service.from('marketing_client_email_deliveries').update({status:'failed',error_message:'Template berisi placeholder yang belum diisi.'}).eq('id',claim.id);
+      failed++;results.push({identity_key:item.identity,status:'failed',error:'Template masih memiliki placeholder.'});continue;
+    }
+    const plainBody=textBody+'\n\nKalau tidak ingin menerima email selanjutnya, balas “berhenti”.\n\nCampus Innovate\n'+postalAddress;
+    let ready:Record<string,any>;
+    try{ready=await refreshConnection(connection);}catch{
+      await service.from('marketing_client_email_deliveries').update({status:'failed',error_message:'Token Google tidak dapat diperbarui.'}).eq('id',claim.id);
+      failed++;results.push({identity_key:item.identity,status:'failed',error:'Koneksi Google perlu dihubungkan ulang.'});continue;
+    }
+    let response:Response;
+    try{
+      const recipientSubject=cleanHeader(fill(subjectTemplate));
+      const encodedSubject='=?UTF-8?B?'+btoa(String.fromCharCode(...new TextEncoder().encode(recipientSubject)))+'?=';
+      const mime=[`From: Campus Innovate <innovatecampus@gmail.com>`,`To: ${cleanHeader(String(row.email))}`,`Subject: ${encodedSubject}`,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: 8bit','',plainBody].join('\r\n');
+      response=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{Authorization:`Bearer ${ready.access_token}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(25000),body:JSON.stringify({raw:encodeMime(mime)})});
+    }catch{
+      await service.from('marketing_client_email_deliveries').update({status:'unknown',error_message:'Status jaringan belum diketahui; jangan kirim ulang tanpa pemeriksaan.'}).eq('id',claim.id);
+      failed++;results.push({identity_key:item.identity,status:'unknown',error:'Status belum diketahui. Periksa Gmail sebelum mengirim ulang.'});continue;
+    }
+    const payload=await response.json().catch(()=>({}));
+    if(!response.ok){
+      const code=String(payload.error?.code??response.status);
+      await service.from('marketing_client_email_deliveries').update({status:'failed',error_message:'Gmail menolak request ('+code+').' }).eq('id',claim.id);
+      failed++;results.push({identity_key:item.identity,status:'failed',error:'Gmail menolak email ('+code+').' });continue;
+    }
+    const messageId=String(payload.id??'');
+    if(!messageId){
+      await service.from('marketing_client_email_deliveries').update({status:'unknown',error_message:'Respons Gmail tidak menyertakan ID pesan.'}).eq('id',claim.id);
+      failed++;results.push({identity_key:item.identity,status:'unknown',error:'Status belum diketahui; periksa Gmail sebelum mengirim ulang.'});continue;
+    }
+    const {error:touchError}=await auth.client.rpc('log_marketing_client_touchpoint',{target_identity_key:item.identity,target_channel:'Email',target_stage:stage,target_topic:topic});
+    await service.from('marketing_client_email_deliveries').update({status:'sent',provider_message_id:messageId,error_message:touchError?'Email terkirim; log kontak perlu diperiksa.':null,sent_at:new Date().toISOString()}).eq('id',claim.id);
+    sent++;results.push({identity_key:item.identity,status:'sent',history_recorded:!touchError});
+  }
+  return json({ok:failed===0,sender:'innovatecampus@gmail.com',sent,failed,already_sent:alreadySent,skipped:skipped.length,results},200,origin);
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin'); if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
   const path = new URL(req.url).pathname.replace(/^.*\/ruang-kawan-calendar/, '') || '/';
   try {
+    if(path==='/'&&req.method==='POST'){
+      const rootBody=await req.clone().json().catch(()=>({}));
+      if(rootBody.action==='marketing_client_email_campaign')return await sendMarketingClientEmailCampaign(req,origin,rootBody);
+    }
     if (path === '/authorize' && req.method === 'POST') return await authorize(req, origin);
     if (path === '/callback' && req.method === 'GET') return await callback(req);
     if (path === '/calendars' && req.method === 'GET') return await listCalendars(req, origin);

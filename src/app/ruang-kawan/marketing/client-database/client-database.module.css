@@ -110,3 +110,5 @@
 :global(html[data-rk-theme="dark"]) .queueCard span{color:#9bb8c6}
 @media(max-width:900px){.bulkBar{flex-wrap:wrap;padding:10px 14px}.bulkInfo{flex-basis:100%}.bulkActions{margin-left:auto}}
 @media(max-width:600px){.bulkBar{gap:7px}.selectEligible,.bulkActions button{min-height:34px;font-size:8px}.bulkActions{width:100%}.bulkActions button{flex:1}.blastSummary{align-items:flex-start;flex-direction:column}.blastModal>footer>*{flex:1}.companyCell{grid-template-columns:18px 20px minmax(0,1fr)}}
+
+.blastAlert{margin:8px 0}

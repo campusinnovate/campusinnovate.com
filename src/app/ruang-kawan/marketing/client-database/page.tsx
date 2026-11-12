@@ -78,6 +78,10 @@ export default function ClientDatabasePage() {
   const [blastMode,setBlastMode] = useState<'email'|'whatsapp'|null>(null);
   const [blastSubject,setBlastSubject] = useState('Informasi dari Campus Innovate');
   const [blastMessage,setBlastMessage] = useState('');
+  const [blastReason,setBlastReason] = useState('');
+  const [postalAddress,setPostalAddress] = useState('');
+  const [blastError,setBlastError] = useState('');
+  const [emailCampaignId,setEmailCampaignId] = useState('');
   const [blastTopic,setBlastTopic] = useState('Informasi layanan Campus Innovate');
   const [blastStage,setBlastStage] = useState<'TOFU'|'MOFU'|'BOFU'>('TOFU');
   const [blastOffset,setBlastOffset] = useState(0);
@@ -127,6 +131,7 @@ export default function ClientDatabasePage() {
   const selectedRows=filtered.filter(r=>selectedKeys.includes(r.identity_key));
   const blastRecipients=selectedRows.filter(r=>blastMode==='email'?Boolean(r.email):blastMode==='whatsapp'?Boolean(r.whatsapp&&r.whatsapp_consented):false);
   const emailBatch=blastRecipients.slice(blastOffset,blastOffset+25);
+  const emailConsentBatch=selectedRows.filter(r=>Boolean(r.email&&r.email_consented)).slice(0,100);
   const whatsappBatch=blastRecipients.slice(0,25);
   function toggleSelectAll(){
     const eligible=filtered.filter(r=>r.email||r.whatsapp).map(r=>r.identity_key);
@@ -137,12 +142,13 @@ export default function ClientDatabasePage() {
     if(!selectedRows.length){setNotice('Pilih satu atau lebih kontak lewat checkbox di samping nama perusahaan.');return}
     const eligible=selectedRows.filter(r=>channel==='email'?Boolean(r.email):Boolean(r.whatsapp&&r.whatsapp_consented));
     if(!eligible.length){setNotice(channel==='email'?'Kontak yang dipilih belum memiliki alamat email.':'Nomor WhatsApp belum punya izin yang tercatat. Buka aksi izin kontak, catat bukti opt-in, lalu coba lagi.');return}
-    setBlastOffset(0);setQueueIndex(0);setEmailQueueIndex(0);setEmailDraftOpened(false);setQueueOpened(false);
-    setBlastMessage(channel==='email'?'Halo {{nama_pic}},\n\nSaya menghubungi karena [alasan spesifik yang relevan untuk {{perusahaan}}]. Kami membantu tim seperti {{perusahaan}} melalui {{layanan}}.\n\nApakah ini relevan untuk dibahas lebih lanjut?\n\nJika tidak ingin menerima pesan lanjutan, balas “berhenti”.\n\nSalam,\nCampus Innovate\n[alamat kantor]':'Halo {{nama_pic}}, saya dari Campus Innovate. Saya menghubungi karena [alasan yang relevan untuk {{perusahaan}}]. Apakah {{layanan}} relevan untuk dibahas? Jika tidak berkenan menerima pesan lanjutan, beri tahu saya.');
+    setBlastOffset(0);setQueueIndex(0);setEmailQueueIndex(0);setEmailDraftOpened(false);setQueueOpened(false);setBlastError('');
+    setEmailCampaignId(crypto.randomUUID());setBlastReason(channel==='whatsapp'?'ingin berbagi informasi yang mungkin relevan':'');setPostalAddress('');
+    setBlastMessage(channel==='email'?'Halo {{nama_pic}},\n\nSaya menghubungi karena {{alasan}}. Kami membantu tim seperti {{perusahaan}} melalui {{layanan}}.\n\nApakah ini relevan untuk dibahas lebih lanjut?':'Halo {{nama_pic}}, saya dari Campus Innovate. Saya menghubungi karena {{alasan}}. Apakah {{layanan}} relevan untuk dibahas? Jika tidak berkenan menerima pesan lanjutan, beri tahu saya.');
     setBlastSubject('soal kolaborasi');setBlastTopic('Informasi layanan Campus Innovate');setBlastStage('TOFU');setBlastMode(channel);
   }
   function personalizedMessage(row:Contact){
-    return blastMessage.replaceAll('{{nama_pic}}',row.pic_name||'Bapak/Ibu').replaceAll('{{perusahaan}}',row.company_name).replaceAll('{{layanan}}',row.service_interest||'layanan Campus Innovate');
+    return blastMessage.replaceAll('{{nama_pic}}',row.pic_name||'Bapak/Ibu').replaceAll('{{perusahaan}}',row.company_name).replaceAll('{{layanan}}',row.service_interest||'layanan Campus Innovate').replaceAll('{{alasan}}',blastReason.trim()||'[isi alasan spesifik yang relevan]');
   }
   function openEmailDraft(){
     if(!emailBatch.length)return;
@@ -168,6 +174,39 @@ export default function ClientDatabasePage() {
     if(failed)setNotice(saved+' interaksi tercatat; '+failed+' gagal dicatat. Periksa ulang kontak tersebut.');
     return {saved,failed};
   }
+  async function sendDirectEmailCampaign(){
+    setBlastError('');
+    if(!emailConsentBatch.length){setBlastError('Pilih penerima dengan alamat email valid dan izin email yang tercatat.');return}
+    if(!blastReason.trim()){setBlastError('Isi alasan spesifik menghubungi agar pesan relevan untuk penerimanya.');return}
+    if(postalAddress.trim().length<5){setBlastError('Isi alamat kantor Campus Innovate untuk signature email.');return}
+    if(/\[[^\]]+\]/.test(blastMessage)){setBlastError('Lengkapi placeholder di isi pesan sebelum mengirim.');return}
+    const campaignId=emailCampaignId||crypto.randomUUID();setEmailCampaignId(campaignId);
+    if(!window.confirm('Kirim '+emailConsentBatch.length+' email satu per satu dari innovatecampus@gmail.com? Hanya kontak yang izin emailnya tercatat yang akan menerima.'))return;
+    setBusy(true);
+    const {data, error:invokeError}=await createClient().functions.invoke('ruang-kawan-calendar',{body:{
+      action:'marketing_client_email_campaign',campaign_id:campaignId,identity_keys:emailConsentBatch.map(r=>r.identity_key),
+      subject:blastSubject,message:blastMessage,reason:blastReason,postal_address:postalAddress,
+      stage:blastStage,topic:blastTopic
+    }});
+    setBusy(false);
+    if(invokeError){
+      let detail='Pengiriman gagal. Periksa koneksi Gmail sebelum mencoba lagi.';
+      try{const context=(invokeError as any).context;const payload=context?.json?await context.clone().json():null;detail=payload?.error||invokeError.message||detail}catch{detail=invokeError.message||detail}
+      setBlastError(detail);return;
+    }
+    const results=(data?.results??[]) as Array<{identity_key:string;status:string;error?:string}>;
+    const done=results.filter(r=>r.status==='sent'||r.status==='already_sent').map(r=>r.identity_key);
+    const ambiguous=results.some(r=>r.status==='unknown'||r.status==='sending');
+    setSelectedKeys(current=>current.filter(key=>!done.includes(key)));
+    if(!ambiguous)setEmailCampaignId(crypto.randomUUID());
+    const sent=Number(data?.sent??0),failed=Number(data?.failed??0),already=Number(data?.already_sent??0);
+    if(sent)void load(true);
+    const unresolved=results.filter(r=>r.status==='unknown'||r.status==='failed');
+    if(unresolved.length){setBlastError(sent+' terkirim, '+unresolved.length+' perlu diperiksa. '+(ambiguous?'Ada status belum pasti; jangan kirim ulang dulu.':'Periksa alamat/izin sebelum mengirim ulang.'));}
+    else if(sent||already){setNotice((sent+already)+' email tercatat dari innovatecampus@gmail.com.');}
+    if(!failed&&!ambiguous&&done.length===emailConsentBatch.length){setBlastMode(null);setSelectedKeys(current=>current.filter(key=>!done.includes(key)));setEmailDraftOpened(false);}
+  }
+
   async function confirmEmailSent(){
     if(!emailDraftOpened||!emailBatch[emailQueueIndex])return;
     const row=emailBatch[emailQueueIndex];if(!row)return;
@@ -271,14 +310,14 @@ export default function ClientDatabasePage() {
     </section>
 
     {blastMode?<div className={styles.overlay} onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setBlastMode(null)}}><section className={styles.modal+' '+styles.blastModal} role="dialog" aria-modal="true" aria-label={blastMode==='email'?'Email blast':'WhatsApp blast'}>
-      <header><div><span className={styles.eyebrow}>KAMPANYE KONTAK</span><h2>{blastMode==='email'?'Email blast':'WhatsApp blast'}</h2><p>{blastMode==='email'?'Draft Gmail dibuka satu per satu agar pesan bisa dipersonalisasi dan diperiksa sebelum dikirim.':'Pesan dibuka satu per satu di WhatsApp; tekan Kirim di WhatsApp untuk mengirim.'}</p></div><button type="button" onClick={()=>setBlastMode(null)}><FiX/></button></header>
-      <div className={styles.blastSummary}><span><b>{blastRecipients.length}</b> kontak masuk antrean</span><small>{blastMode==='email'?'Batch ini berisi maksimal 25 draft; satu alamat email per draft.':'Nomor WhatsApp harus punya izin tercatat; maksimal 25 per batch.'}</small></div>
+      <header><div><span className={styles.eyebrow}>KAMPANYE KONTAK</span><h2>{blastMode==='email'?'Email blast':'WhatsApp blast'}</h2><p>{blastMode==='email'?'Kirim langsung hanya ke penerima berizin, atau siapkan draft satu per satu untuk review.':'Pesan dibuka satu per satu di WhatsApp; tekan Kirim di WhatsApp untuk mengirim.'}</p></div><button type="button" onClick={()=>setBlastMode(null)}><FiX/></button></header>
+      <div className={styles.blastSummary}><span><b>{blastMode==='email'?emailConsentBatch.length:blastRecipients.length}</b> {blastMode==='email'?'email berizin siap kirim':'kontak masuk antrean'}</span><small>{blastMode==='email'?'Pengirim innovatecampus@gmail.com · maksimal 100 email per campaign dan 100 per hari. Draft satu per satu tersedia untuk kontak lain.':'Nomor WhatsApp harus punya izin tercatat; maksimal 25 per batch.'}</small></div>
       {blastMode==='email'?<div className={styles.queueCard}><span>EMAIL BERIKUTNYA</span><strong>{emailBatch[emailQueueIndex]?.company_name||'Antrean selesai'}</strong><small>{emailBatch[emailQueueIndex]?.pic_name||'PIC belum dicatat'} · {emailQueueIndex+1} dari {emailBatch.length}</small></div>:<div className={styles.queueCard}><span>WHATSAPP BERIKUTNYA</span><strong>{whatsappBatch[queueIndex]?.company_name||'Antrean selesai'}</strong><small>{whatsappBatch[queueIndex]?.pic_name||'PIC belum dicatat'} · {queueIndex+1} dari {whatsappBatch.length}</small></div>}
-      {blastMode==='email'?<label className={styles.blastField}>Subjek email<input value={blastSubject} onChange={e=>setBlastSubject(e.target.value)} maxLength={180}/></label>:null}
+      {blastMode==='email'?<><label className={styles.blastField}>Subjek email<input value={blastSubject} onChange={e=>setBlastSubject(e.target.value)} maxLength={160}/></label><label className={styles.blastField}>Alasan spesifik menghubungi<input value={blastReason} onChange={e=>setBlastReason(e.target.value)} maxLength={500} placeholder="Kaitkan dengan kebutuhan atau sinyal yang relevan"/></label><label className={styles.blastField}>Alamat kantor untuk signature<input value={postalAddress} onChange={e=>setPostalAddress(e.target.value)} maxLength={300} placeholder="Alamat resmi Campus Innovate"/></label></>:null}
       <label className={styles.blastField}>Isi pesan<textarea value={blastMessage} onChange={e=>setBlastMessage(e.target.value)} required maxLength={4000} placeholder="Tulis pesan kampanye…"/></label>
       <div className={styles.formGrid+' '+styles.blastMeta}><label>Tahap funnel untuk pencatatan<select value={blastStage} onChange={e=>setBlastStage(e.target.value as 'TOFU'|'MOFU'|'BOFU')}>{['TOFU','MOFU','BOFU'].map(s=><option key={s} value={s}>{stageNames[s]}</option>)}</select></label><label>Topik interaksi yang dicatat<input value={blastTopic} onChange={e=>setBlastTopic(e.target.value)} maxLength={1000}/></label></div>
-      <p className={styles.help}>{blastMode==='email'?'Setiap draft berisi satu penerima, bukan BCC. Sesuaikan alasan spesifik untuk kontaknya, verifikasi alamat, gunakan domain pengirim yang sudah dipanaskan, dan pertahankan baris berhenti menerima pesan serta alamat kantor. Tidak ada tracking pixel. Kirim dari Gmail, lalu konfirmasi di sini.':'Pesan disiapkan per kontak. Cek ulang konteksnya, kirim dari WhatsApp, lalu konfirmasi di sini agar interaksi tercatat.'} {blastMode==='whatsapp'?'Nomor tanpa persetujuan WhatsApp tidak masuk ke antrean.':'Pastikan akun pengirim dan alamat kantor di signature benar sebelum mengirim.'}</p>
-      <footer><button type="button" className={styles.ghost} onClick={()=>setBlastMode(null)} disabled={busy}>Tutup</button>{blastMode==='email'?<><button type="button" className={styles.primary} onClick={openEmailDraft} disabled={!emailBatch.length||!blastMessage.trim()}><FiMail/> Buka draft Gmail</button>{emailDraftOpened?<button type="button" className={styles.primary} onClick={()=>void confirmEmailSent()} disabled={busy}>{busy?'Mencatat…':'Saya sudah mengirim'}</button>:null}</>:<><button type="button" className={styles.primary} onClick={openWhatsAppQueueItem} disabled={!whatsappBatch.length||queueIndex>=whatsappBatch.length||!blastMessage.trim()}><FiMessageCircle/> Buka chat WhatsApp</button>{queueOpened?<button type="button" className={styles.primary} onClick={()=>void confirmWhatsAppSent()} disabled={busy}>{busy?'Mencatat…':'Sudah dikirim · lanjut'}</button>:null}</>}</footer>
+      {blastMode==='email'&&blastError?<p className={styles.alert+' '+styles.blastAlert} role="alert">{blastError}</p>:null}<p className={styles.help}>{blastMode==='email'?'Kirim langsung memakai Gmail API untuk kontak yang izin emailnya tercatat, satu email personal per penerima. Maksimal 100 email per campaign dan 100 per hari; tidak ada tracking pixel. Kontak tanpa izin hanya tersedia sebagai draft untuk direview satu per satu. Isi alasan relevan dan alamat kantor sebelum mengirim.':'Pesan disiapkan per kontak. Cek ulang konteksnya, kirim dari WhatsApp, lalu konfirmasi di sini agar interaksi tercatat.'} {blastMode==='whatsapp'?'Nomor tanpa persetujuan WhatsApp tidak masuk ke antrean.':'Pastikan akun pengirim dan alamat kantor di signature benar sebelum mengirim.'}</p>
+      <footer><button type="button" className={styles.ghost} onClick={()=>setBlastMode(null)} disabled={busy}>Tutup</button>{blastMode==='email'?<><button type="button" className={styles.primary} onClick={()=>void sendDirectEmailCampaign()} disabled={busy}>{busy?'Mengirim…':<><FiSend/> Kirim langsung</>}</button><button type="button" className={styles.ghost} onClick={openEmailDraft} disabled={!emailBatch.length||!blastMessage.trim()}><FiMail/> Buka draft Gmail</button>{emailDraftOpened?<button type="button" className={styles.primary} onClick={()=>void confirmEmailSent()} disabled={busy}>{busy?'Mencatat…':'Saya sudah mengirim'}</button>:null}</>:<><button type="button" className={styles.primary} onClick={openWhatsAppQueueItem} disabled={!whatsappBatch.length||queueIndex>=whatsappBatch.length||!blastMessage.trim()}><FiMessageCircle/> Buka chat WhatsApp</button>{queueOpened?<button type="button" className={styles.primary} onClick={()=>void confirmWhatsAppSent()} disabled={busy}>{busy?'Mencatat…':'Sudah dikirim · lanjut'}</button>:null}</>}</footer>
     </section></div>:null}
 
     {modal?<div className={styles.overlay} onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}><form className={styles.modal} onSubmit={modal==='contact'?saveContact:modal==='touch'?saveTouch:saveConsent}>
