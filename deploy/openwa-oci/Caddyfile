@@ -1,0 +1,8 @@
+{
+  email {$ACME_EMAIL}
+}
+
+{$OPENWA_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy openwa-api:2785
+}

@@ -1,0 +1,30 @@
+services:
+  # Use the official published image for Oracle's ARM64 instance.
+  openwa-api:
+    image: ghcr.io/rmyndharis/openwa:latest
+
+  # This service only supports optional Docker-managed databases. The pilot uses SQLite.
+  docker-proxy:
+    profiles:
+      - disabled
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: openwa-caddy
+    restart: unless-stopped
+    environment:
+      OPENWA_DOMAIN: ${OPENWA_DOMAIN:?Set OPENWA_DOMAIN in app/.env}
+      ACME_EMAIL: ${ACME_EMAIL:-innovatecampus@gmail.com}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - openwa-network
+
+volumes:
+  caddy-data:
+  caddy-config:
