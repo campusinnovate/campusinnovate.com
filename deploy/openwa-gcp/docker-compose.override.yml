@@ -1,0 +1,18 @@
+services:
+  openwa-api:
+    image: ghcr.io/rmyndharis/openwa:latest
+
+  # SQLite suffices for the one-number pilot; Docker-managed DB is not needed.
+  docker-proxy:
+    profiles:
+      - disabled
+
+  # Cloudflare dashboard routes the hostname to http://openwa-api:2785.
+  # Keep the token in the VM's .env only; never commit it.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: openwa-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in app/.env}
+    networks:
+      - openwa-network
