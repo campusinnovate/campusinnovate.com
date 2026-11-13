@@ -346,8 +346,8 @@ document.addEventListener("DOMContentLoaded", () => {
 const landingCopy = `
 Innovate Organizer · by Campus Innovate|Innovate Organizer · by Campus Innovate
 Event organizer untuk gathering, team building, seminar, dan acara perusahaan di Jabodetabek. Registrasi online, QR check-in, dan laporan acara digital.|Event organizer for gatherings, team building, seminars, and corporate events across Greater Jakarta. Online registration, QR check-in, and digital event reporting.
-Event Organizer di Jabodetabek. Acaranya rapi, datanya lengkap.|Event organizer in Greater Jakarta. A well-run event, with the data to show for it.
-Kami merancang dan menjalankan acara Anda dari konsep sampai evaluasi. Peserta daftar online, check-in pakai QR, dan Anda terima laporan acara yang siap dibawa ke atasan.|We plan and run your event from concept to evaluation. Guests register online and check in with QR codes, and you get an event report ready to share with leadership.
+Lagi menyiapkan acara di Jabodetabek? Kami bantu.|Planning an event in Greater Jakarta? We can help.|هل تحضّر لفعالية في جاكرتا الكبرى؟ يمكننا مساعدتك.|正在筹备大雅加达地区的活动？我们来帮您。
+Kami bantu urus acara Anda, dari menyusun konsep sampai hari-H. Peserta bisa daftar online dan check-in pakai QR. Setelah acara, kami kirim rekap kehadiran dan masukan peserta.|We’ll help you plan the event and run it on the day. Guests can register online and check in with a QR code. Afterwards, we’ll send you the attendance numbers and guest feedback.|نساعدك في التخطيط للفعالية وتنفيذها. يمكن للضيوف التسجيل عبر الإنترنت وتسجيل الحضور برمز QR. وبعد الفعالية نرسل لك أعداد الحضور وملاحظات الضيوف.|我们协助您筹划活动，并负责当天执行。来宾可在线报名、扫码签到。活动结束后，我们会发给您出席人数和来宾反馈。
 Konsultasi Gratis via WhatsApp|Free consultation on WhatsApp
 Isi Brief Acara|Fill in the event brief
 Dipercaya oleh:|Trusted by:
@@ -473,7 +473,7 @@ Melayani acara di Jakarta, Bogor, Depok, Tangerang, dan Bekasi.|Serving events i
 `;
 
 for (const row of landingCopy.trim().split("\n")) {
-  const [source, english] = row.split("|");
+  const [source, english, arabic, chinese] = row.split("|");
   const previous = siteCopy[source] || [];
-  siteCopy[source] = [english, ...previous.slice(1)];
+  siteCopy[source] = [english, arabic ?? previous[1], chinese ?? previous[2]];
 }

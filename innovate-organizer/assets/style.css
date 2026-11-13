@@ -57,8 +57,9 @@ h1, h2, h3, h4 { line-height: 1.22; }
 .button-gold:hover { background: #ffc54b; }
 .button-outline { color: var(--white); border-color: #ffffff80; }
 .button-outline:hover { background: #ffffff1c; }
-.button-outline-dark { border-color: #bccbdf; background: var(--white); color: var(--navy); }
-.button-outline-dark:hover { border-color: var(--navy); background: var(--canvas); }
+.button-whatsapp { background: #25d366; color: #082d1a; }
+.button-whatsapp:hover { background: #20bd5a; }
+.button-whatsapp:active { background: #1ab654; }
 .button-navy { background: var(--navy); color: var(--white); }
 .button-navy:hover { background: #1a427b; }
 .eyebrow { display: flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
@@ -79,10 +80,10 @@ h1, h2, h3, h4 { line-height: 1.22; }
 
 .trust { background: var(--canvas); border-bottom: 1px solid var(--line); }
 .trust-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding-block: 19px; }
-#trust-logos { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; }
+#trust-logos { display: grid; width: 100%; align-items: center; gap: 10px 22px; }
 #trust-logos > p { font-size: 12px; font-weight: 600; }
-#client-logos { display: flex; flex-wrap: wrap; gap: 7px; padding: 0; margin: 0; list-style: none; }
-#client-logos li { display: grid; place-items: center; width: 75px; height: 42px; padding: 4px 8px; background: var(--white); border: 1px solid var(--line); border-radius: 6px; }
+#client-logos { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 7px; padding: 0; margin: 0; list-style: none; }
+#client-logos li { display: grid; place-items: center; min-width: 0; height: 48px; padding: 4px 8px; background: var(--white); border: 1px solid var(--line); border-radius: 6px; }
 #client-logos img { width: 100%; height: 32px; object-fit: contain; }
 
 .section { padding-block: clamp(51px, 7.4vw, 102px); }
@@ -113,7 +114,6 @@ h1, h2, h3, h4 { line-height: 1.22; }
 .benefit-close { margin-top: 26px; font-weight: 600; }
 .fine { margin-top: 5px; color: var(--muted); font-size: 12px; }
 .project-meta { margin-bottom: 6px; color: var(--muted); font-weight: 600; font-size: 11px; }
-.photo-caption { position: absolute; inset-inline-start: 9px; bottom: 8px; padding: 3px 6px; border-radius: 4px; background: #0a1f45f2; color: var(--white); font-size: 10px; }
 .text-button { min-height: 44px; margin-top: auto; padding: 8px 0 0; text-align: start; border: 0; background: none; color: var(--navy); font-weight: 700; font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
 .case-details { margin-bottom: 0; font-size: 13px; }
 .case-details div + div { margin-top: 6px; }

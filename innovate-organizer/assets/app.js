@@ -8,7 +8,27 @@ const IO_DATA = {
     { name: "PT Geo Investama Mandiri", src: "assets/client-gim.webp" },
     { name: "LPA2I IPB University", src: "assets/client-lpa2i.webp" },
     { name: "Kementerian Lingkungan Hidup dan Kehutanan", src: "assets/client-klhk.webp" },
-    { name: "WUNPROQ", src: "assets/client-wunproq.webp" }
+    { name: "WUNPROQ", src: "assets/client-wunproq.webp" },
+    { name: "Badan Informasi Geospasial", src: "assets/client-big.webp" },
+    { name: "IPB University", src: "assets/client-ipb.webp" },
+    { name: "University College Agroscience Malaysia", src: "assets/client-ucam.webp" },
+    { name: "DPMA IPB University", src: "assets/client-dpma.webp" },
+    { name: "Student Entrepreneur Expo", src: "assets/client-see.webp" },
+    { name: "Universitas Bina Niaga Indonesia", src: "assets/client-unbin.webp" },
+    { name: "PUSTARHUT", src: "assets/client-pustarhut.webp" },
+    { name: "CDA IPB University", src: "assets/client-cda.webp" },
+    { name: "Wirausaha Merdeka IPB", src: "assets/client-wmk.webp" },
+    { name: "Mitra institusi daerah", src: "assets/client-institusi.webp" },
+    { name: "VK Penta", src: "assets/client-vkpenta.webp" },
+    { name: "DPKKHA IPB University", src: "assets/client-dpkkha.webp" },
+    { name: "Bank Rakyat Indonesia", src: "assets/client-bri.webp" },
+    { name: "Bank Negara Indonesia", src: "assets/client-bni.webp" },
+    { name: "Wakaf IPB University", src: "assets/client-wakaf.webp" },
+    { name: "Optima", src: "assets/client-optima.webp" },
+    { name: "AIO Villa Lombok", src: "assets/client-aio.webp" },
+    { name: "Modlaci", src: "assets/client-modlaci.webp" },
+    { name: "Trendy AI", src: "assets/client-trendy.webp" },
+    { name: "Tirta Pakuan", src: "assets/client-tirta.webp" }
   ],
   testimonials: [],
   caseStudies: [],
@@ -95,13 +115,13 @@ const projects = [
   [26,"wmk","Wirausaha Merdeka IPB",2024,"Team building","Capacity building dan outbound bagi peserta","Capacity Building & Outbound",teamScope]
 ].map(([id,client,title,year,category,description,scope,deliverables])=>({
   id,client,title,year,category,description,scope,deliverables,
-  image: id === 20 ? null : "assets/project-"+id+".webp"
+  image: "assets/project-" + id + ".webp"
 }));
 
 const $ = id => document.getElementById(id);
 const t = translateSiteText;
 const greeting = "Halo Innovate Organizer, saya ingin konsultasi acara.";
-const defaultHeadline = "Event Organizer di Jabodetabek. Acaranya rapi, datanya lengkap.";
+const defaultHeadline = "Lagi menyiapkan acara di Jabodetabek? Kami bantu.";
 const whatsappBase = "https://wa.me/6285882514394";
 const conversionId = "AW-18473450758/iaLBCN-i35AdEIb66ehE";
 const whatsappUrl = message => whatsappBase + "?text=" + encodeURIComponent(message);
@@ -130,7 +150,7 @@ $("service-cards").innerHTML = services.map((service, index) =>
     '<div class="service-photo">' + photo("assets/" + service.photo + ".webp") + '<span>' + number(index) + '</span></div>' +
     '<div class="card-body"><h3>' + e(service.title) + '</h3><p>' + e(service.description) + '</p>' +
     '<h4>Yang kami tangani</h4>' + list(service.scope) +
-    '<a class="button button-outline-dark service-cta" data-wa="' + e(service.message) + '">Konsultasikan acara ini →</a></div></article>'
+    '<a class="button button-whatsapp service-cta" data-wa="' + e(service.message) + '">Konsultasikan acara ini →</a></div></article>'
 ).join("");
 
 $("benefit-cards").innerHTML = benefits.map(([title, description, symbol], index) =>
@@ -166,10 +186,8 @@ const allProjects = [
 
 function projectCard(project) {
   const caption = project.id === 16 ? lpaCaption : "";
-  return '<article class="project-card"><div class="project-image">' +
-    photo(project.image || "assets/client-" + project.client + ".webp", caption) +
-    (caption ? '<p class="photo-caption">' + caption + '</p>' : '') +
-    '</div><div class="card-body"><p class="project-meta"><span>' + e(project.category) + '</span> · ' + project.year +
+  const image = project.image ? '<div class="project-image">' + photo(project.image, caption) + '</div>' : '';
+  return '<article class="project-card">' + image + '<div class="card-body"><p class="project-meta"><span>' + e(project.category) + '</span> · ' + project.year +
     '</p><h3>' + e(project.title) + '</h3><p>' + e(project.description) +
     '</p><button class="text-button" type="button" data-project="' + project.id + '">Lihat proyek →</button></div></article>';
 }
@@ -196,7 +214,7 @@ $("testimonials").innerHTML = IO_DATA.testimonials.slice(0, 2).map(item =>
 ).join("");
 $("testimonials").hidden = !$("testimonials").children.length;
 
-const logos = IO_DATA.clientLogos.slice(0, 6);
+const logos = IO_DATA.clientLogos;
 $("client-logos").innerHTML = logos.map(logo => "<li>" + photo(logo.src, logo.name) + "</li>").join("");
 $("trust-logos").hidden = !logos.length;
 $("trust-stats").hidden = !IO_DATA.stats;
