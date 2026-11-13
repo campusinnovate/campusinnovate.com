@@ -278,7 +278,7 @@ function translateSiteText(source) {
   const key = source.trim().replace(/\s+/g, " ");
   const column = siteLocales.indexOf(siteLanguage) - 1;
   let translation = siteCopy[key]?.[column];
-  if (translation === undefined) {
+  if (!translation) {
     const numberPrefix = key.match(/^(\d+ \/ )(.+)$/);
     const numberSuffix = key.match(/^(.+?)( \/ \d+| · \d{4})$/);
     const projectCount = key.match(/^(\d+) proyek$/);
@@ -288,7 +288,7 @@ function translateSiteText(source) {
     else if (numberSuffix) translation = translateSiteText(numberSuffix[1]) + numberSuffix[2];
     else if (projectCount) translation = projectCount[1] + " " + (column === 0 && projectCount[1] === "1" ? "project" : siteCopy.proyek[column]);
     else if (arrow) translation = translateSiteText(arrow[1]) + " " + (siteLanguage === "ar" && arrow[2] === "→" ? "←" : arrow[2]);
-    else if (prefix) translation = siteCopy[prefix[1]][column] + " " + prefix[2];
+    else if (prefix && siteCopy[prefix[1]]?.[column]) translation = siteCopy[prefix[1]][column] + " " + prefix[2];
     else return source;
   }
   return source.match(/^\s*/)[0] + translation + source.match(/\s*$/)[0];
@@ -342,3 +342,138 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: translatableAttributes });
 });
+
+const landingCopy = `
+Innovate Organizer · by Campus Innovate|Innovate Organizer · by Campus Innovate
+Event organizer untuk gathering, team building, seminar, dan acara perusahaan di Jabodetabek. Registrasi online, QR check-in, dan laporan acara digital.|Event organizer for gatherings, team building, seminars, and corporate events across Greater Jakarta. Online registration, QR check-in, and digital event reporting.
+Event Organizer di Jabodetabek. Acaranya rapi, datanya lengkap.|Event organizer in Greater Jakarta. A well-run event, with the data to show for it.
+Kami merancang dan menjalankan acara Anda dari konsep sampai evaluasi. Peserta daftar online, check-in pakai QR, dan Anda terima laporan acara yang siap dibawa ke atasan.|We plan and run your event from concept to evaluation. Guests register online and check in with QR codes, and you get an event report ready to share with leadership.
+Konsultasi Gratis via WhatsApp|Free consultation on WhatsApp
+Isi Brief Acara|Fill in the event brief
+Dipercaya oleh:|Trusted by:
+{events}+ acara · {participants}+ peserta · {years} tahun pengalaman|{events}+ events · {participants}+ participants · {years} years of experience
+Portofolio|Portfolio
+Acara apa yang sedang Anda siapkan?|What kind of event are you planning?
+Pilih jenis acara untuk melihat apa yang kami tangani. Setiap paket bisa disesuaikan dengan jumlah peserta dan anggaran.|Explore what we cover for each event type. We tailor each package to your group size and budget.
+Gathering & Outing Kantor|Company Gatherings & Outings
+Gathering & Outing|Gatherings & Outings
+Event Organizer Gathering Kantor di Jabodetabek|Company Gathering Organizer in Greater Jakarta
+Event Organizer Team Building di Jabodetabek|Team Building Organizer in Greater Jakarta
+Event Organizer Seminar & Konferensi di Jabodetabek|Seminar & Conference Organizer in Greater Jakarta
+Event Organizer Acara Perusahaan di Jabodetabek|Corporate Event Organizer in Greater Jakarta
+Event Organizer Pelatihan & Workshop di Jabodetabek|Training & Workshop Organizer in Greater Jakarta
+Team Building|Team Building
+Seminar & Konferensi|Seminars & Conferences
+Acara Perusahaan|Corporate Events
+Pelatihan & Workshop|Training & Workshops
+Acara kebersamaan tim yang seru, tertata, dan tanpa repot buat panitia internal.|Enjoyable, well-organized team outings with less work for your internal team.
+Aktivitas yang dirancang sesuai tujuan tim, dari kolaborasi sampai kepemimpinan.|Activities tailored to your team goals, from collaboration to leadership.
+Acara ilmiah atau bisnis dengan alur registrasi dan sesi yang tertib.|Academic or business events with organized registration and sessions.
+Peluncuran produk, anniversary, rapat kerja, hingga awarding night.|Product launches, anniversaries, company meetings, and awards nights.
+Program belajar yang terukur, dari pendaftaran sampai evaluasi peserta.|Structured learning programs, from enrollment to participant evaluation.
+Yang kami tangani|What we handle
+Venue & akomodasi|Venue & accommodation
+Rundown|Run of show
+MC & hiburan|Host & entertainment
+Transportasi|Transportation
+Konsep aktivitas|Activity concept
+Fasilitator|Facilitators
+Perlengkapan|Equipment
+Dokumentasi|Photography and video
+Laporan peserta|Participant reporting
+Manajemen pembicara|Speaker management
+Sesi paralel|Parallel sessions
+Sertifikat digital|Digital certificates
+Konsep acara|Event concept
+Produksi panggung|Stage production
+Vendor|Vendors
+Koordinasi hari-H|On-site coordination
+Pendaftaran|Enrollment
+Absensi digital|Digital attendance
+Materi|Materials
+Evaluasi pre/post-test|Pre- and post-training assessments
+Sertifikat|Certificates
+Konsultasikan acara ini →|Discuss this event →
+Butuh dukungan untuk bagian tertentu saja, seperti registrasi, dokumentasi, atau tim lapangan? Kami juga melayani Event Support.|Need help with registration, photo and video coverage, or on-site staffing? Our Event Support team can help.
+Tanya via WhatsApp|Ask us on WhatsApp
+Halo Innovate Organizer, saya ingin konsultasi acara.|Hi Innovate Organizer, I’d like to discuss an event.
+Halo, saya ingin konsultasi acara gathering kantor.|Hi, I’d like to discuss a company gathering.
+Halo, saya ingin konsultasi acara team building.|Hi, I’d like to discuss a team building event.
+Halo, saya ingin konsultasi acara seminar/konferensi.|Hi, I’d like to discuss a seminar or conference.
+Halo, saya ingin konsultasi acara perusahaan.|Hi, I’d like to discuss a corporate event.
+Halo, saya ingin konsultasi acara pelatihan/workshop.|Hi, I’d like to discuss a training session or workshop.
+Halo, saya ingin tanya layanan Event Support.|Hi, I’d like to ask about your Event Support services.
+Halo, saya ingin diskusi model kerja sama yang cocok untuk acara saya.|Hi, I’d like to discuss which service model fits my event.
+Pembeda kami|What sets us apart
+EO yang lahir dari tim teknologi.|An event organizer built by a technology team.
+Innovate Organizer adalah unit event dari Campus Innovate, perusahaan teknologi dan digital. Karena itu setiap acara yang kami pegang berjalan dengan sistem: peserta lebih nyaman, panitia lebih ringan, dan Anda punya data lengkap setelah acara selesai.|Innovate Organizer is the events division of Campus Innovate, a digital technology company. We use structured workflows to make events easier for guests and organizers, and give you clear data after the event.
+Registrasi online, tanpa rekap manual.|Online registration, with attendee records organized automatically.
+Peserta mendaftar lewat link. Data langsung tersusun, jadi panitia tidak perlu merapikan spreadsheet satu per satu.|Guests sign up through a link. Records are organized as they come in, saving your team spreadsheet work.
+Check-in pakai QR, tanpa antrean panjang.|QR check-in to keep queues moving.
+Peserta cukup menunjukkan kode QR di meja registrasi. Jumlah kehadiran terlihat secara langsung.|Guests show their QR code at the desk, and your team can see the attendance count in real time.
+Progres persiapan yang bisa dipantau.|Track preparation progress.
+Anda bisa melihat checklist, pembagian tugas, dan kesiapan vendor tanpa harus menanyakan update berkali-kali.|See checklists, task assignments, and vendor readiness without chasing updates.
+Laporan acara yang siap dibawa ke atasan.|An event report ready to share with leadership.
+Setelah acara, Anda menerima rekap kehadiran, dokumentasi, dan feedback peserta dalam satu laporan.|After the event, get attendance figures, documentation, and participant feedback in one report.
+Dikirim paling lambat {days} hari kerja setelah acara.|Delivered within {days} business days after the event.
+Teknologinya kami yang urus. Anda cukup fokus ke tamu dan tujuan acara.|We handle the technology so you can focus on your guests and goals.
+Pilihan fitur digital disesuaikan dengan kebutuhan dan anggaran setiap acara.|Digital features are tailored to each event’s needs and budget.
+Acara yang sudah kami jalankan|Events we’ve delivered
+Dari gathering kantor sampai konferensi internasional.|From company gatherings to international conferences.
+Dari gathering {min} orang sampai konferensi {max} peserta.|From gatherings of {min} people to conferences with {max} participants.
+Tantangan|Challenge
+Yang kami lakukan|What we did
+Hasil|Result
+Lihat semua proyek ↓|See all projects ↓
+Foto tim Campus Innovate|Campus Innovate team photo
+Peresmian Ecobiz Desa Sejahtera Astra di Garut|Launch of Astra’s Ecobiz Desa Sejahtera initiative in Garut
+Pilih cara kerja sama yang pas|Choose the support that fits your event
+Mau diserahkan penuh atau cukup dibantu di bagian tertentu, keduanya bisa.|We can manage the entire event or support specific parts of it.
+Full-Service|Full-Service
+Selected Service|Selected Service
+Team Support|Team Support
+Anda ingin terima beres|You want end-to-end delivery
+Panitia internal sudah ada|You already have an internal event team
+Butuh tambahan tenaga|You need extra staff
+Kami susun konsep, urus vendor, jalankan hari-H, dan serahkan laporan acara.|We develop the concept, manage vendors, run the event, and deliver the report.
+Kami pegang fungsi tertentu yang disepakati, misalnya registrasi digital, dokumentasi, atau produksi panggung.|We handle agreed functions such as digital registration, photo and video coverage, or stage production.
+Kami sediakan personel terlatih untuk peran tertentu, seperti usher, registrasi, LO, atau tim lapangan.|We provide trained staff for roles such as ushering, registration, liaison, and on-site operations.
+Diskusikan model yang cocok →|Discuss the right service model →
+Lima langkah, satu alur yang jelas|Five steps from planning to reporting
+Diskusi kebutuhan|Discuss your requirements
+Kita sepakati tujuan acara, profil peserta, jadwal, dan anggaran.|We agree on your goals, attendees, schedule, and budget.
+Konsep & penawaran|Concept & proposal
+Anda menerima konsep, rundown awal, dan rincian biaya.|You receive a concept, draft schedule, and cost breakdown.
+Persiapan|Preparation
+Tim, vendor, materi, dan sistem digital disiapkan. Progres bisa Anda pantau.|We prepare the team, vendors, materials, and digital tools. You can follow the progress.
+Hari-H|Event day
+Kami jalankan acara dan tangani kendala di lapangan.|We run the event and handle issues on site.
+Evaluasi & laporan|Evaluation & reporting
+Anda menerima laporan acara, dokumentasi, dan feedback peserta.|You receive the event report, documentation, and participant feedback.
+Brief acara|Event brief
+Ceritakan acara Anda, kami siapkan langkah berikutnya.|Tell us about your event so we can plan the next step.
+Isi seperlunya saja. Form ini menyusun pesan WhatsApp untuk Anda, tinggal kirim.|Share the details you have. We’ll turn them into a WhatsApp message ready for you to send.
+Nama & perusahaan|Name & company
+Nama/perusahaan|Name/company
+Tanggal|Date
+Peserta|Participants
+Contoh: Rina, PT Maju Bersama|Example: Rina, PT Maju Bersama
+Pilih jenis acara|Choose an event type
+Perkiraan tanggal|Estimated date
+Contoh: pertengahan Februari 2027|Example: mid-February 2027
+Contoh: 150|Example: 150
+Lokasi & kebutuhan|Location & requirements
+Contoh: Bogor, butuh venue + registrasi online|Example: Bogor, need a venue and online registration
+Kirim via WhatsApp →|Send via WhatsApp →
+Lebih suka langsung chat?|Prefer to chat directly?
+Buka WhatsApp|Open WhatsApp
+Atau email ke|Or email
+Innovate Organizer, unit event dari Campus Innovate|Innovate Organizer, the events division of Campus Innovate
+Melayani acara di Jakarta, Bogor, Depok, Tangerang, dan Bekasi.|Serving events in Jakarta, Bogor, Depok, Tangerang, and Bekasi.
+`;
+
+for (const row of landingCopy.trim().split("\n")) {
+  const [source, english] = row.split("|");
+  const previous = siteCopy[source] || [];
+  siteCopy[source] = [english, ...previous.slice(1)];
+}
