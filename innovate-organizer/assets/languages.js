@@ -344,6 +344,15 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 const landingCopy = `
+Oktober 2026|October 2026|أكتوبر 2026|2026年10月
+November 2026|November 2026|نوفمبر 2026|2026年11月
+Dukungan kegiatan pelatihan|Training event support|دعم أنشطة التدريب|培训活动支持
+Dukungan pelaksanaan pelatihan|Support for training delivery|دعم تنفيذ التدريب|培训实施支持
+Dokumentasi kegiatan|Event photo documentation|توثيق الفعالية بالصور|活动影像记录
+Fun games bersama tim KLH/BPLH|Fun games with the KLH/BPLH team|ألعاب ترفيهية مع فريق KLH/BPLH|KLH/BPLH 团队趣味游戏
+Aktivitas kebersamaan peserta|Group activities for participants|أنشطة جماعية للمشاركين|参与者集体活动
+Support Training|Training Support|دعم التدريب|培训支持
+Fun Games|Fun Games|ألعاب ترفيهية|趣味游戏
 Innovate Organizer · by Campus Innovate|Innovate Organizer · by Campus Innovate
 Event organizer untuk gathering, team building, seminar, dan acara perusahaan di Jabodetabek. Registrasi online, QR check-in, dan laporan acara digital.|Event organizer for gatherings, team building, seminars, and corporate events across Greater Jakarta. Online registration, QR check-in, and digital event reporting.
 Lagi menyiapkan acara di Jabodetabek? Kami bantu.|Planning an event in Greater Jakarta? We can help.|هل تحضّر لفعالية في جاكرتا الكبرى؟ يمكننا مساعدتك.|正在筹备大雅加达地区的活动？我们来帮您。

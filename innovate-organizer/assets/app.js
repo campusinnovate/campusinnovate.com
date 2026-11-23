@@ -100,6 +100,8 @@ const steps = [
 const eventScope = ["Perencanaan dan konsep","Keterlibatan peserta","Operasional lapangan","Pelaksanaan acara"];
 const teamScope = ["Desain aktivitas","Keterlibatan peserta","Operasional lapangan","Pelaksanaan acara"];
 const projects = [
+  [28,"klh-bplh","KLH/BPLH",2026,"Team building","Fun games bersama tim KLH/BPLH","Fun Games",["Aktivitas kebersamaan peserta","Dokumentasi kegiatan"],"November 2026",["assets/klh-bplh-2026-2.webp","assets/klh-bplh-2026-3.webp"]],
+  [27,"brmp","Badan Perakitan dan Modernisasi Pertanian",2026,"Pelatihan","Dukungan kegiatan pelatihan","Support Training",["Dukungan pelaksanaan pelatihan","Dokumentasi kegiatan"],"Oktober 2026",["assets/brmp-training-2026-2.webp","assets/brmp-training-2026-3.webp"]],
   [14,"wunproq","WUNPROQ 2026",2026,"Konferensi","World University Network for Productive Waqf","Full Event Management",["Pengelolaan acara","Pengalaman peserta","Materi komunikasi pendukung","Event branding","Branding dan pengelolaan media sosial"]],
   [15,"astra","Astra International Tbk",2026,"Korporat","Peresmian Ecobiz Desa Sejahtera Astra di Garut","Full Event Management",["Konsep dan rundown seremoni","Koordinasi venue, panggung, dan tamu","Peresmian Ecobiz Desa Sejahtera Astra"]],
   [16,"lpa2i","LPA2I IPB University",2026,"Institusi","Pengelolaan acara dari konsep hingga pelaksanaan","Full Event Management",eventScope],
@@ -113,8 +115,8 @@ const projects = [
   [24,"pustarhut","PUSTARHUT",2024,"Team building","Program peningkatan kapasitas","Capacity Building",teamScope],
   [25,"see","Student Entrepreneur Expo IPB",2024,"Institusi","Expo kewirausahaan mahasiswa","Event Management",["Keterlibatan peserta","Operasional lapangan","Pelaksanaan acara"]],
   [26,"wmk","Wirausaha Merdeka IPB",2024,"Team building","Capacity building dan outbound bagi peserta","Capacity Building & Outbound",teamScope]
-].map(([id,client,title,year,category,description,scope,deliverables])=>({
-  id,client,title,year,category,description,scope,deliverables,
+].map(([id,client,title,year,category,description,scope,deliverables,period,gallery = []])=>({
+  id,client,title,year,category,description,scope,deliverables,period,gallery,
   image: "assets/project-" + id + ".webp"
 }));
 
@@ -178,16 +180,16 @@ $("process-steps").innerHTML = steps.map(([title, description], index) =>
 
 const lpaCaption = "Foto tim Campus Innovate";
 const astraGallery = ["assets/astra-ecobiz-2.webp", "assets/astra-ecobiz-3.webp"];
-const featured = [15, 17, 16, 14];
+const featured = [28, 27, 15, 17];
 const allProjects = [
   ...featured.map(id => projects.find(project => project.id === id)),
   ...projects.filter(project => !featured.includes(project.id))
 ];
 
 function projectCard(project) {
-  const caption = project.id === 16 ? lpaCaption : "";
+  const caption = project.id === 16 ? lpaCaption : project.title + " — " + (project.period || project.year);
   const image = project.image ? '<div class="project-image">' + photo(project.image, caption) + '</div>' : '';
-  return '<article class="project-card">' + image + '<div class="card-body"><p class="project-meta"><span>' + e(project.category) + '</span> · ' + project.year +
+  return '<article class="project-card">' + image + '<div class="card-body"><p class="project-meta"><span>' + e(project.category) + '</span> · ' + '<span>' + e(project.period || project.year) + '</span>' +
     '</p><h3>' + e(project.title) + '</h3><p>' + e(project.description) +
     '</p><button class="text-button" type="button" data-project="' + project.id + '">Lihat proyek →</button></div></article>';
 }
@@ -271,9 +273,9 @@ document.addEventListener("click", event => {
   const project = projects.find(item => item.id === Number(projectButton.dataset.project));
   const caption = project.id === 16 ? lpaCaption : "Dokumentasi";
   $("project-body").innerHTML = '<p class="eyebrow">' + e(project.category) + '</p><h2 id="project-title">' + e(project.title) +
-    '</h2><p>' + e(project.description) + '</p>' +
+    '</h2>' + (project.period ? '<p class="project-period">' + e(project.period) + '</p>' : '') + '<p>' + e(project.description) + '</p>' +
     (project.image ? '<figure>' + photo(project.image, caption) + (project.id === 16 ? '<figcaption>' + caption + '</figcaption>' : '') + '</figure>' : '') +
-    (project.id === 15 ? '<div class="project-gallery">' + astraGallery.map(src => photo(src, "Dokumentasi")).join("") + '</div>' : '') +
+    ((project.id === 15 ? astraGallery : project.gallery).length ? '<div class="project-gallery">' + (project.id === 15 ? astraGallery : project.gallery).map(src => photo(src, project.title + ' — ' + t('Dokumentasi'))).join("") + '</div>' : '') +
     '<h3>' + e(project.scope) + '</h3>' + list(project.deliverables) +
     '<a class="button button-gold" data-wa="' + e(greeting) + '">Konsultasi Gratis via WhatsApp</a>';
   $("project-body").querySelectorAll("[data-wa]").forEach(link => updateWhatsAppLink(link));
