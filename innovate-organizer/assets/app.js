@@ -117,7 +117,7 @@ const projects = [
   [26,"wmk","Wirausaha Merdeka IPB",2024,"Team building","Capacity building dan outbound bagi peserta","Capacity Building & Outbound",teamScope]
 ].map(([id,client,title,year,category,description,scope,deliverables,period,gallery = []])=>({
   id,client,title,year,category,description,scope,deliverables,period,gallery,
-  image: "assets/project-" + id + ".webp"
+  image: id === 28 ? "assets/klh-bplh-group-2026.webp" : "assets/project-" + id + ".webp"
 }));
 
 const $ = id => document.getElementById(id);
