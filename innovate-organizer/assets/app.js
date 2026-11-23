@@ -3,6 +3,8 @@
 const IO_DATA = {
   stats: null,
   clientLogos: [
+    { name: "Kementerian Lingkungan Hidup / Badan Pengendalian Lingkungan Hidup (KLH/BPLH)", src: "assets/client-klh-bplh.webp" },
+    { name: "Badan Perakitan dan Modernisasi Pertanian (BRMP)", src: "assets/client-brmp.webp", wide: true },
     { name: "Astra International Tbk", src: "assets/client-astra.webp" },
     { name: "Noortura", src: "assets/client-noortura.webp" },
     { name: "PT Geo Investama Mandiri", src: "assets/client-gim.webp" },
@@ -217,7 +219,7 @@ $("testimonials").innerHTML = IO_DATA.testimonials.slice(0, 2).map(item =>
 $("testimonials").hidden = !$("testimonials").children.length;
 
 const logos = IO_DATA.clientLogos;
-$("client-logos").innerHTML = logos.map(logo => "<li>" + photo(logo.src, logo.name) + "</li>").join("");
+$("client-logos").innerHTML = logos.map(logo => '<li title="' + e(logo.name) + '"' + (logo.wide ? ' class="client-logo-wide"' : '') + '>' + photo(logo.src, logo.name) + "</li>").join("");
 $("trust-logos").hidden = !logos.length;
 $("trust-stats").hidden = !IO_DATA.stats;
 $("trust").hidden = !logos.length && !IO_DATA.stats;

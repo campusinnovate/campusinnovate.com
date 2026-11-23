@@ -85,6 +85,7 @@ h1, h2, h3, h4 { line-height: 1.22; }
 #client-logos { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 7px; padding: 0; margin: 0; list-style: none; }
 #client-logos li { display: grid; place-items: center; min-width: 0; height: 48px; padding: 4px 8px; background: var(--white); border: 1px solid var(--line); border-radius: 6px; }
 #client-logos img { width: 100%; height: 32px; object-fit: contain; }
+#client-logos .client-logo-wide { grid-column: span 2; }
 
 .section { padding-block: clamp(51px, 7.4vw, 102px); }
 .section-head { max-width: 760px; margin-bottom: clamp(24px, 4vw, 44px); }
