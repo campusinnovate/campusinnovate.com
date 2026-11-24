@@ -344,9 +344,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 const landingCopy = `
-Trekking & Hiking bersama Stripmate|Trekking & Hiking with Stripmate|رحلات المشي الجبلي مع Stripmate|与 Stripmate 一起徒步登山
+Trekking & Hiking bersama Innovate Organizer|Trekking & Hiking with Innovate Organizer|رحلات المشي الجبلي مع Innovate Organizer|与 Innovate Organizer 一起徒步登山
 Trekking & Hiking|Trekking & Hiking|المشي الجبلي|徒步登山
-Pengalaman mendampingi trekking ke berbagai gunung dan curug melalui Stripmate, komunitas Campus Innovate.|Experience guiding trekking trips to mountains and waterfalls through Stripmate, Campus Innovate’s community.|خبرة في مرافقة رحلات المشي إلى الجبال والشلالات عبر Stripmate، مجتمع Campus Innovate.|通过 Campus Innovate 旗下社群 Stripmate，积累了带领山地及瀑布徒步的经验。
+Tim Innovate Organizer berpengalaman mendampingi trekking ke berbagai gunung dan curug, termasuk perjalanan bersama Stripmate.|The Innovate Organizer team has experience accompanying mountain and waterfall treks, including trips with Stripmate.|يتمتع فريق Innovate Organizer بخبرة في مرافقة رحلات المشي إلى الجبال والشلالات، بما فيها الرحلات مع Stripmate.|Innovate Organizer 团队拥有陪同山地及瀑布徒步的经验，包括与 Stripmate 一起开展的旅行。
 Pengalaman rute trekking|Trekking route experience|مسارات سبق لنا مرافقة المشاركين فيها|已有带队经验的徒步路线
 Portofolio perjalanan|Trip portfolio|سجل الرحلات|旅行案例
 Gunung Luhur|Mount Luhur|جبل لوهور|Luhur 山
@@ -357,7 +357,7 @@ Gunung Merbabu|Mount Merbabu|جبل ميربابو|Merbabu 山
 Gunung Lawu|Mount Lawu|جبل لاوو|Lawu 山
 Gunung Gede|Mount Gede|جبل غيدي|Gede 山
 Curug-curug di Bogor|Waterfalls around Bogor|شلالات بوغور|茂物周边瀑布
-Dokumentasi trekking Gunung Luhur bersama Stripmate|Photos from the Mount Luhur trek with Stripmate|صور رحلة المشي إلى جبل لوهور مع Stripmate|Stripmate 的 Luhur 山徒步实拍
+Dokumentasi perjalanan Innovate Organizer di Gunung Luhur bersama Stripmate|Photos from Innovate Organizer’s Mount Luhur trip with Stripmate|صور رحلة Innovate Organizer إلى جبل لوهور مع Stripmate|Innovate Organizer 与 Stripmate 的 Luhur 山旅行实拍
 Diskusikan rencana trekking Anda|Discuss your trekking plans|ناقش خطة رحلة المشي معنا|洽谈您的徒步计划
 Halo Innovate Organizer, saya ingin konsultasi kegiatan trekking untuk rombongan.|Hi Innovate Organizer, I’d like to discuss a group trekking activity.|مرحبًا Innovate Organizer، أود الاستفسار عن رحلة مشي جماعية.|您好 Innovate Organizer，我想咨询团体徒步活动。
 Oktober 2026|October 2026|أكتوبر 2026|2026年10月
