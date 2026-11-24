@@ -195,3 +195,6 @@ dialog > form { display: flex; justify-content: flex-end; }
   html { scroll-behavior: auto; }
   .button { transition: none; }
 }
+
+.project-brand img { width: 180px; max-height: 72px; object-fit: contain; object-position: left center; }
+.project-links { display: flex; flex-wrap: wrap; gap: 12px 22px; }

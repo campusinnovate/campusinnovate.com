@@ -344,6 +344,16 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 const landingCopy = `
+Komunitas Campus Innovate|Campus Innovate Community|مجتمع Campus Innovate|Campus Innovate 社群
+Program komunitas|Community program|برنامج مجتمعي|社群项目
+Komunitas outdoor dan perjalanan dari Campus Innovate. Jalan bareng, coba aktivitas baru, dan ketemu teman perjalanan.|Campus Innovate’s outdoor and travel community. Explore together, try new activities, and meet fellow travelers.|مجتمع الأنشطة الخارجية والسفر التابع لـ Campus Innovate. نستكشف معًا ونجرب أنشطة جديدة ونتعرف على رفاق السفر.|Campus Innovate 旗下的户外旅行社群。一起出发，尝试新活动，结识旅伴。
+Outdoor & Travel Community|Outdoor & Travel Community|مجتمع الأنشطة الخارجية والسفر|户外旅行社群
+Trip bareng komunitas|Community trips|رحلات جماعية|社群旅行
+Kegiatan outdoor|Outdoor activities|أنشطة في الهواء الطلق|户外活动
+Pendampingan trip leader|Trip leader support|مرافقة قائد الرحلة|领队陪同
+Dokumentasi perjalanan|Trip photography|توثيق الرحلات بالصور|旅程影像记录
+Kunjungi Stripmate|Visit Stripmate|زيارة Stripmate|访问 Stripmate
+Instagram Stripmate|Stripmate on Instagram|Stripmate على إنستغرام|Stripmate 的 Instagram
 Oktober 2026|October 2026|أكتوبر 2026|2026年10月
 November 2026|November 2026|نوفمبر 2026|2026年11月
 Dukungan kegiatan pelatihan|Training event support|دعم أنشطة التدريب|培训活动支持

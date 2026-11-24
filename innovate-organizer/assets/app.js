@@ -102,6 +102,7 @@ const steps = [
 const eventScope = ["Perencanaan dan konsep","Keterlibatan peserta","Operasional lapangan","Pelaksanaan acara"];
 const teamScope = ["Desain aktivitas","Keterlibatan peserta","Operasional lapangan","Pelaksanaan acara"];
 const projects = [
+  [29,"stripmate","Stripmate",2026,"Komunitas Campus Innovate","Komunitas outdoor dan perjalanan dari Campus Innovate. Jalan bareng, coba aktivitas baru, dan ketemu teman perjalanan.","Outdoor & Travel Community",["Trip bareng komunitas","Kegiatan outdoor","Pendampingan trip leader","Dokumentasi perjalanan"],"Program komunitas",["assets/stripmate-outdoor-2.webp"],{brandLogo:"assets/stripmate-logo.webp",website:"https://stripmate.id/",instagram:"https://www.instagram.com/stripmate/"}],
   [28,"klh-bplh","KLH/BPLH",2026,"Team building","Fun games bersama tim KLH/BPLH","Fun Games",["Aktivitas kebersamaan peserta","Dokumentasi kegiatan"],"November 2026",["assets/klh-bplh-2026-2.webp","assets/klh-bplh-2026-3.webp"]],
   [27,"brmp","Badan Perakitan dan Modernisasi Pertanian",2026,"Pelatihan","Dukungan kegiatan pelatihan","Support Training",["Dukungan pelaksanaan pelatihan","Dokumentasi kegiatan"],"Oktober 2026",["assets/brmp-training-2026-2.webp","assets/brmp-training-2026-3.webp"]],
   [14,"wunproq","WUNPROQ 2026",2026,"Konferensi","World University Network for Productive Waqf","Full Event Management",["Pengelolaan acara","Pengalaman peserta","Materi komunikasi pendukung","Event branding","Branding dan pengelolaan media sosial"]],
@@ -117,8 +118,9 @@ const projects = [
   [24,"pustarhut","PUSTARHUT",2024,"Team building","Program peningkatan kapasitas","Capacity Building",teamScope],
   [25,"see","Student Entrepreneur Expo IPB",2024,"Institusi","Expo kewirausahaan mahasiswa","Event Management",["Keterlibatan peserta","Operasional lapangan","Pelaksanaan acara"]],
   [26,"wmk","Wirausaha Merdeka IPB",2024,"Team building","Capacity building dan outbound bagi peserta","Capacity Building & Outbound",teamScope]
-].map(([id,client,title,year,category,description,scope,deliverables,period,gallery = []])=>({
+].map(([id,client,title,year,category,description,scope,deliverables,period,gallery = [],details = {}])=>({
   id,client,title,year,category,description,scope,deliverables,period,gallery,
+  ...details,
   image: id === 28 ? "assets/klh-bplh-group-2026.webp" : "assets/project-" + id + ".webp"
 }));
 
@@ -182,7 +184,7 @@ $("process-steps").innerHTML = steps.map(([title, description], index) =>
 
 const lpaCaption = "Foto tim Campus Innovate";
 const astraGallery = ["assets/astra-ecobiz-2.webp", "assets/astra-ecobiz-3.webp"];
-const featured = [28, 27, 15, 17];
+const featured = [28, 27, 29, 15];
 const allProjects = [
   ...featured.map(id => projects.find(project => project.id === id)),
   ...projects.filter(project => !featured.includes(project.id))
@@ -276,9 +278,11 @@ document.addEventListener("click", event => {
   const caption = project.id === 16 ? lpaCaption : "Dokumentasi";
   $("project-body").innerHTML = '<p class="eyebrow">' + e(project.category) + '</p><h2 id="project-title">' + e(project.title) +
     '</h2>' + (project.period ? '<p class="project-period">' + e(project.period) + '</p>' : '') + '<p>' + e(project.description) + '</p>' +
+    (project.brandLogo ? '<div class="project-brand">' + photo(project.brandLogo, project.title) + '</div>' : '') +
     (project.image ? '<figure>' + photo(project.image, caption) + (project.id === 16 ? '<figcaption>' + caption + '</figcaption>' : '') + '</figure>' : '') +
     ((project.id === 15 ? astraGallery : project.gallery).length ? '<div class="project-gallery">' + (project.id === 15 ? astraGallery : project.gallery).map(src => photo(src, project.title + ' — ' + t('Dokumentasi'))).join("") + '</div>' : '') +
     '<h3>' + e(project.scope) + '</h3>' + list(project.deliverables) +
+    (project.website ? '<div class="project-links"><a class="text-button" href="' + e(project.website) + '" target="_blank" rel="noopener noreferrer">Kunjungi Stripmate</a><a class="text-button" href="' + e(project.instagram) + '" target="_blank" rel="noopener noreferrer">Instagram Stripmate</a></div>' : '') +
     '<a class="button button-gold" data-wa="' + e(greeting) + '">Konsultasi Gratis via WhatsApp</a>';
   $("project-body").querySelectorAll("[data-wa]").forEach(link => updateWhatsAppLink(link));
   translateSiteTree($("project-body"));
