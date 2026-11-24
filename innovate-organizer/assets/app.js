@@ -3,6 +3,7 @@
 const IO_DATA = {
   stats: null,
   clientLogos: [
+    { name: "Stripmate", src: "assets/stripmate-logo.webp" },
     { name: "Kementerian Lingkungan Hidup / Badan Pengendalian Lingkungan Hidup (KLH/BPLH)", src: "assets/client-klh-bplh.webp" },
     { name: "Badan Perakitan dan Modernisasi Pertanian (BRMP)", src: "assets/client-brmp.webp", wide: true },
     { name: "Astra International Tbk", src: "assets/client-astra.webp" },
@@ -102,12 +103,11 @@ const steps = [
 const eventScope = ["Perencanaan dan konsep","Keterlibatan peserta","Operasional lapangan","Pelaksanaan acara"];
 const teamScope = ["Desain aktivitas","Keterlibatan peserta","Operasional lapangan","Pelaksanaan acara"];
 const projects = [
-  [29,"stripmate","Trekking & Hiking bersama Innovate Organizer",2026,"Trekking & Hiking","Tim Innovate Organizer berpengalaman mendampingi trekking ke berbagai gunung dan curug, termasuk perjalanan bersama Stripmate.","Pengalaman rute trekking",["Gunung Luhur","Gunung Sumbing","Cisadon","Kawah Ratu","Gunung Merbabu","Gunung Lawu","Gunung Gede","Curug-curug di Bogor"],"Portofolio perjalanan",["assets/stripmate-trekking-2.webp","assets/stripmate-trekking-3.webp"],{brandLogo:"assets/stripmate-logo.webp",portrait:true,image:"assets/stripmate-trekking-cover.webp",galleryCaption:"Dokumentasi perjalanan Innovate Organizer di Gunung Luhur bersama Stripmate",contactMessage:"Halo Innovate Organizer, saya ingin konsultasi kegiatan trekking untuk rombongan.",contactLabel:"Diskusikan rencana trekking Anda"}],
+  [29,"stripmate","Trekking & Hiking bersama Innovate Organizer",2026,"Trekking & Hiking","Tim Innovate Organizer berpengalaman mendampingi trekking ke berbagai gunung dan curug, termasuk perjalanan bersama Stripmate.","Pengalaman rute trekking",["Gunung Luhur","Gunung Sumbing","Cisadon","Kawah Ratu","Gunung Merbabu","Gunung Lawu","Gunung Gede","Curug-curug di Bogor"],"Portofolio perjalanan",["assets/stripmate-kawah-ratu-group.webp"],{brandLogo:"assets/stripmate-logo.webp",image:"assets/stripmate-sumbing-group.webp",galleryCaption:"Dokumentasi perjalanan Innovate Organizer bersama Stripmate",contactMessage:"Halo Innovate Organizer, saya ingin konsultasi kegiatan trekking untuk rombongan.",contactLabel:"Diskusikan rencana trekking Anda"}],
   [28,"klh-bplh","KLH/BPLH",2026,"Team building","Fun games bersama tim KLH/BPLH","Fun Games",["Aktivitas kebersamaan peserta","Dokumentasi kegiatan"],"November 2026",["assets/klh-bplh-2026-2.webp","assets/klh-bplh-2026-3.webp"]],
   [27,"brmp","Badan Perakitan dan Modernisasi Pertanian",2026,"Pelatihan","Dukungan kegiatan pelatihan","Support Training",["Dukungan pelaksanaan pelatihan","Dokumentasi kegiatan"],"Oktober 2026",["assets/brmp-training-2026-2.webp","assets/brmp-training-2026-3.webp"]],
   [14,"wunproq","WUNPROQ 2026",2026,"Konferensi","World University Network for Productive Waqf","Full Event Management",["Pengelolaan acara","Pengalaman peserta","Materi komunikasi pendukung","Event branding","Branding dan pengelolaan media sosial"]],
   [15,"astra","Astra International Tbk",2026,"Korporat","Peresmian Ecobiz Desa Sejahtera Astra di Garut","Full Event Management",["Konsep dan rundown seremoni","Koordinasi venue, panggung, dan tamu","Peresmian Ecobiz Desa Sejahtera Astra"]],
-  [16,"lpa2i","LPA2I IPB University",2026,"Institusi","Pengelolaan acara dari konsep hingga pelaksanaan","Full Event Management",eventScope],
   [17,"noortura","Noortura",2026,"Korporat","Noortura Open House","Full Event Management",eventScope],
   [18,"gim","PT Geo Investama Mandiri",2026,"Pelatihan","LiDAR Batch 1","Training Event Management",["Perencanaan dan koordinasi jadwal","Keterlibatan peserta","Kesiapan venue dan teknis","Operasional pelatihan"]],
   [19,"dpkkha","DPKKHA IPB University",2025,"Institusi","Acara institusi kampus","Full Event Management",eventScope],

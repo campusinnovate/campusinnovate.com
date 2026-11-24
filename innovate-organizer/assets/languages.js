@@ -357,7 +357,7 @@ Gunung Merbabu|Mount Merbabu|جبل ميربابو|Merbabu 山
 Gunung Lawu|Mount Lawu|جبل لاوو|Lawu 山
 Gunung Gede|Mount Gede|جبل غيدي|Gede 山
 Curug-curug di Bogor|Waterfalls around Bogor|شلالات بوغور|茂物周边瀑布
-Dokumentasi perjalanan Innovate Organizer di Gunung Luhur bersama Stripmate|Photos from Innovate Organizer’s Mount Luhur trip with Stripmate|صور رحلة Innovate Organizer إلى جبل لوهور مع Stripmate|Innovate Organizer 与 Stripmate 的 Luhur 山旅行实拍
+Dokumentasi perjalanan Innovate Organizer bersama Stripmate|Photos from Innovate Organizer trips with Stripmate|صور رحلات Innovate Organizer مع Stripmate|Innovate Organizer 与 Stripmate 的旅行实拍
 Diskusikan rencana trekking Anda|Discuss your trekking plans|ناقش خطة رحلة المشي معنا|洽谈您的徒步计划
 Halo Innovate Organizer, saya ingin konsultasi kegiatan trekking untuk rombongan.|Hi Innovate Organizer, I’d like to discuss a group trekking activity.|مرحبًا Innovate Organizer، أود الاستفسار عن رحلة مشي جماعية.|您好 Innovate Organizer，我想咨询团体徒步活动。
 Oktober 2026|October 2026|أكتوبر 2026|2026年10月
