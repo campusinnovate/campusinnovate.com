@@ -197,4 +197,5 @@ dialog > form { display: flex; justify-content: flex-end; }
 }
 
 .project-brand img { width: 180px; max-height: 72px; object-fit: contain; object-position: left center; }
-.project-links { display: flex; flex-wrap: wrap; gap: 12px 22px; }
+
+#project-body .project-portrait img { max-height: 440px; object-fit: contain; background: var(--canvas); }

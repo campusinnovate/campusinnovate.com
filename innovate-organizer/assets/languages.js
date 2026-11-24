@@ -344,16 +344,22 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 const landingCopy = `
-Komunitas Campus Innovate|Campus Innovate Community|مجتمع Campus Innovate|Campus Innovate 社群
-Program komunitas|Community program|برنامج مجتمعي|社群项目
-Komunitas outdoor dan perjalanan dari Campus Innovate. Jalan bareng, coba aktivitas baru, dan ketemu teman perjalanan.|Campus Innovate’s outdoor and travel community. Explore together, try new activities, and meet fellow travelers.|مجتمع الأنشطة الخارجية والسفر التابع لـ Campus Innovate. نستكشف معًا ونجرب أنشطة جديدة ونتعرف على رفاق السفر.|Campus Innovate 旗下的户外旅行社群。一起出发，尝试新活动，结识旅伴。
-Outdoor & Travel Community|Outdoor & Travel Community|مجتمع الأنشطة الخارجية والسفر|户外旅行社群
-Trip bareng komunitas|Community trips|رحلات جماعية|社群旅行
-Kegiatan outdoor|Outdoor activities|أنشطة في الهواء الطلق|户外活动
-Pendampingan trip leader|Trip leader support|مرافقة قائد الرحلة|领队陪同
-Dokumentasi perjalanan|Trip photography|توثيق الرحلات بالصور|旅程影像记录
-Kunjungi Stripmate|Visit Stripmate|زيارة Stripmate|访问 Stripmate
-Instagram Stripmate|Stripmate on Instagram|Stripmate على إنستغرام|Stripmate 的 Instagram
+Trekking & Hiking bersama Stripmate|Trekking & Hiking with Stripmate|رحلات المشي الجبلي مع Stripmate|与 Stripmate 一起徒步登山
+Trekking & Hiking|Trekking & Hiking|المشي الجبلي|徒步登山
+Pengalaman mendampingi trekking ke berbagai gunung dan curug melalui Stripmate, komunitas Campus Innovate.|Experience guiding trekking trips to mountains and waterfalls through Stripmate, Campus Innovate’s community.|خبرة في مرافقة رحلات المشي إلى الجبال والشلالات عبر Stripmate، مجتمع Campus Innovate.|通过 Campus Innovate 旗下社群 Stripmate，积累了带领山地及瀑布徒步的经验。
+Pengalaman rute trekking|Trekking route experience|مسارات سبق لنا مرافقة المشاركين فيها|已有带队经验的徒步路线
+Portofolio perjalanan|Trip portfolio|سجل الرحلات|旅行案例
+Gunung Luhur|Mount Luhur|جبل لوهور|Luhur 山
+Gunung Sumbing|Mount Sumbing|جبل سومبينغ|Sumbing 山
+Cisadon|Cisadon|تشيسادون|Cisadon
+Kawah Ratu|Kawah Ratu|كاواه راتو|Kawah Ratu
+Gunung Merbabu|Mount Merbabu|جبل ميربابو|Merbabu 山
+Gunung Lawu|Mount Lawu|جبل لاوو|Lawu 山
+Gunung Gede|Mount Gede|جبل غيدي|Gede 山
+Curug-curug di Bogor|Waterfalls around Bogor|شلالات بوغور|茂物周边瀑布
+Dokumentasi trekking Gunung Luhur bersama Stripmate|Photos from the Mount Luhur trek with Stripmate|صور رحلة المشي إلى جبل لوهور مع Stripmate|Stripmate 的 Luhur 山徒步实拍
+Diskusikan rencana trekking Anda|Discuss your trekking plans|ناقش خطة رحلة المشي معنا|洽谈您的徒步计划
+Halo Innovate Organizer, saya ingin konsultasi kegiatan trekking untuk rombongan.|Hi Innovate Organizer, I’d like to discuss a group trekking activity.|مرحبًا Innovate Organizer، أود الاستفسار عن رحلة مشي جماعية.|您好 Innovate Organizer，我想咨询团体徒步活动。
 Oktober 2026|October 2026|أكتوبر 2026|2026年10月
 November 2026|November 2026|نوفمبر 2026|2026年11月
 Dukungan kegiatan pelatihan|Training event support|دعم أنشطة التدريب|培训活动支持
