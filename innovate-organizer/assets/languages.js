@@ -322,6 +322,15 @@ function translateSiteTree(root) {
 function applySiteLanguage() {
   document.documentElement.lang = siteLanguage === "zh" ? "zh-Hans" : siteLanguage;
   document.documentElement.dir = siteLanguage === "ar" ? "rtl" : "ltr";
+  const titles = {
+    id: "Jasa Event Organizer Jabodetabek | Innovate Organizer",
+    en: "Event Organizer in Greater Jakarta | Innovate Organizer",
+    ar: "تنظيم الفعاليات في جاكرتا الكبرى | Innovate Organizer",
+    zh: "大雅加达活动策划 | Innovate Organizer"
+  };
+  document.title = titles[siteLanguage] || titles.id;
+  document.querySelector('meta[property="og:title"]').content = document.title;
+  document.querySelector('meta[property="og:locale"]').content = { id: "id_ID", en: "en_US", ar: "ar_SA", zh: "zh_CN" }[siteLanguage];
   translateSiteTree(document.body);
   const description = document.querySelector('meta[name="description"]');
   updateTranslation(textOrigins, description, description.content, next => { description.content = next; });
