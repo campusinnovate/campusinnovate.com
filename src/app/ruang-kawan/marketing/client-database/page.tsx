@@ -24,6 +24,20 @@ const emptyTouch = (): TouchDraft => ({channel:'LinkedIn',funnel_stage:'TOFU',to
 const emptyConsent = (): ConsentDraft => ({channel:'email',consented:false,evidence:''});
 const labelDate = (value:string|null) => value ? new Date(value).toLocaleDateString('id-ID',{timeZone:'Asia/Jakarta',day:'numeric',month:'short',year:'numeric'}) : 'Belum tercatat';
 const dateKey = (value:string|null) => value ? new Date(value).toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'}) : '';
+function matchesContactPeriod(value:string|null, periodType:string, periodValue:string) {
+  if(periodType==='all'||!periodValue)return true;
+  if(!value)return false;
+  const date=dateKey(value);
+  if(periodType==='date')return date===periodValue;
+  if(periodType==='month')return date.slice(0,7)===periodValue;
+  if(periodType==='year')return date.slice(0,4)===periodValue;
+  if(periodType==='quarter'){
+    const [year,month]=periodValue.split('-').map(Number);
+    const [contactYear,contactMonth]=date.split('-').map(Number);
+    return year===contactYear&&Math.ceil(month/3)===Math.ceil(contactMonth/3);
+  }
+  return true;
+}
 const channels = ['Email','WhatsApp','Telepon','LinkedIn','Threads','Meeting','Lainnya'];
 const stageNames: Record<string,string> = {TOFU:'TOFU · Awareness',MOFU:'MOFU · Consideration',BOFU:'BOFU · Decision'};
 
@@ -65,8 +79,9 @@ export default function ClientDatabasePage() {
   const [ownerFilter,setOwnerFilter] = useState('all');
   const [statusFilter,setStatusFilter] = useState('all');
   const [consentFilter,setConsentFilter] = useState('all');
-  const [fromDate,setFromDate] = useState('');
-  const [toDate,setToDate] = useState('');
+  const [contactStatusFilter,setContactStatusFilter] = useState('all');
+  const [periodType,setPeriodType] = useState<'all'|'date'|'month'|'quarter'|'year'>('all');
+  const [periodValue,setPeriodValue] = useState('');
   const [archiveMode,setArchiveMode] = useState(false);
   const [modal,setModal] = useState<'contact'|'touch'|'consent'|null>(null);
   const [draft,setDraft] = useState<Draft>(emptyDraft());
@@ -118,11 +133,11 @@ export default function ClientDatabasePage() {
         &&(serviceFilter==='all'||r.service_interest===serviceFilter)
         &&(ownerFilter==='all'||r.owner_name===ownerFilter)
         &&(statusFilter==='all'||r.lifecycle_status===statusFilter)
+        &&(contactStatusFilter==='all'||(contactStatusFilter==='contacted'&&!!r.last_contact_at)||(contactStatusFilter==='not_recorded'&&!r.last_contact_at)||(contactStatusFilter==='no_channel'&&!r.email&&!r.whatsapp&&!r.phone))
         &&(consentFilter==='all'||(consentFilter==='email'&&r.email_consented)||(consentFilter==='whatsapp'&&r.whatsapp_consented)||(consentFilter==='missing'&&(!r.email_consented||!r.whatsapp_consented)))
-        &&(!fromDate||(!!r.last_contact_at&&dateKey(r.last_contact_at)>=fromDate))
-        &&(!toDate||(!!r.last_contact_at&&dateKey(r.last_contact_at)<=toDate));
+        &&matchesContactPeriod(r.last_contact_at,periodType,periodValue);
     });
-  },[activeRows,query,sourceFilter,channelFilter,stageFilter,serviceFilter,ownerFilter,statusFilter,consentFilter,fromDate,toDate]);
+  },[activeRows,query,sourceFilter,channelFilter,stageFilter,serviceFilter,ownerFilter,statusFilter,contactStatusFilter,consentFilter,periodType,periodValue]);
   const touched=filtered.filter(r=>r.last_contact_at);
   const recentCount=filtered.filter(r=>dateKey(r.last_contact_at)>=new Date(Date.now()-30*86400000).toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'})).length;
   const noEmail=filtered.filter(r=>!r.email).length;
@@ -267,7 +282,7 @@ export default function ClientDatabasePage() {
     {label:'Kontak terdata',value:activeRows.length,sub:'Gabungan sumber aktif'},
     {label:'Dihubungi 30 hari',value:recentCount,sub:'Dari daftar terfilter'},
     {label:'Email tersedia',value:filtered.filter(r=>!!r.email).length,sub:'Consent dicatat terpisah'},
-    {label:'Belum pernah tercatat',value:filtered.filter(r=>!r.last_contact_at).length,sub:'Perlu logging kontak'},
+    {label:'Belum ada log kontak',value:filtered.filter(r=>!r.last_contact_at).length,sub:'Perlu pencatatan interaksi'}, 
   ];
   const sourceOptions=[['all','Semua sumber'],['prospect','Prospect Inbox'],['pipeline','Pipeline'],['manual','Manual'],['whatsapp_crm','WhatsApp CRM']] as const;
 
@@ -287,11 +302,13 @@ export default function ClientDatabasePage() {
         <label><span>Funnel</span><select value={stageFilter} onChange={e=>setStageFilter(e.target.value)}><option value="all">Semua tahap</option>{['TOFU','MOFU','BOFU'].map(s=><option key={s} value={s}>{stageNames[s]}</option>)}</select></label>
         <label><span>Layanan</span><select value={serviceFilter} onChange={e=>setServiceFilter(e.target.value)}><option value="all">Semua layanan</option>{services.map(s=><option key={s} value={s}>{s}</option>)}</select></label>
         <label><span>PIC internal</span><select value={ownerFilter} onChange={e=>setOwnerFilter(e.target.value)}><option value="all">Semua PIC</option>{owners.map(o=><option key={o} value={o}>{o}</option>)}</select></label>
-        <label><span>Status sumber</span><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">Semua status</option>{Array.from(new Set(activeRows.map(r=>r.lifecycle_status).filter(Boolean))).sort().map(s=><option key={s} value={s!}>{s}</option>)}</select></label>
+        <label><span>Status lead</span><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">Semua status</option>{Array.from(new Set(activeRows.map(r=>r.lifecycle_status).filter(Boolean))).sort().map(s=><option key={s} value={s!}>{s}</option>)}</select></label>
+        <label><span>Status kontak</span><select value={contactStatusFilter} onChange={e=>setContactStatusFilter(e.target.value)}><option value="all">Semua status kontak</option><option value="contacted">Sudah dikontak (tercatat)</option><option value="not_recorded">Belum ada log kontak</option><option value="no_channel">Belum ada kanal kontak</option></select></label>
+        <label><span>Periode kontak</span><select value={periodType} onChange={e=>{setPeriodType(e.target.value as typeof periodType);setPeriodValue('')}}><option value="all">Semua waktu</option><option value="date">Per tanggal</option><option value="month">Per bulan</option><option value="quarter">Per kuartal</option><option value="year">Per tahun</option></select></label>
+        <label><span>{periodType==='date'?'Tanggal':periodType==='month'?'Bulan':periodType==='quarter'?'Bulan dalam kuartal':periodType==='year'?'Tahun':'Nilai periode'}</span>{periodType==='date'?<input type="date" value={periodValue} onChange={e=>setPeriodValue(e.target.value)}/>:periodType==='month'||periodType==='quarter'?<input type="month" value={periodValue} onChange={e=>setPeriodValue(e.target.value)}/>:periodType==='year'?<input type="number" min="2000" max="2100" step="1" value={periodValue} onChange={e=>setPeriodValue(e.target.value)} placeholder="Contoh: 2026"/>:<input disabled placeholder="Semua waktu"/>}</label>
         <label><span>Consent</span><select value={consentFilter} onChange={e=>setConsentFilter(e.target.value)}><option value="all">Semua</option><option value="email">Email diizinkan</option><option value="whatsapp">WhatsApp diizinkan</option><option value="missing">Izin belum lengkap</option></select></label>
-        <label><span>Kontak sejak</span><input type="date" value={fromDate} onChange={e=>setFromDate(e.target.value)}/></label>
-        <label><span>Sampai</span><input type="date" value={toDate} onChange={e=>setToDate(e.target.value)}/></label>
-        <button type="button" className={styles.reset} onClick={()=>{setQuery('');setSourceFilter('all');setChannelFilter('all');setStageFilter('all');setServiceFilter('all');setOwnerFilter('all');setStatusFilter('all');setConsentFilter('all');setFromDate('');setToDate('')}}><FiFilter/> Reset</button>
+        <button type="button" className={styles.reset} onClick={()=>{setQuery('');setSourceFilter('all');setChannelFilter('all');setStageFilter('all');setServiceFilter('all');setOwnerFilter('all');setStatusFilter('all');setContactStatusFilter('all');setConsentFilter('all');setPeriodType('all');setPeriodValue('')}}><FiFilter/> Reset</button>
+        <p className={styles.filterHint}>Periode memakai tanggal kontak terakhir yang tercatat. “Belum ada log kontak” berarti aktivitas belum tercatat di Database Client.</p>
       </div>
       {error?<p className={styles.alert} role="alert">{error}</p>:null}{notice?<p className={styles.notice} role="status">{notice}<button onClick={()=>setNotice('')}><FiX/></button></p>:null}
       {!archiveMode?<div className={styles.bulkBar}><div className={styles.bulkInfo}><strong>{selectedRows.length} kontak dipilih</strong><span>Pilih kontak di kolom pertama. Email: draft personal dan review manual. WhatsApp: hanya nomor dengan izin tercatat.</span></div><button type="button" className={styles.selectEligible} onClick={toggleSelectAll}>{filtered.some(r=>r.email||r.whatsapp)&&filtered.filter(r=>r.email||r.whatsapp).every(r=>selectedKeys.includes(r.identity_key))?'Batal pilih':'Pilih semua berkontak'}</button><div className={styles.bulkActions}><button type="button" onClick={()=>beginBlast('email')} ><FiMail/> Email blast</button><button type="button" onClick={()=>beginBlast('whatsapp')} ><FiMessageCircle/> WhatsApp blast</button></div></div>:null}
@@ -300,7 +317,7 @@ export default function ClientDatabasePage() {
         const sourceRef=row.source_refs?.find(ref=>ref.kind==='pipeline'||ref.kind==='prospect');
         return <tr key={row.identity_key}><td><div className={styles.companyCell}>{!archiveMode?<input aria-label={'Pilih '+row.company_name+' untuk blast'} className={styles.selectBox} type="checkbox" disabled={!(row.email||row.whatsapp)} checked={selectedKeys.includes(row.identity_key)} onChange={e=>setSelectedKeys(e.target.checked?Array.from(new Set([...selectedKeys,row.identity_key])):selectedKeys.filter(key=>key!==row.identity_key))}/>:null}<span className={styles.rowIndex}>{String(index+1).padStart(2,'0')}</span><div><strong>{row.company_name}</strong><span>{row.pic_name||'PIC belum dicatat'}{row.pic_role?' · '+row.pic_role:''}</span>{row.service_interest?<small>{row.service_interest}</small>:null}{row.address||row.city?<small className={styles.location}><FiMapPin/>{[row.address,row.city].filter(Boolean).join(', ')}</small>:null}</div></div></td>
           <td><div className={styles.contactCell}>{row.email?<a href={'mailto:'+row.email}><FiMail/>{row.email}</a>:<span className={styles.muted}>Email belum ada</span>}{row.whatsapp?<a target="_blank" rel="noreferrer" href={'https://wa.me/'+row.whatsapp.replace(/[^0-9]/g,'')}><FiMessageCircle/>{row.whatsapp}</a>:null}{row.phone&&row.phone!==row.whatsapp?<a href={'tel:'+row.phone}>{row.phone}</a>:null}</div></td>
-          <td><div className={styles.touchCell}>{row.last_contact_at?<><strong>{labelDate(row.last_contact_at)}</strong><span>{row.last_contact_channel||'Channel belum dicatat'}{row.last_contact_stage?' · '+stageNames[row.last_contact_stage]:''}</span><p>{row.last_contact_topic||'Topik kontak belum dicatat'}</p></>:<span className={styles.muted}>Belum ada log kontak</span>}{row.internal_chat_at?<details><summary>Chat internal terkait <FiChevronDown/></summary><p>{row.internal_chat_topic}</p><small>{row.internal_chat_sender||'Tim'} · {labelDate(row.internal_chat_at)}</small></details>:null}</div></td>
+          <td><div className={styles.touchCell}><span className={styles.contactState} data-contacted={!!row.last_contact_at}>{row.last_contact_at?'Sudah dikontak':'Belum ada log kontak'}</span>{row.last_contact_at?<><strong>{labelDate(row.last_contact_at)}</strong><span>{row.last_contact_channel||'Channel belum dicatat'}{row.last_contact_stage?' · '+stageNames[row.last_contact_stage]:''}</span><p>{row.last_contact_topic||'Topik kontak belum dicatat'}</p></>:null}{row.internal_chat_at?<details><summary>Chat internal terkait <FiChevronDown/></summary><p>{row.internal_chat_topic}</p><small>{row.internal_chat_sender||'Tim'} · {labelDate(row.internal_chat_at)}</small></details>:null}</div></td>
           <td><div className={styles.sourceCell}><span>{row.source_label||'Sumber tidak diketahui'}</span>{row.lifecycle_status?<small>Status: {row.lifecycle_status}</small>:null}{row.owner_name?<small>PIC: {row.owner_name}</small>:null}</div></td>
           <td><div className={styles.consentCell}><span data-ok={row.email_consented}>Email {row.email_consented?'OK':'—'}</span><span data-ok={row.whatsapp_consented}>WhatsApp {row.whatsapp_consented?'OK':'—'}</span></div></td>
           <td><div className={styles.actions}>{archiveMode?<button type="button" title="Pulihkan" onClick={()=>void restore(row)}><FiRefreshCw/></button>:<><a className={styles.emailAction} title="Buka draft email" aria-label={'Kirim email ke '+row.company_name} href={row.email?directEmailHref(row):undefined} target="_blank" rel="noreferrer" onClick={e=>{if(!row.email){e.preventDefault();setNotice('Alamat email belum tersedia.')}else if(!row.email_consented){if(!window.confirm('Izin email untuk kontak ini belum tercatat. Lanjutkan ke draft email satu per satu?'))e.preventDefault()}}}><FiMail/></a><a className={styles.whatsappAction} title="Buka WhatsApp" aria-label={'Kirim WhatsApp ke '+row.company_name} href={row.whatsapp?'https://wa.me/'+row.whatsapp.replace(/[^0-9]/g,'')+'?text='+encodeURIComponent('Halo '+(row.pic_name||'Bapak/Ibu')+', saya dari Campus Innovate. Saya ingin berbagi informasi mengenai '+(row.service_interest||'layanan kami')+'. Apakah Bapak/Ibu berkenan menerima informasi lebih lanjut?'):undefined} target="_blank" rel="noreferrer" onClick={e=>{if(!row.whatsapp){e.preventDefault();setNotice('Nomor WhatsApp belum tersedia.')}else if(!row.whatsapp_consented){if(!window.confirm('Izin WhatsApp untuk kontak ini belum tercatat. Lanjutkan ke chat satu per satu?'))e.preventDefault()}}}><FiMessageCircle/></a><button type="button" title="Catat kontak" onClick={()=>{setActive(row);setTouchDraft(emptyTouch());setModal('touch')}}><FiSend/></button><button type="button" title="Kelola izin email/WhatsApp" onClick={()=>{setActive(row);setConsentDraft({channel:'email',consented:row.email_consented,evidence:''});setModal('consent')}}><FiCheck/></button>{manual?<button type="button" title="Edit kontak manual" onClick={()=>openEdit(row)}><FiEdit2/></button>:sourceRef?<a title="Buka sumber" href={sourceHref(sourceRef)}><FiExternalLink/></a>:null}<button type="button" title={manual?'Hapus kontak':'Sembunyikan dari database'} onClick={()=>void remove(row)}>{manual&&row.source_refs.length===1?<FiX/>:<FiArchive/>}</button></>}</div></td>
