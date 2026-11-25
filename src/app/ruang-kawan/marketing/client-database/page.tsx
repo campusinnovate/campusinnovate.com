@@ -9,7 +9,7 @@ import styles from './client-database.module.css';
 type SourceRef = { kind: 'pipeline'|'prospect'|'whatsapp_crm'|'manual'; id: string };
 type Contact = {
   identity_key: string; company_name: string; pic_name: string|null; pic_role: string|null;
-  email: string|null; whatsapp: string|null; phone: string|null; address: string|null; city: string|null; website: string|null;
+  email: string|null; whatsapp: string|null; phone: string|null; address: string|null; city: string|null; website: string|null; institution_type: string|null;
   service_interest: string|null; source_label: string|null; lifecycle_status: string|null; owner_name: string|null; owner_membership_id: string|null;
   source_refs: SourceRef[]; updated_at: string|null; last_contact_at: string|null; last_contact_channel: string|null; last_contact_topic: string|null; last_contact_stage: 'TOFU'|'MOFU'|'BOFU'|null;
   internal_chat_at: string|null; internal_chat_topic: string|null; internal_chat_sender: string|null;
@@ -38,6 +38,20 @@ function matchesContactPeriod(value:string|null, periodType:string, periodValue:
   }
   return true;
 }
+const institutionCategories = ['Sekolah','Perguruan tinggi','BUMN','BUMD','Pemerintah daerah','Pemerintah pusat','Lembaga','Perusahaan swasta','Lainnya','Belum diklasifikasikan'] as const;
+function institutionCategory(value:string|null) {
+  const raw=(value||'').trim().toLocaleLowerCase('id-ID');
+  if(!raw)return 'Belum diklasifikasikan';
+  if(/\b(bumn|badan usaha milik negara)\b/.test(raw))return 'BUMN';
+  if(/\b(bumd|badan usaha milik daerah)\b/.test(raw))return 'BUMD';
+  if(/pemerintah pusat|kementerian|kementrian|\bkemen\b|lembaga negara/.test(raw))return 'Pemerintah pusat';
+  if(/pemerintah daerah|pemda|pemerintah provinsi|pemerintah kabupaten|pemerintah kota|\bprovinsi\b|\bkabupaten\b|\bkota\b/.test(raw))return 'Pemerintah daerah';
+  if(/perguruan tinggi|universitas|university|institut|politeknik|akademi|\bcollege\b/.test(raw))return 'Perguruan tinggi';
+  if(/sekolah|school|\bsma\b|\bsmk\b|\bsmp\b|\bsd\b|madrasah/.test(raw))return 'Sekolah';
+  if(/lembaga|yayasan|foundation|asosiasi|\bngo\b|\blsm\b/.test(raw))return 'Lembaga';
+  if(/perusahaan swasta|swasta|private company|\bpt\b|\bcv\b/.test(raw))return 'Perusahaan swasta';
+  return 'Lainnya';
+}
 const channels = ['Email','WhatsApp','Telepon','LinkedIn','Threads','Meeting','Lainnya'];
 const stageNames: Record<string,string> = {TOFU:'TOFU · Awareness',MOFU:'MOFU · Consideration',BOFU:'BOFU · Decision'};
 
@@ -59,9 +73,9 @@ Campus Innovate
 }
 
 function downloadCsv(rows:Contact[]) {
-  const columns = ['Perusahaan','PIC','Jabatan','Email','WhatsApp','Telepon','Alamat','Kota','Layanan','Sumber','Status','Terakhir kontak','Platform','Funnel','Topik terakhir','PIC internal'];
+  const columns = ['Perusahaan','Jenis instansi','PIC','Jabatan','Email','WhatsApp','Telepon','Alamat','Kota','Layanan','Sumber','Status','Terakhir kontak','Platform','Funnel','Topik terakhir','PIC internal'];
   const quote = (value:unknown) => '"' + String(value ?? '').replaceAll('"','""') + '"';
-  const data = [columns,...rows.map(r=>[r.company_name,r.pic_name,r.pic_role,r.email,r.whatsapp,r.phone,[r.address,r.city].filter(Boolean).join(', '),r.city,r.service_interest,r.source_label,r.lifecycle_status,r.last_contact_at?labelDate(r.last_contact_at):'',r.last_contact_channel,r.last_contact_stage,r.last_contact_topic,r.owner_name])].map(row=>row.map(quote).join(',')).join('\r\n');
+  const data = [columns,...rows.map(r=>[r.company_name,institutionCategory(r.institution_type),r.pic_name,r.pic_role,r.email,r.whatsapp,r.phone,[r.address,r.city].filter(Boolean).join(', '),r.city,r.service_interest,r.source_label,r.lifecycle_status,r.last_contact_at?labelDate(r.last_contact_at):'',r.last_contact_channel,r.last_contact_stage,r.last_contact_topic,r.owner_name])].map(row=>row.map(quote).join(',')).join('\r\n');
   const file = new Blob(['\ufeff'+data],{type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(file), a = document.createElement('a'); a.href=url; a.download='database-client.csv'; a.click(); URL.revokeObjectURL(url);
 }
@@ -76,6 +90,7 @@ export default function ClientDatabasePage() {
   const [channelFilter,setChannelFilter] = useState('all');
   const [stageFilter,setStageFilter] = useState('all');
   const [serviceFilter,setServiceFilter] = useState('all');
+  const [institutionFilter,setInstitutionFilter] = useState('all');
   const [ownerFilter,setOwnerFilter] = useState('all');
   const [statusFilter,setStatusFilter] = useState('all');
   const [consentFilter,setConsentFilter] = useState('all');
@@ -122,22 +137,24 @@ export default function ClientDatabasePage() {
   const activeRows=useMemo(()=>rows.filter(r=>r.archived===archiveMode),[rows,archiveMode]);
   const services=useMemo(()=>Array.from(new Set(activeRows.map(r=>r.service_interest).filter((v):v is string=>!!v))).sort(),[activeRows]);
   const owners=useMemo(()=>Array.from(new Set(activeRows.map(r=>r.owner_name).filter((v):v is string=>!!v))).sort(),[activeRows]);
+  const institutionTypes=institutionCategories;
   const filtered=useMemo(()=>{
     const needle=query.trim().toLowerCase();
     return activeRows.filter(r=>{
-      const searchable=[r.company_name,r.pic_name,r.pic_role,r.email,r.whatsapp,r.phone,r.address,r.city,r.service_interest,r.source_label,r.lifecycle_status,r.last_contact_topic,r.internal_chat_topic].join(' ').toLowerCase();
+      const searchable=[r.company_name,r.pic_name,r.pic_role,r.email,r.whatsapp,r.phone,r.address,r.city,r.institution_type,r.service_interest,r.source_label,r.lifecycle_status,r.last_contact_topic,r.internal_chat_topic].join(' ').toLowerCase();
       return (!needle||searchable.includes(needle))
         &&(sourceFilter==='all'||r.source_refs.some(ref=>ref.kind===sourceFilter)||r.source_label===sourceFilter)
         &&(channelFilter==='all'||r.last_contact_channel===channelFilter)
         &&(stageFilter==='all'||r.last_contact_stage===stageFilter)
         &&(serviceFilter==='all'||r.service_interest===serviceFilter)
+        &&(institutionFilter==='all'||institutionCategory(r.institution_type)===institutionFilter)
         &&(ownerFilter==='all'||r.owner_name===ownerFilter)
         &&(statusFilter==='all'||r.lifecycle_status===statusFilter)
         &&(contactStatusFilter==='all'||(contactStatusFilter==='contacted'&&!!r.last_contact_at)||(contactStatusFilter==='not_recorded'&&!r.last_contact_at)||(contactStatusFilter==='no_channel'&&!r.email&&!r.whatsapp&&!r.phone))
         &&(consentFilter==='all'||(consentFilter==='email'&&r.email_consented)||(consentFilter==='whatsapp'&&r.whatsapp_consented)||(consentFilter==='missing'&&(!r.email_consented||!r.whatsapp_consented)))
         &&matchesContactPeriod(r.last_contact_at,periodType,periodValue);
     });
-  },[activeRows,query,sourceFilter,channelFilter,stageFilter,serviceFilter,ownerFilter,statusFilter,contactStatusFilter,consentFilter,periodType,periodValue]);
+  },[activeRows,query,sourceFilter,channelFilter,stageFilter,serviceFilter,institutionFilter,ownerFilter,statusFilter,contactStatusFilter,consentFilter,periodType,periodValue]);
   const touched=filtered.filter(r=>r.last_contact_at);
   const recentCount=filtered.filter(r=>dateKey(r.last_contact_at)>=new Date(Date.now()-30*86400000).toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'})).length;
   const noEmail=filtered.filter(r=>!r.email).length;
@@ -301,13 +318,14 @@ export default function ClientDatabasePage() {
         <label><span>Platform terakhir</span><select value={channelFilter} onChange={e=>setChannelFilter(e.target.value)}><option value="all">Semua platform</option>{channels.map(c=><option key={c} value={c}>{c}</option>)}</select></label>
         <label><span>Funnel</span><select value={stageFilter} onChange={e=>setStageFilter(e.target.value)}><option value="all">Semua tahap</option>{['TOFU','MOFU','BOFU'].map(s=><option key={s} value={s}>{stageNames[s]}</option>)}</select></label>
         <label><span>Layanan</span><select value={serviceFilter} onChange={e=>setServiceFilter(e.target.value)}><option value="all">Semua layanan</option>{services.map(s=><option key={s} value={s}>{s}</option>)}</select></label>
+        <label><span>Jenis instansi</span><select value={institutionFilter} onChange={e=>setInstitutionFilter(e.target.value)}><option value="all">Semua jenis instansi</option>{institutionTypes.map(category=><option key={category} value={category}>{category}</option>)}</select></label>
         <label><span>PIC internal</span><select value={ownerFilter} onChange={e=>setOwnerFilter(e.target.value)}><option value="all">Semua PIC</option>{owners.map(o=><option key={o} value={o}>{o}</option>)}</select></label>
         <label><span>Status lead</span><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">Semua status</option>{Array.from(new Set(activeRows.map(r=>r.lifecycle_status).filter(Boolean))).sort().map(s=><option key={s} value={s!}>{s}</option>)}</select></label>
         <label><span>Status kontak</span><select value={contactStatusFilter} onChange={e=>setContactStatusFilter(e.target.value)}><option value="all">Semua status kontak</option><option value="contacted">Sudah dikontak (tercatat)</option><option value="not_recorded">Belum ada log kontak</option><option value="no_channel">Belum ada kanal kontak</option></select></label>
         <label><span>Periode kontak</span><select value={periodType} onChange={e=>{setPeriodType(e.target.value as typeof periodType);setPeriodValue('')}}><option value="all">Semua waktu</option><option value="date">Per tanggal</option><option value="month">Per bulan</option><option value="quarter">Per kuartal</option><option value="year">Per tahun</option></select></label>
         <label><span>{periodType==='date'?'Tanggal':periodType==='month'?'Bulan':periodType==='quarter'?'Bulan dalam kuartal':periodType==='year'?'Tahun':'Nilai periode'}</span>{periodType==='date'?<input type="date" value={periodValue} onChange={e=>setPeriodValue(e.target.value)}/>:periodType==='month'||periodType==='quarter'?<input type="month" value={periodValue} onChange={e=>setPeriodValue(e.target.value)}/>:periodType==='year'?<input type="number" min="2000" max="2100" step="1" value={periodValue} onChange={e=>setPeriodValue(e.target.value)} placeholder="Contoh: 2026"/>:<input disabled placeholder="Semua waktu"/>}</label>
         <label><span>Consent</span><select value={consentFilter} onChange={e=>setConsentFilter(e.target.value)}><option value="all">Semua</option><option value="email">Email diizinkan</option><option value="whatsapp">WhatsApp diizinkan</option><option value="missing">Izin belum lengkap</option></select></label>
-        <button type="button" className={styles.reset} onClick={()=>{setQuery('');setSourceFilter('all');setChannelFilter('all');setStageFilter('all');setServiceFilter('all');setOwnerFilter('all');setStatusFilter('all');setContactStatusFilter('all');setConsentFilter('all');setPeriodType('all');setPeriodValue('')}}><FiFilter/> Reset</button>
+        <button type="button" className={styles.reset} onClick={()=>{setQuery('');setSourceFilter('all');setChannelFilter('all');setStageFilter('all');setServiceFilter('all');setInstitutionFilter('all');setOwnerFilter('all');setStatusFilter('all');setContactStatusFilter('all');setConsentFilter('all');setPeriodType('all');setPeriodValue('')}}><FiFilter/> Reset</button>
         <p className={styles.filterHint}>Periode memakai tanggal kontak terakhir yang tercatat. “Belum ada log kontak” berarti aktivitas belum tercatat di Database Client.</p>
       </div>
       {error?<p className={styles.alert} role="alert">{error}</p>:null}{notice?<p className={styles.notice} role="status">{notice}<button onClick={()=>setNotice('')}><FiX/></button></p>:null}
@@ -315,7 +333,7 @@ export default function ClientDatabasePage() {
       <div className={styles.tableWrap}>{loading?<div className={styles.empty}>Memuat database kontak…</div>:filtered.length?<table><thead><tr><th>Perusahaan & PIC</th><th>Kontak</th><th>Sentuhan terakhir</th><th>Sumber & PIC internal</th><th>Consent</th><th>Aksi</th></tr></thead><tbody>{filtered.map((row,index)=>{
         const manual=row.source_refs?.find(ref=>ref.kind==='manual');
         const sourceRef=row.source_refs?.find(ref=>ref.kind==='pipeline'||ref.kind==='prospect');
-        return <tr key={row.identity_key}><td><div className={styles.companyCell}>{!archiveMode?<input aria-label={'Pilih '+row.company_name+' untuk blast'} className={styles.selectBox} type="checkbox" disabled={!(row.email||row.whatsapp)} checked={selectedKeys.includes(row.identity_key)} onChange={e=>setSelectedKeys(e.target.checked?Array.from(new Set([...selectedKeys,row.identity_key])):selectedKeys.filter(key=>key!==row.identity_key))}/>:null}<span className={styles.rowIndex}>{String(index+1).padStart(2,'0')}</span><div><strong>{row.company_name}</strong><span>{row.pic_name||'PIC belum dicatat'}{row.pic_role?' · '+row.pic_role:''}</span>{row.service_interest?<small>{row.service_interest}</small>:null}{row.address||row.city?<small className={styles.location}><FiMapPin/>{[row.address,row.city].filter(Boolean).join(', ')}</small>:null}</div></div></td>
+        return <tr key={row.identity_key}><td><div className={styles.companyCell}>{!archiveMode?<input aria-label={'Pilih '+row.company_name+' untuk blast'} className={styles.selectBox} type="checkbox" disabled={!(row.email||row.whatsapp)} checked={selectedKeys.includes(row.identity_key)} onChange={e=>setSelectedKeys(e.target.checked?Array.from(new Set([...selectedKeys,row.identity_key])):selectedKeys.filter(key=>key!==row.identity_key))}/>:null}<span className={styles.rowIndex}>{String(index+1).padStart(2,'0')}</span><div><strong>{row.company_name}</strong><span>{row.pic_name||'PIC belum dicatat'}{row.pic_role?' · '+row.pic_role:''}</span><small>{institutionCategory(row.institution_type)}</small>{row.service_interest?<small>{row.service_interest}</small>:null}{row.address||row.city?<small className={styles.location}><FiMapPin/>{[row.address,row.city].filter(Boolean).join(', ')}</small>:null}</div></div></td>
           <td><div className={styles.contactCell}>{row.email?<a href={'mailto:'+row.email}><FiMail/>{row.email}</a>:<span className={styles.muted}>Email belum ada</span>}{row.whatsapp?<a target="_blank" rel="noreferrer" href={'https://wa.me/'+row.whatsapp.replace(/[^0-9]/g,'')}><FiMessageCircle/>{row.whatsapp}</a>:null}{row.phone&&row.phone!==row.whatsapp?<a href={'tel:'+row.phone}>{row.phone}</a>:null}</div></td>
           <td><div className={styles.touchCell}><span className={styles.contactState} data-contacted={!!row.last_contact_at}>{row.last_contact_at?'Sudah dikontak':'Belum ada log kontak'}</span>{row.last_contact_at?<><strong>{labelDate(row.last_contact_at)}</strong><span>{row.last_contact_channel||'Channel belum dicatat'}{row.last_contact_stage?' · '+stageNames[row.last_contact_stage]:''}</span><p>{row.last_contact_topic||'Topik kontak belum dicatat'}</p></>:null}{row.internal_chat_at?<details><summary>Chat internal terkait <FiChevronDown/></summary><p>{row.internal_chat_topic}</p><small>{row.internal_chat_sender||'Tim'} · {labelDate(row.internal_chat_at)}</small></details>:null}</div></td>
           <td><div className={styles.sourceCell}><span>{row.source_label||'Sumber tidak diketahui'}</span>{row.lifecycle_status?<small>Status: {row.lifecycle_status}</small>:null}{row.owner_name?<small>PIC: {row.owner_name}</small>:null}</div></td>
