@@ -19,9 +19,11 @@ gtag('config', 'AW-18473450758');
 <link rel="icon" href="assets/logo.webp">
 <link rel="preload" href="assets/poppins-400.woff" as="font" type="font/woff" crossorigin>
 <link rel="preload" href="assets/poppins-700.woff" as="font" type="font/woff" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=c6c0a9d6b841">
-<script src="assets/languages.js?v=1ef25ac67c42" defer></script>
-<script src="assets/app.js?v=97c17824b03d" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=9c8355670066">
+<script src="assets/languages.js?v=903812a550ea" defer></script>
+<script src="assets/tracking.js?v=803423bdc2d2" defer></script>
+<script src="assets/app.js?v=c4c52171d2cf" defer></script>
+<script src="assets/brief.js?v=1e17257126c9" defer></script>
 <script src="assets/motion.js?v=c3184011a879" defer></script>
 <link rel="canonical" href="https://io.campusinnovate.com/">
 <meta property="og:type" content="website">
@@ -200,7 +202,7 @@ gtag('config', 'AW-18473450758');
 <p class="hero-note" id="reply-note" hidden></p>
 </div><div class="hero-ribbon" aria-hidden="true"></div>
 </section>
-<aside id="trust" class="trust" hidden><div class="shell trust-inner"><div id="trust-logos" hidden><div class="trust-heading"><p>Dipercaya oleh:</p><button id="logo-toggle" class="logo-toggle" type="button" aria-label="Jeda pergerakan logo" aria-pressed="false" aria-controls="client-logos"><svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg></button></div><div id="client-logos"></div></div><p id="trust-stats" hidden></p></div></aside>
+<aside id="trust" class="trust" hidden><div class="shell trust-inner"><div id="trust-logos" hidden><div class="trust-heading"><p>Dipercaya oleh:</p><button id="logo-toggle" class="logo-toggle" type="button" aria-label="Jeda pergerakan logo" aria-pressed="false" aria-controls="client-logos"><svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg></button></div><div id="client-logos"></div></div><div class="proof-grid" aria-label="Pengalaman kami"><div><strong>26</strong><span>Proyek</span></div><div><strong>22</strong><span>Klien &amp; partner</span></div><div><strong>5</strong><span>Pilihan jenis acara</span></div></div><p class="proof-note">Pengalaman tim Campus Innovate, termasuk Innovate Organizer.</p><p id="trust-stats" hidden></p></div></aside>
 <section class="section services" id="layanan" aria-labelledby="service-heading"><div class="shell">
 <div class="section-head"><p class="eyebrow">Layanan</p><h2 id="service-heading">Acara apa yang sedang Anda siapkan?</h2><p>Pilih jenis acara untuk melihat apa yang kami tangani. Setiap paket bisa disesuaikan dengan jumlah peserta dan anggaran.</p></div>
 <div class="services-grid" id="service-cards"></div>
@@ -215,7 +217,10 @@ gtag('config', 'AW-18473450758');
 <section class="section portfolio" id="workfolio" aria-labelledby="portfolio-heading"><div class="shell">
 <div class="section-head"><p class="eyebrow">Portofolio</p><h2 id="portfolio-heading">Acara yang sudah kami jalankan</h2><p id="portfolio-lede">Dari gathering kantor sampai konferensi internasional.</p></div>
 <div class="project-grid" id="projects"></div>
-<div class="testimonial-grid" id="testimonials" hidden></div>
+<div class="participant-stories"><div class="section-head"><p class="eyebrow">Cerita peserta</p><h3>Pengalaman mereka, langsung dari acaranya</h3><p>Cuplikan dari dokumentasi kegiatan Campus Innovate.</p></div><div class="testimonial-grid" id="testimonials">
+<figure class="testimonial-video"><video controls playsinline preload="none" width="960" height="540" poster="assets/testimonial-klhk-poster.webp" aria-label="Cerita peserta kegiatan KLHK"><source src="assets/testimonial-klhk.mp4" type="video/mp4"></video><figcaption><strong>Peserta kegiatan KLHK</strong><span>Capacity building</span></figcaption></figure>
+<figure class="testimonial-video"><video controls playsinline preload="none" width="960" height="540" poster="assets/testimonial-wmk-poster.webp" aria-label="Cerita peserta Wirausaha Merdeka IPB"><source src="assets/testimonial-wmk.mp4" type="video/mp4"></video><figcaption><strong>Peserta Wirausaha Merdeka IPB</strong><span>Capacity building &amp; outbound</span></figcaption></figure>
+</div></div>
 <details class="more-projects" id="more-projects" hidden><summary>Lihat semua proyek ↓</summary><div class="project-grid" id="projects-more"></div></details>
 </div></section>
 <section class="section partnership" id="kerja-sama" aria-labelledby="partnership-heading"><div class="shell">
@@ -223,15 +228,21 @@ gtag('config', 'AW-18473450758');
 <div class="partner-grid" id="partner-cards"></div><a class="button button-navy" data-wa="Halo, saya ingin diskusi model kerja sama yang cocok untuk acara saya.">Diskusikan model yang cocok →</a>
 </div></section>
 <section class="section process" id="proses" aria-labelledby="process-heading"><div class="shell"><div class="section-head"><h2 id="process-heading">Lima langkah, satu alur yang jelas</h2></div><ol class="process-grid" id="process-steps"></ol></div></section>
+<section class="section faq" id="faq" aria-labelledby="faq-heading"><div class="shell faq-layout"><div class="section-head"><p class="eyebrow">Sebelum mulai</p><h2 id="faq-heading">Yang sering ditanyakan</h2><p>Setiap acara punya kebutuhan sendiri. Ini gambaran awal sebelum kita diskusi.</p></div><div class="faq-list"><details><summary>Minimal pesertanya berapa?</summary><p>Jumlah peserta disesuaikan dengan format dan tujuan acara. Ceritakan perkiraan jumlah rombongan Anda; kami bantu pilih aktivitas dan kebutuhan tim yang sesuai.</p></details><details><summary>Bisa mengadakan acara di luar Jabodetabek?</summary><p>Sampaikan kota atau destinasi yang Anda tuju. Kami cek kebutuhan perjalanan, kesiapan tim, dan biaya pendukungnya sebelum menyepakati pelaksanaan.</p></details><details><summary>Berapa lama waktu persiapannya?</summary><p>Waktu persiapan mengikuti skala acara, ketersediaan venue, dan kebutuhan produksi. Hubungi kami dengan tanggal rencana acara agar jadwal persiapannya bisa dibahas sejak awal.</p></details><details><summary>Bagaimana sistem pembayaran dan DP?</summary><p>Nominal DP, tahapan pembayaran, dan waktu pelunasan disepakati per acara. Rinciannya dicantumkan dalam penawaran sebelum kerja sama berjalan.</p></details><details><summary>Bisa dibantu sebagian saja?</summary><p>Bisa. Kami dapat mengelola seluruh acara, menangani bagian tertentu, atau menyediakan tim pendukung sesuai lingkup kerja yang disepakati.</p></details></div></div></section>
 <section class="section brief" id="brief" aria-labelledby="brief-heading"><div class="shell brief-layout">
-<div class="section-head"><p class="eyebrow">Brief acara</p><h2 id="brief-heading">Ceritakan acara Anda, kami siapkan langkah berikutnya.</h2><p>Isi seperlunya saja. Form ini menyusun pesan WhatsApp untuk Anda, tinggal kirim.</p></div>
+<div class="section-head"><p class="eyebrow">Brief acara</p><h2 id="brief-heading">Ceritakan acara Anda, kami siapkan langkah berikutnya.</h2><p>Brief Anda tersimpan di website. Setelah itu, lanjutkan percakapannya lewat WhatsApp.</p></div>
 <div class="form-panel"><form id="brief-form"><div class="form-grid">
 <label for="brief-nama"><span>Nama &amp; perusahaan</span> <span aria-hidden="true">*</span><input id="brief-nama" name="nama" type="text" required maxlength="120" placeholder="Contoh: Rina, PT Maju Bersama"></label>
+<label for="brief-kontak"><span>Nomor WhatsApp</span> <span aria-hidden="true">*</span><input id="brief-kontak" name="kontak" type="tel" autocomplete="tel" required minlength="8" maxlength="30" pattern="[+]?[0-9\s\-\(\)]{8,30}" placeholder="Contoh: 0858 1234 5678"></label>
 <label for="brief-jenis">Jenis acara<select id="brief-jenis" name="jenis"><option value="">Pilih jenis acara</option></select></label>
 <label for="brief-tanggal">Perkiraan tanggal<input id="brief-tanggal" name="tanggal" type="text" maxlength="100" placeholder="Contoh: pertengahan Februari 2027"></label>
 <label for="brief-jumlah">Jumlah peserta<input id="brief-jumlah" name="jumlah" type="number" min="1" step="1" inputmode="numeric" placeholder="Contoh: 150"></label>
 <label for="brief-kebutuhan" class="form-wide">Lokasi &amp; kebutuhan<textarea id="brief-kebutuhan" name="kebutuhan" rows="3" maxlength="800" placeholder="Contoh: Bogor, butuh venue + registrasi online"></textarea></label>
-</div><button class="button button-gold" type="submit" id="brief-submit">Kirim via WhatsApp →</button></form>
+</div><div class="form-trap" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+<label class="brief-consent"><input type="checkbox" name="consent" required><span>Saya setuju detail brief dan kontak disimpan oleh Innovate Organizer untuk menindaklanjuti kebutuhan acara ini.</span></label>
+<button class="button button-gold" type="submit" id="brief-submit">Simpan brief &amp; lanjut ke WhatsApp</button>
+<p id="brief-status" class="brief-status" role="status" aria-live="polite"></p>
+<a id="brief-continue" class="button button-whatsapp" data-conversion-source="brief" data-tracking-location="brief-followup" target="_blank" rel="noopener" hidden>Lanjutkan ke WhatsApp</a></form>
 <p class="form-note"><span>Lebih suka langsung chat?</span> <a data-wa="Halo Innovate Organizer, saya ingin konsultasi acara.">Buka WhatsApp</a><span id="brief-email" hidden> · <span>Atau email ke</span> <a></a></span></p>
 </div></div></section>
 </main>
@@ -240,6 +251,6 @@ gtag('config', 'AW-18473450758');
 <div><address>Jl. Duta Pelita B2 No.5, Tanah Sareal, Kota Bogor 16164</address><p><a data-wa="Halo Innovate Organizer, saya ingin konsultasi acara.">WhatsApp 0858-8251-4394</a> · <a href="https://www.instagram.com/innovateorganizer/" target="_blank" rel="noopener">Instagram @innovateorganizer</a></p><p>Melayani acara di Jakarta, Bogor, Depok, Tangerang, dan Bekasi.</p></div>
 </div></footer>
 <dialog id="project-dialog" aria-labelledby="project-title"><form method="dialog"><button class="dialog-close" aria-label="Tutup proyek">×</button></form><div id="project-body"></div></dialog>
-<a class="floating-whatsapp" href="https://wa.me/6285882514394?text=Halo%20Innovate%20Organizer%2C%20saya%20ingin%20konsultasi%20acara." data-wa="Halo Innovate Organizer, saya ingin konsultasi acara." aria-label="Hubungi Innovate Organizer via WhatsApp" title="WhatsApp" target="_blank" rel="noopener"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3Zm0 23.5c-2 0-3.8-.5-5.5-1.5l-.4-.2-3.8 1 1-3.7-.3-.4A10.5 10.5 0 1 1 16 26.5Z"/><path fill="currentColor" d="M12 9.3c-.3-.7-.6-.7-.9-.7h-.7c-.3 0-.7.1-1 .5s-1.3 1.3-1.3 3.1 1.4 3.5 1.6 3.7 2.7 4.2 6.6 5.7c3.3 1.3 3.9 1 4.6.9s2.2-.9 2.5-1.7.3-1.6.2-1.7-.3-.2-.7-.4l-2.5-1.2c-.3-.1-.6-.2-.8.2l-1.1 1.3c-.2.2-.4.3-.8.1a10.4 10.4 0 0 1-3-1.8 11 11 0 0 1-2.1-2.6c-.2-.4 0-.6.1-.8l.6-.7.4-.7c.1-.2.1-.5 0-.7l-1.1-2.5Z"/></svg></a>
+<a class="floating-whatsapp" data-tracking-location="floating" href="https://wa.me/6285882514394?text=Halo%20Innovate%20Organizer%2C%20saya%20ingin%20konsultasi%20acara." data-wa="Halo Innovate Organizer, saya ingin konsultasi acara." aria-label="Hubungi Innovate Organizer via WhatsApp" title="WhatsApp" target="_blank" rel="noopener"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3Zm0 23.5c-2 0-3.8-.5-5.5-1.5l-.4-.2-3.8 1 1-3.7-.3-.4A10.5 10.5 0 1 1 16 26.5Z"/><path fill="currentColor" d="M12 9.3c-.3-.7-.6-.7-.9-.7h-.7c-.3 0-.7.1-1 .5s-1.3 1.3-1.3 3.1 1.4 3.5 1.6 3.7 2.7 4.2 6.6 5.7c3.3 1.3 3.9 1 4.6.9s2.2-.9 2.5-1.7.3-1.6.2-1.7-.3-.2-.7-.4l-2.5-1.2c-.3-.1-.6-.2-.8.2l-1.1 1.3c-.2.2-.4.3-.8.1a10.4 10.4 0 0 1-3-1.8 11 11 0 0 1-2.1-2.6c-.2-.4 0-.6.1-.8l.6-.7.4-.7c.1-.2.1-.5 0-.7l-1.1-2.5Z"/></svg></a>
 </body>
 </html>

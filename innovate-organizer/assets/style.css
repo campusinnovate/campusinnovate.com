@@ -475,3 +475,13 @@ main {
 .navlinks { gap: 22px; }
 
 .logo-marquee { mix-blend-mode: multiply; }
+
+/* Proof, portfolio details and briefing */
+.proof-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:38px;padding-top:28px;border-top:1px solid rgba(24,53,93,.12)}
+.proof-grid>div{display:flex;align-items:baseline;justify-content:center;gap:14px}.proof-grid strong{font-size:clamp(2rem,4vw,3rem);color:var(--navy);line-height:1.2}.proof-grid span{font-size:.94rem}.proof-note{margin:16px 0 0;text-align:center;font-size:.875rem;color:#52657c}
+.project-scope{font-size:.875rem;font-weight:600;color:#173b65}.gallery-count{font-size:.875rem;color:#52657c;margin-top:8px}.project-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:24px 0}.project-facts div{padding:16px;background:rgba(231,239,249,.65);border-radius:14px}.project-facts dt{font-size:.875rem;color:#52657c;margin-bottom:5px}.project-facts dd{margin:0;font-size:1rem}
+.partnership.section{padding-bottom:36px}.process.section{padding-top:36px}.faq-layout{display:grid;grid-template-columns: .85fr 1.15fr;gap:60px}.faq .section-head{margin:0}.faq-list details{border-bottom:1px solid rgba(24,53,93,.16);padding:20px 0}.faq-list details:first-child{padding-top:0}.faq-list summary{cursor:pointer;font-weight:600;font-size:1rem;padding-inline-end:20px}.faq-list p{margin:14px 0 0;color:#4b6079;line-height:1.8}
+.form-trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}.brief-consent{display:flex;align-items:flex-start;gap:10px;margin:20px 0;font-size:.875rem;line-height:1.6}.brief-consent input{width:18px;height:18px;flex:0 0 18px;margin-top:4px;accent-color:#173b65}.brief-status{font-size:.9375rem;line-height:1.65;margin:16px 0 0}.brief-status:empty{display:none}#brief-continue{margin-top:14px}.button:disabled{opacity:.65;cursor:wait}
+@media(max-width:700px){.proof-grid{gap:12px}.proof-grid>div{flex-direction:column;gap:6px;align-items:center;text-align:center}.proof-grid span{font-size:.875rem}.faq-layout{grid-template-columns:1fr;gap:28px}.project-facts{grid-template-columns:1fr}.partnership.section{padding-bottom:24px}.process.section{padding-top:24px}}
+
+.participant-stories{margin-top:56px}.participant-stories .section-head{margin-bottom:24px}.participant-stories h3{font-size:clamp(1.4rem,2.5vw,1.85rem);margin:0 0 12px}.testimonial-video{margin:0;border-radius:20px;overflow:hidden;background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.8)}.testimonial-video video{width:100%;height:auto;aspect-ratio:16/9;display:block;background:#13263f}.testimonial-video figcaption{padding:18px 22px;display:grid;gap:4px}.testimonial-video figcaption span{font-size:.875rem;color:#52657c}
