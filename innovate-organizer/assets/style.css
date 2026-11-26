@@ -208,3 +208,109 @@ dialog > form { display: flex; justify-content: flex-end; }
 /* Blueprint baseline: preserve section layout and copy; expand keyboard/touch access. */
 :focus-visible { box-shadow: 0 0 0 2px #fff; }
 .form-note a, .footer a:not(.brand) { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
+
+/* IO aurora: retain the existing layout and brand palette. */
+:root {
+  --aurora-blue: #2674ed;
+  --motion-ease: cubic-bezier(.2, 0, 0, 1);
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -18% -10%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 78% 27%, #2674ed66 0%, #2674ed16 32%, transparent 59%),
+    radial-gradient(ellipse at 92% 85%, #f5b21a40 0%, transparent 45%),
+    radial-gradient(ellipse at 40% 0%, #77aeff20 0%, transparent 52%);
+}
+.section { position: relative; isolation: isolate; }
+.section:not(.brief)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 4% 14%, #2674ed10 0%, transparent 55%),
+    radial-gradient(ellipse at 96% 84%, #f5b21a13 0%, transparent 50%);
+}
+.technology, .partnership {
+  background: linear-gradient(135deg, #edf3ff, #f5f7fc 62%, #fff9ed);
+}
+.brief { overflow: clip; isolation: isolate; }
+.brief::before {
+  content: "";
+  position: absolute;
+  inset: -15%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 12% 75%, #2674ed55 0%, transparent 53%),
+    radial-gradient(ellipse at 95% 5%, #f5b21a25 0%, transparent 45%);
+}
+.navlinks a { position: relative; }
+.navlinks a::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 3px;
+  height: 2px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+html[dir="rtl"] .navlinks a::after { transform-origin: right center; }
+.navlinks a:is(:hover, :focus-visible)::after { transform: scaleX(1); }
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes io-aurora-drift {
+    from { transform: translate3d(-2%, -1%, 0) scale(1); }
+    to { transform: translate3d(3%, 2%, 0) scale(1.06); }
+  }
+  @keyframes io-hero-enter {
+    from { transform: translate3d(0, 12px, 0); }
+    to { transform: translate3d(0, 0, 0); }
+  }
+  @keyframes io-dialog-enter {
+    from { opacity: 0; transform: translate3d(0, 8px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+  .hero::before { animation: io-aurora-drift 14s ease-in-out infinite alternate; }
+  .brief::before { animation: io-aurora-drift 18s ease-in-out infinite alternate-reverse; }
+  .hero-content > :is(.eyebrow, h1, .hero-lede, .hero-actions) {
+    animation: io-hero-enter 650ms var(--motion-ease) both;
+  }
+  .hero-content > .hero-lede { animation-delay: 50ms; }
+  .hero-content > .hero-actions { animation-delay: 90ms; }
+  .io-reveal {
+    transition: opacity 520ms var(--motion-ease), transform 520ms var(--motion-ease);
+  }
+  .io-reveal-pending { opacity: 0; transform: translate3d(0, 18px, 0); }
+  .button {
+    transition: transform 200ms var(--motion-ease), background-color 180ms, box-shadow 180ms;
+  }
+  .navlinks a::after { transition: transform 200ms var(--motion-ease); }
+  dialog[open] { animation: io-dialog-enter 220ms var(--motion-ease); }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  :is(.service-card, .project-card, .benefit-card, .partner-card) {
+    transition: transform 320ms var(--motion-ease), box-shadow 320ms, border-color 240ms, opacity 520ms;
+  }
+  :is(.service-card, .project-card, .benefit-card, .partner-card):not(.io-reveal-pending):hover {
+    transform: translate3d(0, -4px, 0);
+    box-shadow: 0 18px 38px #0a1f451a;
+    border-color: #aabfdf;
+  }
+  :is(.service-photo, .project-image) img { transition: transform 650ms var(--motion-ease); }
+  :is(.service-card, .project-card):hover :is(.service-photo, .project-image) img { transform: scale(1.025); }
+  .button:hover { transform: translate3d(0, -2px, 0); }
+  .button:active { transform: translate3d(0, 0, 0); }
+}
+@media (max-width: 580px) {
+  .hero::before { inset: 0; }
+}
+@media (prefers-reduced-motion: reduce), print {
+  .io-reveal, .io-reveal-pending { opacity: 1 !important; transform: none !important; }
+}

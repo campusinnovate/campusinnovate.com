@@ -27,3 +27,7 @@ Existing public static marketing site. Keep all visible copy, section order, con
 - No new backend, authentication, database, API, upload, dashboard or data-loading UI was introduced. Those blueprint modules/states are outside this static site's scope. Brief form continues to compose a WhatsApp message in the browser.
 - No Lighthouse score, throttled 4G LCP/INP, field CLS or full WCAG certification is claimed. These need separate measurement. Host-level HSTS/security headers and operational backup/incident controls remain hosting/organization concerns.
 - Existing Sites source versioning and codex/web-handoff mirror are retained. Do not migrate the production workflow, change repository-wide permissions, or introduce a different hosting stack merely to match the blueprint's sample CI/CD topology.
+
+## Brand motion and aurora (26 November 2026)
+
+User requested a more fluid page while retaining copy/layout. Use a restrained MO-2 treatment: navy/blue/gold CSS aurora on hero and brief, static ambient color in content sections, transform/opacity reveal on below-fold blocks, fine-pointer card hover and brief native dialog entrance. No external motion library, pointer tracking, video or image effects. Existing content geometry and copy remain the baseline. Hero text is never opacity-hidden. Scroll reveal is progressive enhancement and is disabled for reduced motion/print; focusing a pending block reveals it immediately. All loops use transforms only and run over 14–18 seconds.
