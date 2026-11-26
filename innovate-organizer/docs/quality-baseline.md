@@ -35,3 +35,7 @@ User requested a more fluid page while retaining copy/layout. Use a restrained M
 ## Motion visibility and asset refresh
 
 Aurora intensity increased after the user reported the effect was not apparent. Blue/gold fields are stronger on light sections and hero drift spans a wider path over 10 seconds; reduced-motion behavior remains unchanged. index.html references each CSS/JS file with its SHA-256 prefix in `?v=`. Regenerate these references whenever the respective source changes so returning visitors request the new file. A browser cache on the user's device was not independently confirmed.
+
+## Glossy surfaces, connected gradients and moving client marks
+
+User authorized visual polish beyond the previously retained radii/surfaces: rounded translucent card finishes, glass header, pill buttons, continuous pale blue/gold background and a navy-to-light hero transition. Existing page order, body copy, imagery and grid columns are retained. Navigation defaults to Our Services / About Us / Portfolio / How We Work, with Arabic/Chinese translations. A fixed bottom-right WhatsApp button reuses the existing message and single Ads conversion listener. Client marks are larger and unboxed; two seamless opposing rows contain all original logos, with duplicates hidden from assistive technology. A pause control is provided, hover pauses each row, and reduced motion disables automatic movement while retaining manual horizontal access. White in source logo bitmaps is blended into the background without altering the source assets.

@@ -21,6 +21,10 @@ Corporate|Corporate|فعاليات الشركات|企业活动
 Team Experience|Team Experience|تجارب الفرق|团队体验
 Lihat layanan|Explore services|استعرض الخدمات|查看服务
 Our Services|Our Services|خدماتنا|我们的服务
+About Us|About Us|من نحن|关于我们
+How We Work|How We Work|آلية العمل|服务流程
+Portfolio|Portfolio|أعمالنا|案例
+Hubungi Innovate Organizer via WhatsApp|Contact Innovate Organizer on WhatsApp|تواصل مع Innovate Organizer عبر واتساب|通过 WhatsApp 联系 Innovate Organizer
 Pilih format acara untuk melihat cakupan tim dan opsi dukungan digital.|Choose an event format to see what the team covers and which digital tools are available.|اختر نوع الفعالية للاطلاع على نطاق عمل الفريق وخيارات الدعم الرقمي.|选择活动类型，查看团队服务范围及数字化支持选项。
 Jenis layanan|Service types|أنواع الخدمات|服务类别
 Tentang kami|About us|نبذة عنا|关于我们

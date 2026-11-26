@@ -226,7 +226,16 @@ $("testimonials").innerHTML = IO_DATA.testimonials.slice(0, 2).map(item =>
 $("testimonials").hidden = !$("testimonials").children.length;
 
 const logos = IO_DATA.clientLogos;
-$("client-logos").innerHTML = logos.map(logo => '<li title="' + e(logo.name) + '"' + (logo.wide ? ' class="client-logo-wide"' : '') + '>' + photo(logo.src, logo.name) + "</li>").join("");
+const logoGroup = (items, duplicate = false) => '<ul class="logo-group"' + (duplicate ? ' aria-hidden="true"' : '') + '>' + items.map(logo => '<li title="' + e(logo.name) + '"' + (logo.wide ? ' class="client-logo-wide"' : '') + '>' + photo(logo.src, duplicate ? "" : logo.name) + '</li>').join("") + '</ul>';
+const logoRows = [logos.slice(0, Math.ceil(logos.length / 2)), logos.slice(Math.ceil(logos.length / 2))];
+$("client-logos").innerHTML = logoRows.filter(row => row.length).map((row, index) => '<div class="logo-marquee' + (index ? ' logo-marquee-reverse' : '') + '"><div class="logo-track">' + logoGroup(row) + logoGroup(row, true) + '</div></div>').join("");
+$("logo-toggle").addEventListener("click", () => {
+  const paused = $("logo-toggle").getAttribute("aria-pressed") !== "true";
+  $("logo-toggle").setAttribute("aria-pressed", String(paused));
+  $("logo-toggle").setAttribute("aria-label", paused ? "Putar logo klien" : "Jeda pergerakan logo");
+  translateSiteTree($("logo-toggle"));
+  $("client-logos").dataset.paused = String(paused);
+});
 $("trust-logos").hidden = !logos.length;
 $("trust-stats").hidden = !IO_DATA.stats;
 $("trust").hidden = !logos.length && !IO_DATA.stats;
