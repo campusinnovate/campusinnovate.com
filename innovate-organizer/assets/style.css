@@ -221,9 +221,9 @@ dialog > form { display: flex; justify-content: flex-end; }
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 78% 27%, #2674ed66 0%, #2674ed16 32%, transparent 59%),
-    radial-gradient(ellipse at 92% 85%, #f5b21a40 0%, transparent 45%),
-    radial-gradient(ellipse at 40% 0%, #77aeff20 0%, transparent 52%);
+    radial-gradient(ellipse at 78% 27%, #2674eda6 0%, #2674ed26 32%, transparent 59%),
+    radial-gradient(ellipse at 92% 85%, #f5b21a66 0%, transparent 45%),
+    radial-gradient(ellipse at 40% 0%, #77aeff38 0%, transparent 52%);
 }
 .section { position: relative; isolation: isolate; }
 .section:not(.brief)::before {
@@ -233,11 +233,11 @@ dialog > form { display: flex; justify-content: flex-end; }
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 4% 14%, #2674ed10 0%, transparent 55%),
-    radial-gradient(ellipse at 96% 84%, #f5b21a13 0%, transparent 50%);
+    radial-gradient(ellipse at 4% 14%, #2674ed26 0%, transparent 55%),
+    radial-gradient(ellipse at 96% 84%, #f5b21a2e 0%, transparent 50%);
 }
 .technology, .partnership {
-  background: linear-gradient(135deg, #edf3ff, #f5f7fc 62%, #fff9ed);
+  background: linear-gradient(135deg, #dce8ff, #edf3ff 62%, #fff0c9);
 }
 .brief { overflow: clip; isolation: isolate; }
 .brief::before {
@@ -247,8 +247,8 @@ dialog > form { display: flex; justify-content: flex-end; }
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 12% 75%, #2674ed55 0%, transparent 53%),
-    radial-gradient(ellipse at 95% 5%, #f5b21a25 0%, transparent 45%);
+    radial-gradient(ellipse at 12% 75%, #2674ed80 0%, transparent 53%),
+    radial-gradient(ellipse at 95% 5%, #f5b21a40 0%, transparent 45%);
 }
 .navlinks a { position: relative; }
 .navlinks a::after {
@@ -266,8 +266,8 @@ html[dir="rtl"] .navlinks a::after { transform-origin: right center; }
 
 @media (prefers-reduced-motion: no-preference) {
   @keyframes io-aurora-drift {
-    from { transform: translate3d(-2%, -1%, 0) scale(1); }
-    to { transform: translate3d(3%, 2%, 0) scale(1.06); }
+    from { transform: translate3d(-5%, -3%, 0) scale(1); }
+    to { transform: translate3d(5%, 4%, 0) scale(1.1); }
   }
   @keyframes io-hero-enter {
     from { transform: translate3d(0, 12px, 0); }
@@ -277,7 +277,7 @@ html[dir="rtl"] .navlinks a::after { transform-origin: right center; }
     from { opacity: 0; transform: translate3d(0, 8px, 0); }
     to { opacity: 1; transform: translate3d(0, 0, 0); }
   }
-  .hero::before { animation: io-aurora-drift 14s ease-in-out infinite alternate; }
+  .hero::before { animation: io-aurora-drift 10s ease-in-out infinite alternate; }
   .brief::before { animation: io-aurora-drift 18s ease-in-out infinite alternate-reverse; }
   .hero-content > :is(.eyebrow, h1, .hero-lede, .hero-actions) {
     animation: io-hero-enter 650ms var(--motion-ease) both;

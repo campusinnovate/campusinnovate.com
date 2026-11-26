@@ -30,4 +30,8 @@ Existing public static marketing site. Keep all visible copy, section order, con
 
 ## Brand motion and aurora (26 November 2026)
 
-User requested a more fluid page while retaining copy/layout. Use a restrained MO-2 treatment: navy/blue/gold CSS aurora on hero and brief, static ambient color in content sections, transform/opacity reveal on below-fold blocks, fine-pointer card hover and brief native dialog entrance. No external motion library, pointer tracking, video or image effects. Existing content geometry and copy remain the baseline. Hero text is never opacity-hidden. Scroll reveal is progressive enhancement and is disabled for reduced motion/print; focusing a pending block reveals it immediately. All loops use transforms only and run over 14–18 seconds.
+User requested a more fluid page while retaining copy/layout. Use a restrained MO-2 treatment: navy/blue/gold CSS aurora on hero and brief, static ambient color in content sections, transform/opacity reveal on below-fold blocks, fine-pointer card hover and brief native dialog entrance. No external motion library, pointer tracking, video or image effects. Existing content geometry and copy remain the baseline. Hero text is never opacity-hidden. Scroll reveal is progressive enhancement and is disabled for reduced motion/print; focusing a pending block reveals it immediately. All loops use transforms only and run over 10–18 seconds.
+
+## Motion visibility and asset refresh
+
+Aurora intensity increased after the user reported the effect was not apparent. Blue/gold fields are stronger on light sections and hero drift spans a wider path over 10 seconds; reduced-motion behavior remains unchanged. index.html references each CSS/JS file with its SHA-256 prefix in `?v=`. Regenerate these references whenever the respective source changes so returning visitors request the new file. A browser cache on the user's device was not independently confirmed.
