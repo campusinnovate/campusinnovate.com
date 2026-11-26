@@ -137,7 +137,12 @@ const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
 const e = escapeHtml;
 const list = items => "<ul>" + items.map(item => "<li>" + e(item) + "</li>").join("") + "</ul>";
 const number = index => String(index + 1).padStart(2, "0");
-const photo = (src, alt = "") => '<img src="' + e(src) + '" alt="' + e(alt) + '" loading="lazy" decoding="async">';
+const imageDimensions = {"assets/astra-ecobiz-2.webp":[1000,563],"assets/astra-ecobiz-3.webp":[450,800],"assets/brmp-training-2026-2.webp":[1440,960],"assets/brmp-training-2026-3.webp":[1440,959],"assets/brmp-training-group.webp":[1600,1065],"assets/brmp-training-session.webp":[1600,1066],"assets/brmp-training-team.webp":[1600,1066],"assets/client-aio.webp":[258,52],"assets/client-astra.webp":[320,90],"assets/client-big.webp":[320,149],"assets/client-bni.webp":[181,78],"assets/client-bri.webp":[164,86],"assets/client-brmp.webp":[720,157],"assets/client-cda.webp":[155,94],"assets/client-dpkkha.webp":[320,75],"assets/client-dpma.webp":[408,105],"assets/client-gim.webp":[191,102],"assets/client-institusi.webp":[96,123],"assets/client-ipb.webp":[230,160],"assets/client-klh-bplh.webp":[200,198],"assets/client-klhk.webp":[124,122],"assets/client-lpa2i.webp":[394,100],"assets/client-modlaci.webp":[202,79],"assets/client-noortura.webp":[153,110],"assets/client-optima.webp":[177,85],"assets/client-pustarhut.webp":[266,54],"assets/client-see.webp":[150,130],"assets/client-tirta.webp":[132,133],"assets/client-trendy.webp":[214,79],"assets/client-ucam.webp":[128,122],"assets/client-unbin.webp":[141,141],"assets/client-vkpenta.webp":[141,118],"assets/client-wakaf.webp":[225,95],"assets/client-wmk.webp":[107,95],"assets/client-wunproq.webp":[241,98],"assets/clients.webp":[1250,499],"assets/cover.webp":[852,1000],"assets/featured-14.webp":[1800,1202],"assets/featured-17.webp":[1800,1200],"assets/featured-18.webp":[1600,1200],"assets/featured-19.webp":[706,325],"assets/featured-22.webp":[1800,1013],"assets/featured-23.webp":[1800,1013],"assets/klh-bplh-2026-2.webp":[960,1440],"assets/klh-bplh-2026-3.webp":[960,1440],"assets/klh-bplh-group-2026.webp":[1800,1200],"assets/logo.webp":[125,98],"assets/og-image.jpg":[1200,630],"assets/opening-01.webp":[1100,619],"assets/opening-02.webp":[640,427],"assets/opening-03.webp":[640,360],"assets/opening-04.webp":[640,427],"assets/opening-05.webp":[640,427],"assets/opening-07.webp":[640,427],"assets/opening-08.webp":[640,360],"assets/opening-09.webp":[640,427],"assets/opening-11.webp":[640,480],"assets/opening-12.webp":[640,480],"assets/opening-13.webp":[640,427],"assets/project-14.webp":[640,427],"assets/project-15.webp":[1200,676],"assets/project-16.webp":[1040,780],"assets/project-17.webp":[1100,733],"assets/project-18.webp":[1100,825],"assets/project-19.webp":[706,325],"assets/project-20.webp":[1200,675],"assets/project-21.webp":[706,325],"assets/project-22.webp":[1100,619],"assets/project-23.webp":[1100,619],"assets/project-24.webp":[1100,825],"assets/project-25.webp":[706,325],"assets/project-26.webp":[1100,733],"assets/project-27.webp":[1440,959],"assets/project-28.webp":[1440,960],"assets/project-29.webp":[1440,960],"assets/service-1.webp":[512,512],"assets/service-2.webp":[512,512],"assets/service-3.webp":[512,512],"assets/service-4.webp":[512,512],"assets/service-5.webp":[512,512],"assets/service-hall.webp":[512,512],"assets/stripmate-kawah-ratu-group.webp":[1440,1800],"assets/stripmate-logo.webp":[557,200],"assets/stripmate-outdoor-2.webp":[1400,1400],"assets/stripmate-sumbing-group.webp":[1800,1013],"assets/stripmate-trekking-2.webp":[1080,1440],"assets/stripmate-trekking-3.webp":[1080,1440],"assets/stripmate-trekking-cover.webp":[1080,1440]};
+const photo = (src, alt = "") => {
+  const dimensions = imageDimensions[src];
+  const size = dimensions ? ' width="' + dimensions[0] + '" height="' + dimensions[1] + '"' : "";
+  return '<img src="' + e(src) + '" alt="' + e(alt) + '"' + size + ' loading="lazy" decoding="async">';
+};
 
 function updateWhatsAppLink(link, message = link.dataset.wa) {
   link.href = whatsappUrl(t(message));
@@ -195,7 +200,7 @@ function projectCard(project) {
   const image = project.image ? '<div class="project-image">' + photo(project.image, caption) + '</div>' : '';
   return '<article class="project-card">' + image + '<div class="card-body"><p class="project-meta"><span>' + e(project.category) + '</span> · ' + '<span>' + e(project.period || project.year) + '</span>' +
     '</p><h3>' + e(project.title) + '</h3><p>' + e(project.description) +
-    '</p><button class="text-button" type="button" data-project="' + project.id + '">Lihat proyek →</button></div></article>';
+    '</p><button class="text-button" type="button" aria-haspopup="dialog" aria-controls="project-dialog" aria-label="' + e("Lihat proyek " + project.title) + '" data-project="' + project.id + '">Lihat proyek →</button></div></article>';
 }
 
 function caseStudyCard(study) {
@@ -275,6 +280,7 @@ document.addEventListener("click", event => {
   const projectButton = event.target.closest?.("[data-project]");
   if (!projectButton) return;
   const project = projects.find(item => item.id === Number(projectButton.dataset.project));
+  if (!project) return;
   const caption = project.id === 16 ? lpaCaption : (project.galleryCaption || "Dokumentasi");
   $("project-body").innerHTML = '<p class="eyebrow">' + e(project.category) + '</p><h2 id="project-title">' + e(project.title) +
     '</h2>' + (project.period ? '<p class="project-period">' + e(project.period) + '</p>' : '') + '<p>' + e(project.description) + '</p>' +
