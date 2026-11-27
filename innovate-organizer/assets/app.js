@@ -43,39 +43,86 @@ const IO_DATA = {
 
 const services = [
   {
-    id: "gathering", title: "Gathering & Outing Kantor", option: "Gathering & Outing",
-    headline: "Event Organizer Gathering Kantor di Jabodetabek", photo: "opening-09",
-    description: "Acara kebersamaan tim yang seru, tertata, dan tanpa repot buat panitia internal.",
-    scope: ["Venue & akomodasi", "Rundown", "MC & hiburan", "Transportasi", "Registrasi online"],
-    message: "Halo, saya ingin konsultasi acara gathering kantor."
+    "id": "seminar",
+    "title": "Konferensi & Seminar",
+    "option": "Seminar & Konferensi",
+    "headline": "Event Organizer Konferensi & Seminar di Jabodetabek",
+    "photo": "featured-14",
+    "description": "Konferensi nasional/internasional, simposium, dan forum.",
+    "scope": [
+      "Konsep acara",
+      "Koordinasi pembicara & sesi",
+      "Alur peserta",
+      "Produksi teknis"
+    ],
+    "digital": "Registrasi & check-in QR, live Q&A & polling, e-sertifikat.",
+    "message": "Halo, saya ingin konsultasi acara seminar/konferensi."
   },
   {
-    id: "team-building", title: "Team Building", option: "Team Building",
-    headline: "Event Organizer Team Building di Jabodetabek", photo: "project-22",
-    description: "Aktivitas yang dirancang sesuai tujuan tim, dari kolaborasi sampai kepemimpinan.",
-    scope: ["Konsep aktivitas", "Fasilitator", "Perlengkapan", "Dokumentasi", "Laporan peserta"],
-    message: "Halo, saya ingin konsultasi acara team building."
+    "id": "corporate",
+    "title": "Acara Korporat & Institusi",
+    "option": "Acara Perusahaan",
+    "headline": "Event Organizer Acara Korporat & Institusi di Jabodetabek",
+    "photo": "project-15",
+    "description": "Rapat, town hall, kick-off, dan acara kelembagaan.",
+    "scope": [
+      "Venue & ruang",
+      "Kesiapan presentasi",
+      "Agenda acara",
+      "Koordinasi tamu"
+    ],
+    "digital": "RSVP & QR tamu, pengingat WA/email, live polling.",
+    "message": "Halo, saya ingin konsultasi acara perusahaan."
   },
   {
-    id: "seminar", title: "Seminar & Konferensi", option: "Seminar & Konferensi",
-    headline: "Event Organizer Seminar & Konferensi di Jabodetabek", photo: "featured-14",
-    description: "Acara ilmiah atau bisnis dengan alur registrasi dan sesi yang tertib.",
-    scope: ["Registrasi online", "QR check-in", "Manajemen pembicara", "Sesi paralel", "Sertifikat digital"],
-    message: "Halo, saya ingin konsultasi acara seminar/konferensi."
+    "id": "team-building",
+    "title": "Team Experiences",
+    "option": "Team Building",
+    "headline": "Event Organizer Team Experiences di Jabodetabek",
+    "photo": "klh-bplh-group-2026",
+    "description": "Outing, gathering, retreat, outbound, dan team building.",
+    "scope": [
+      "Rancangan aktivitas",
+      "Venue & vendor",
+      "Fasilitator",
+      "Keselamatan lapangan"
+    ],
+    "optional": "Perjalanan & akomodasi (opsional).",
+    "digital": "Data peserta, kuis & games interaktif, survei feedback.",
+    "message": "Halo, saya ingin konsultasi acara team building."
   },
   {
-    id: "corporate", title: "Acara Perusahaan", option: "Acara Perusahaan",
-    headline: "Event Organizer Acara Perusahaan di Jabodetabek", photo: "project-17",
-    description: "Peluncuran produk, anniversary, rapat kerja, hingga awarding night.",
-    scope: ["Konsep acara", "Produksi panggung", "Vendor", "Koordinasi hari-H", "Laporan acara"],
-    message: "Halo, saya ingin konsultasi acara perusahaan."
+    "id": "pelatihan",
+    "title": "Pelatihan & Workshop",
+    "option": "Pelatihan & Workshop",
+    "headline": "Event Organizer Pelatihan & Workshop di Jabodetabek",
+    "photo": "brmp-training-session",
+    "description": "Tim Anda fokus belajar, kami urus acaranya.",
+    "scope": [
+      "Administrasi jadwal & peserta",
+      "Venue & peralatan",
+      "Logistik trainer"
+    ],
+    "optional": "Trainer & materi tersedia secara opsional lewat mitra.",
+    "digital": "E-sertifikat otomatis, evaluasi digital.",
+    "message": "Halo, saya ingin konsultasi acara pelatihan/workshop."
   },
   {
-    id: "pelatihan", title: "Pelatihan & Workshop", option: "Pelatihan & Workshop",
-    headline: "Event Organizer Pelatihan & Workshop di Jabodetabek", photo: "project-18",
-    description: "Program belajar yang terukur, dari pendaftaran sampai evaluasi peserta.",
-    scope: ["Pendaftaran", "Absensi digital", "Materi", "Evaluasi pre/post-test", "Sertifikat"],
-    message: "Halo, saya ingin konsultasi acara pelatihan/workshop."
+    "id": "event-support",
+    "title": "Event Support",
+    "option": "Event Support",
+    "headline": "Tim Event Support di Jabodetabek",
+    "photo": "brmp-training-team",
+    "description": "Tim spesialis untuk bagian acara yang Anda butuhkan.",
+    "scope": [
+      "Registrasi",
+      "Dokumentasi foto/video",
+      "Desain",
+      "LO & panggung",
+      "Fasilitator outing & kru lapangan"
+    ],
+    "digital": "Operator registrasi, check-in, atau sistem acara sesuai lingkup kerja.",
+    "message": "Halo, saya ingin tanya layanan Event Support."
   }
 ];
 
@@ -86,6 +133,8 @@ const benefits = [
   ["Laporan acara yang siap dibawa ke atasan.", "Setelah acara, Anda menerima rekap kehadiran, dokumentasi, dan feedback peserta dalam satu laporan.", "M4 4v16h16m-12-4v-4m4 4V9m4 7V6"]
 ];
 
+benefits.push(["Peserta terlibat, bukan cuma hadir.", "Pengingat WA/email, live polling, Q&A, dan kuis membantu peserta mengikuti dan ikut berinteraksi selama acara.", "M4 4h16v12H9l-5 4V4zm4 5h8m-8 4h5"]);
+
 const partners = [
   ["Full-Service", "Anda ingin terima beres", "Kami susun konsep, urus vendor, jalankan hari-H, dan serahkan laporan acara."],
   ["Selected Service", "Panitia internal sudah ada", "Kami pegang fungsi tertentu yang disepakati, misalnya registrasi digital, dokumentasi, atau produksi panggung."],
@@ -93,11 +142,26 @@ const partners = [
 ];
 
 const steps = [
-  ["Diskusi kebutuhan", "Kita sepakati tujuan acara, profil peserta, jadwal, dan anggaran."],
-  ["Konsep & penawaran", "Anda menerima konsep, rundown awal, dan rincian biaya."],
-  ["Persiapan", "Tim, vendor, materi, dan sistem digital disiapkan. Progres bisa Anda pantau."],
-  ["Hari-H", "Kami jalankan acara dan tangani kendala di lapangan."],
-  ["Evaluasi & laporan", "Anda menerima laporan acara, dokumentasi, dan feedback peserta."]
+  [
+    "Pahami",
+    "Tujuan, peserta, kebutuhan, dan anggaran."
+  ],
+  [
+    "Rencanakan",
+    "Konsep, ruang lingkup, dan timeline."
+  ],
+  [
+    "Siapkan",
+    "Tim, vendor, materi, dan kesiapan teknis."
+  ],
+  [
+    "Jalankan",
+    "Operasional hari-H dan penanganan kendala."
+  ],
+  [
+    "Tutup",
+    "Evaluasi, serah terima, dan administrasi proyek."
+  ]
 ];
 
 const eventScope = ["Perencanaan dan konsep","Keterlibatan peserta","Operasional lapangan","Pelaksanaan acara"];
@@ -135,10 +199,25 @@ for (const project of projects) {
   project.gallery = [...new Set([...prior, ...(portfolioPhotos[project.id] || [])])].filter(src => src !== project.image);
 }
 
+
+const portfolioRefresh = {"14":{"description":"World University Network for Productive Waqf. Full event management, termasuk branding acara dan materi komunikasi.","scope":"Full Event Management","format":"Konferensi internasional","audience":"Delegasi & peserta konferensi"},"15":{"description":"Serah terima simbolis Hunian Layak Huni dan peresmian Ecobiz Desa Sejahtera Astra, Garut.","scope":"Full Event Management","format":"Seremoni serah terima & peresmian","audience":"Tamu undangan & pemangku kepentingan","deliverables":["Konsep & rundown seremoni","Koordinasi venue dan panggung","Koordinasi tamu"]},"27":{"description":"Event support Training ISO 9001 Lead Auditor & Sertifikasi BNSP.","scope":"Event Support","format":"Pelatihan & sertifikasi","audience":"Peserta pelatihan BRMP","deliverables":["Manajemen peserta","Venue & logistik","Operasional acara"]},"28":{"description":"Fun games dan team building pegawai KLH/BPLH.","scope":"Team Experiences","format":"Fun games & team building","audience":"Pegawai KLH/BPLH","deliverables":["Konsep permainan","Fasilitasi kelompok"]},"17":{"format":"Open house","audience":"Keluarga & calon orang tua murid"},"18":{"format":"Pelatihan LiDAR Batch 1","audience":"Peserta pelatihan Geo Investama"},"19":{"format":"Acara institusi","audience":"Komunitas institusi IPB"},"20":{"format":"Seremoni peluncuran ekspor","audience":"Tamu undangan & mitra institusi"},"21":{"format":"Kunjungan institusi","audience":"Delegasi UCAM Malaysia"},"22":{"format":"Capacity building","audience":"Pegawai instansi pemerintah"},"23":{"format":"Pelatihan public speaking","audience":"Komunitas kampus"},"24":{"format":"Capacity building","audience":"Tim PUSTARHUT"},"25":{"format":"Expo kewirausahaan","audience":"Wirausaha mahasiswa & pengunjung"},"26":{"format":"Capacity building & outbound","audience":"Peserta Wirausaha Merdeka IPB"},"29":{"format":"Trekking & hiking","audience":"Rombongan & komunitas Stripmate"}};
+for (const project of projects) Object.assign(project, portfolioRefresh[project.id] || {});
+projects.push({id:16,client:"lpa2i",title:"LPA2I IPB University",year:2026,category:"Institusi",description:"Pengelolaan acara dari konsep hingga pelaksanaan.",scope:"Full Event Management",format:"Acara institusi",audience:"Komunitas institusi IPB",deliverables:eventScope,gallery:[],image:null});
+
+
+projects.push({"id":30,"client":"big","title":"Badan Informasi Geospasial · SQL Batch 1","year":2026,"category":"Pelatihan","description":"Dukungan pelaksanaan pelatihan SQL Batch 1 di Badan Informasi Geospasial, termasuk dokumentasi sesi kelas, praktik, dan interaksi peserta.","scope":"Support Training","format":"Pelatihan SQL Batch 1","audience":"Peserta pelatihan Badan Informasi Geospasial","deliverables":["Dukungan kegiatan di lokasi","Dokumentasi sesi belajar dan praktik"],"gallery":["assets/sql-batch-1-2.webp","assets/sql-batch-1-3.webp","assets/sql-batch-1-4.webp","assets/sql-batch-1-5.webp","assets/sql-batch-1-6.webp","assets/sql-batch-1-7.webp","assets/sql-batch-1-8.webp","assets/sql-batch-1-9.webp","assets/sql-batch-1-10.webp"],"image":"assets/sql-batch-1-1.webp"});
+projects.push({"id":31,"client":"big","title":"Badan Informasi Geospasial · SQL Batch 2","year":2026,"category":"Pelatihan","description":"Dukungan pelaksanaan pelatihan SQL Batch 2 di Badan Informasi Geospasial, termasuk dokumentasi sesi kelas, praktik, dan interaksi peserta.","scope":"Support Training","format":"Pelatihan SQL Batch 2","audience":"Peserta pelatihan Badan Informasi Geospasial","deliverables":["Dukungan kegiatan di lokasi","Dokumentasi sesi belajar dan praktik"],"gallery":["assets/sql-batch-2-2.webp","assets/sql-batch-2-3.webp","assets/sql-batch-2-4.webp","assets/sql-batch-2-5.webp","assets/sql-batch-2-6.webp","assets/sql-batch-2-7.webp","assets/sql-batch-2-8.webp","assets/sql-batch-2-9.webp","assets/sql-batch-2-10.webp"],"image":"assets/sql-batch-2-1.webp"});
+
+for (const project of projects) {
+  if (project.id === 14) project.image = "assets/featured-14.webp";
+  const logo = IO_DATA.clientLogos.find(item=>item.src === "assets/client-"+project.client+".webp");
+  if (logo && !project.brandLogo) project.brandLogo = logo.src;
+}
+
 const $ = id => document.getElementById(id);
 const t = translateSiteText;
 const greeting = "Halo Innovate Organizer, saya ingin konsultasi acara.";
-const defaultHeadline = "Lagi menyiapkan acara di Jabodetabek? Kami bantu.";
+const defaultHeadline = "Acara kantor dan institusi di Jabodetabek, beres dari konsep sampai laporan.";
 const whatsappBase = "https://wa.me/6285882514394";
 const whatsappUrl = message => whatsappBase + "?text=" + encodeURIComponent(message);
 const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
@@ -147,7 +226,7 @@ const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
 const e = escapeHtml;
 const list = items => "<ul>" + items.map(item => "<li>" + e(item) + "</li>").join("") + "</ul>";
 const number = index => String(index + 1).padStart(2, "0");
-const imageDimensions = {"assets/stripmate-trekking-3.webp":[1080,1440],"assets/client-vkpenta.webp":[141,118],"assets/gallery-noortura-direct-9.webp":[1400,933],"assets/gallery-wmk-participants-8.webp":[1400,933],"assets/featured-14.webp":[1800,1202],"assets/gallery-wunproq-4.webp":[1400,788],"assets/client-gim.webp":[191,102],"assets/project-20.webp":[1200,675],"assets/project-28.webp":[1440,960],"assets/client-lpa2i.webp":[394,100],"assets/gallery-klh-edited-2.webp":[933,1400],"assets/client-trendy.webp":[214,79],"assets/gallery-brmp-closing-1.webp":[1400,933],"assets/gallery-strip-luhur-1.webp":[1050,1400],"assets/client-brmp.webp":[720,157],"assets/featured-19.webp":[706,325],"assets/gallery-klh-edited-1.webp":[1400,933],"assets/brmp-training-2026-3.webp":[1440,959],"assets/astra-ecobiz-3.webp":[450,800],"assets/gallery-astra-2.webp":[1400,788],"assets/stripmate-kawah-ratu-group.webp":[1440,1800],"assets/gallery-strip-luhur-7.webp":[790,1400],"assets/gallery-lidar-3.webp":[1120,1400],"assets/project-23.webp":[1100,619],"assets/opening-04.webp":[640,427],"assets/stripmate-sumbing-group.webp":[1800,1013],"assets/gallery-pustarhut-4.webp":[1400,788],"assets/gallery-noortura-direct-10.webp":[1400,933],"assets/gallery-wmk-participants-9.webp":[1400,933],"assets/project-18.webp":[1100,825],"assets/service-5.webp":[512,512],"assets/gallery-wmk-participants-2.webp":[1400,933],"assets/gallery-strip-luhur-5.webp":[1050,1400],"assets/gallery-noortura-direct-4.webp":[1400,933],"assets/gallery-noortura-direct-3.webp":[1400,933],"assets/opening-08.webp":[640,360],"assets/brmp-training-group.webp":[1600,1065],"assets/gallery-noortura-direct-8.webp":[1400,933],"assets/opening-09.webp":[640,427],"assets/project-21.webp":[706,325],"assets/gallery-pustarhut-9.webp":[1400,788],"assets/client-bri.webp":[164,86],"assets/brmp-training-team.webp":[1600,1066],"assets/client-klhk.webp":[124,122],"assets/gallery-klh-edited-3.webp":[1400,933],"assets/gallery-brmp-opening-4.webp":[1400,933],"assets/gallery-noortura-direct-6.webp":[1400,933],"assets/gallery-wmk-participants-4.webp":[1400,933],"assets/client-wakaf.webp":[225,95],"assets/client-tirta.webp":[132,133],"assets/brmp-training-session.webp":[1600,1066],"assets/gallery-brmp-opening-2.webp":[1400,933],"assets/client-dpkkha.webp":[320,75],"assets/gallery-astra-1.webp":[1400,788],"assets/project-22.webp":[1100,619],"assets/project-14.webp":[640,427],"assets/gallery-klh-edited-4.webp":[1400,933],"assets/gallery-brmp-opening-3.webp":[1400,933],"assets/project-16.webp":[1040,780],"assets/gallery-wmk-participants-7.webp":[1400,933],"assets/gallery-wunproq-8.webp":[1400,788],"assets/client-aio.webp":[258,52],"assets/client-pustarhut.webp":[266,54],"assets/service-4.webp":[512,512],"assets/client-modlaci.webp":[202,79],"assets/gallery-pustarhut-1.webp":[1400,1050],"assets/client-cda.webp":[155,94],"assets/gallery-brmp-opening-1.webp":[1400,933],"assets/opening-05.webp":[640,427],"assets/gallery-lidar-2.webp":[1120,1400],"assets/gallery-strip-luhur-4.webp":[1050,1400],"assets/gallery-wmk-participants-10.webp":[1400,933],"assets/opening-02.webp":[640,427],"assets/stripmate-trekking-cover.webp":[1080,1440],"assets/featured-17.webp":[1800,1200],"assets/gallery-astra-7.webp":[1400,788],"assets/gallery-noortura-direct-5.webp":[1400,933],"assets/gallery-brmp-closing-2.webp":[1400,933],"assets/client-ucam.webp":[128,122],"assets/featured-22.webp":[1800,1013],"assets/clients.webp":[1250,499],"assets/client-ipb.webp":[230,160],"assets/project-27.webp":[1440,959],"assets/klh-bplh-2026-2.webp":[960,1440],"assets/client-klh-bplh.webp":[200,198],"assets/gallery-wunproq-2.webp":[1400,788],"assets/gallery-astra-8.webp":[788,1400],"assets/gallery-wunproq-7.webp":[1400,788],"assets/gallery-wmk-participants-3.webp":[1400,933],"assets/service-2.webp":[512,512],"assets/featured-18.webp":[1600,1200],"assets/gallery-noortura-direct-7.webp":[1400,933],"assets/client-institusi.webp":[96,123],"assets/client-big.webp":[320,149],"assets/gallery-pustarhut-6.webp":[1400,788],"assets/opening-07.webp":[640,427],"assets/project-26.webp":[1100,733],"assets/gallery-klh-edited-7.webp":[1400,933],"assets/gallery-wunproq-5.webp":[1400,788],"assets/client-bni.webp":[181,78],"assets/gallery-wunproq-9.webp":[1400,788],"assets/gallery-strip-luhur-8.webp":[787,1400],"assets/service-3.webp":[512,512],"assets/opening-13.webp":[640,427],"assets/gallery-wunproq-1.webp":[1400,788],"assets/gallery-noortura-direct-1.webp":[1400,933],"assets/project-25.webp":[706,325],"assets/gallery-wmk-participants-1.webp":[1400,933],"assets/client-optima.webp":[177,85],"assets/gallery-wmk-participants-6.webp":[1400,933],"assets/stripmate-trekking-2.webp":[1080,1440],"assets/client-noortura.webp":[153,110],"assets/client-dpma.webp":[408,105],"assets/gallery-lidar-5.webp":[1120,1400],"assets/gallery-pustarhut-10.webp":[788,1400],"assets/client-unbin.webp":[141,141],"assets/gallery-lidar-6.webp":[1120,1400],"assets/opening-11.webp":[640,480],"assets/brmp-training-2026-2.webp":[1440,960],"assets/project-24.webp":[1100,825],"assets/project-15.webp":[1200,676],"assets/gallery-pustarhut-7.webp":[1400,788],"assets/gallery-wmk-participants-5.webp":[1400,933],"assets/gallery-pustarhut-3.webp":[1050,1400],"assets/gallery-wunproq-3.webp":[788,1400],"assets/project-29.webp":[1440,960],"assets/gallery-strip-luhur-6.webp":[1050,1400],"assets/opening-01.webp":[1100,619],"assets/gallery-wunproq-6.webp":[1400,788],"assets/featured-23.webp":[1800,1013],"assets/cover.webp":[852,1000],"assets/gallery-astra-3.webp":[1400,788],"assets/gallery-strip-luhur-3.webp":[1050,1400],"assets/gallery-astra-5.webp":[1400,788],"assets/project-17.webp":[1100,733],"assets/gallery-pustarhut-5.webp":[1050,1400],"assets/client-see.webp":[150,130],"assets/client-astra.webp":[320,90],"assets/gallery-klh-edited-6.webp":[1400,933],"assets/gallery-strip-luhur-2.webp":[787,1400],"assets/gallery-lidar-7.webp":[1120,1400],"assets/opening-12.webp":[640,480],"assets/gallery-klh-edited-5.webp":[933,1400],"assets/logo.webp":[125,98],"assets/astra-ecobiz-2.webp":[1000,563],"assets/gallery-brmp-closing-3.webp":[1400,933],"assets/client-wmk.webp":[107,95],"assets/opening-03.webp":[640,360],"assets/service-1.webp":[512,512],"assets/service-hall.webp":[512,512],"assets/gallery-lidar-4.webp":[1120,1400],"assets/gallery-noortura-direct-2.webp":[1400,933],"assets/gallery-astra-6.webp":[1400,788],"assets/gallery-pustarhut-2.webp":[1050,1400],"assets/stripmate-outdoor-2.webp":[1400,1400],"assets/project-19.webp":[706,325],"assets/klh-bplh-group-2026.webp":[1800,1200],"assets/klh-bplh-2026-3.webp":[960,1440],"assets/stripmate-logo.webp":[557,200],"assets/client-wunproq.webp":[241,98],"assets/gallery-astra-4.webp":[1400,788]};
+const imageDimensions = {"assets/astra-ecobiz-2.webp":[1000,563],"assets/astra-ecobiz-3.webp":[450,800],"assets/brmp-training-2026-2.webp":[1440,960],"assets/brmp-training-2026-3.webp":[1440,959],"assets/brmp-training-group.webp":[1600,1065],"assets/brmp-training-session.webp":[1600,1066],"assets/brmp-training-team.webp":[1600,1066],"assets/client-aio.webp":[258,52],"assets/client-astra.webp":[320,90],"assets/client-big.webp":[320,149],"assets/client-bni.webp":[181,78],"assets/client-bri.webp":[164,86],"assets/client-brmp.webp":[720,157],"assets/client-cda.webp":[155,94],"assets/client-dpkkha.webp":[320,75],"assets/client-dpma.webp":[408,105],"assets/client-gim.webp":[191,102],"assets/client-institusi.webp":[96,123],"assets/client-ipb.webp":[230,160],"assets/client-klh-bplh.webp":[200,198],"assets/client-klhk.webp":[124,122],"assets/client-lpa2i.webp":[394,100],"assets/client-modlaci.webp":[202,79],"assets/client-noortura.webp":[153,110],"assets/client-optima.webp":[177,85],"assets/client-pustarhut.webp":[266,54],"assets/client-see.webp":[150,130],"assets/client-tirta.webp":[132,133],"assets/client-trendy.webp":[214,79],"assets/client-ucam.webp":[128,122],"assets/client-unbin.webp":[141,141],"assets/client-vkpenta.webp":[141,118],"assets/client-wakaf.webp":[225,95],"assets/client-wmk.webp":[107,95],"assets/client-wunproq.webp":[241,98],"assets/clients.webp":[1250,499],"assets/cover.webp":[852,1000],"assets/featured-14.webp":[1800,1202],"assets/featured-17.webp":[1800,1200],"assets/featured-18.webp":[1600,1200],"assets/featured-19.webp":[706,325],"assets/featured-22.webp":[1800,1013],"assets/featured-23.webp":[1800,1013],"assets/gallery-astra-1.webp":[1400,788],"assets/gallery-astra-2.webp":[1400,788],"assets/gallery-astra-3.webp":[1400,788],"assets/gallery-astra-4.webp":[1400,788],"assets/gallery-astra-5.webp":[1400,788],"assets/gallery-astra-6.webp":[1400,788],"assets/gallery-astra-7.webp":[1400,788],"assets/gallery-astra-8.webp":[788,1400],"assets/gallery-brmp-closing-1.webp":[1400,933],"assets/gallery-brmp-closing-2.webp":[1400,933],"assets/gallery-brmp-closing-3.webp":[1400,933],"assets/gallery-brmp-opening-1.webp":[1400,933],"assets/gallery-brmp-opening-2.webp":[1400,933],"assets/gallery-brmp-opening-3.webp":[1400,933],"assets/gallery-brmp-opening-4.webp":[1400,933],"assets/gallery-klh-edited-1.webp":[1400,933],"assets/gallery-klh-edited-2.webp":[933,1400],"assets/gallery-klh-edited-3.webp":[1400,933],"assets/gallery-klh-edited-4.webp":[1400,933],"assets/gallery-klh-edited-5.webp":[933,1400],"assets/gallery-klh-edited-6.webp":[1400,933],"assets/gallery-klh-edited-7.webp":[1400,933],"assets/gallery-lidar-2.webp":[1120,1400],"assets/gallery-lidar-3.webp":[1120,1400],"assets/gallery-lidar-4.webp":[1120,1400],"assets/gallery-lidar-5.webp":[1120,1400],"assets/gallery-lidar-6.webp":[1120,1400],"assets/gallery-lidar-7.webp":[1120,1400],"assets/gallery-noortura-direct-1.webp":[1400,933],"assets/gallery-noortura-direct-10.webp":[1400,933],"assets/gallery-noortura-direct-2.webp":[1400,933],"assets/gallery-noortura-direct-3.webp":[1400,933],"assets/gallery-noortura-direct-4.webp":[1400,933],"assets/gallery-noortura-direct-5.webp":[1400,933],"assets/gallery-noortura-direct-6.webp":[1400,933],"assets/gallery-noortura-direct-7.webp":[1400,933],"assets/gallery-noortura-direct-8.webp":[1400,933],"assets/gallery-noortura-direct-9.webp":[1400,933],"assets/gallery-pustarhut-1.webp":[1400,1050],"assets/gallery-pustarhut-10.webp":[788,1400],"assets/gallery-pustarhut-2.webp":[1050,1400],"assets/gallery-pustarhut-3.webp":[1050,1400],"assets/gallery-pustarhut-4.webp":[1400,788],"assets/gallery-pustarhut-5.webp":[1050,1400],"assets/gallery-pustarhut-6.webp":[1400,788],"assets/gallery-pustarhut-7.webp":[1400,788],"assets/gallery-pustarhut-9.webp":[1400,788],"assets/gallery-strip-luhur-1.webp":[1050,1400],"assets/gallery-strip-luhur-2.webp":[787,1400],"assets/gallery-strip-luhur-3.webp":[1050,1400],"assets/gallery-strip-luhur-4.webp":[1050,1400],"assets/gallery-strip-luhur-5.webp":[1050,1400],"assets/gallery-strip-luhur-6.webp":[1050,1400],"assets/gallery-strip-luhur-7.webp":[790,1400],"assets/gallery-strip-luhur-8.webp":[787,1400],"assets/gallery-wmk-participants-1.webp":[1400,933],"assets/gallery-wmk-participants-10.webp":[1400,933],"assets/gallery-wmk-participants-2.webp":[1400,933],"assets/gallery-wmk-participants-3.webp":[1400,933],"assets/gallery-wmk-participants-4.webp":[1400,933],"assets/gallery-wmk-participants-5.webp":[1400,933],"assets/gallery-wmk-participants-6.webp":[1400,933],"assets/gallery-wmk-participants-7.webp":[1400,933],"assets/gallery-wmk-participants-8.webp":[1400,933],"assets/gallery-wmk-participants-9.webp":[1400,933],"assets/gallery-wunproq-1.webp":[1400,788],"assets/gallery-wunproq-2.webp":[1400,788],"assets/gallery-wunproq-3.webp":[788,1400],"assets/gallery-wunproq-4.webp":[1400,788],"assets/gallery-wunproq-5.webp":[1400,788],"assets/gallery-wunproq-6.webp":[1400,788],"assets/gallery-wunproq-7.webp":[1400,788],"assets/gallery-wunproq-8.webp":[1400,788],"assets/gallery-wunproq-9.webp":[1400,788],"assets/klh-bplh-2026-2.webp":[960,1440],"assets/klh-bplh-2026-3.webp":[960,1440],"assets/klh-bplh-group-2026.webp":[1800,1200],"assets/logo.webp":[125,98],"assets/opening-01.webp":[1100,619],"assets/opening-02.webp":[640,427],"assets/opening-03.webp":[640,360],"assets/opening-04.webp":[640,427],"assets/opening-05.webp":[640,427],"assets/opening-07.webp":[640,427],"assets/opening-08.webp":[640,360],"assets/opening-09.webp":[640,427],"assets/opening-11.webp":[640,480],"assets/opening-12.webp":[640,480],"assets/opening-13.webp":[640,427],"assets/project-14.webp":[640,427],"assets/project-15.webp":[1200,676],"assets/project-16.webp":[1040,780],"assets/project-17.webp":[1100,733],"assets/project-18.webp":[1100,825],"assets/project-19.webp":[706,325],"assets/project-20.webp":[1200,675],"assets/project-21.webp":[706,325],"assets/project-22.webp":[1100,619],"assets/project-23.webp":[1100,619],"assets/project-24.webp":[1100,825],"assets/project-25.webp":[706,325],"assets/project-26.webp":[1100,733],"assets/project-27.webp":[1440,959],"assets/project-28.webp":[1440,960],"assets/project-29.webp":[1440,960],"assets/service-1.webp":[512,512],"assets/service-2.webp":[512,512],"assets/service-3.webp":[512,512],"assets/service-4.webp":[512,512],"assets/service-5.webp":[512,512],"assets/service-hall.webp":[512,512],"assets/sql-batch-1-1.webp":[933,1400],"assets/sql-batch-1-10.webp":[1400,933],"assets/sql-batch-1-2.webp":[1400,933],"assets/sql-batch-1-3.webp":[1400,933],"assets/sql-batch-1-4.webp":[933,1400],"assets/sql-batch-1-5.webp":[1400,933],"assets/sql-batch-1-6.webp":[1400,933],"assets/sql-batch-1-7.webp":[933,1400],"assets/sql-batch-1-8.webp":[1400,933],"assets/sql-batch-1-9.webp":[1400,933],"assets/sql-batch-2-1.webp":[1400,934],"assets/sql-batch-2-10.webp":[1400,934],"assets/sql-batch-2-2.webp":[1400,934],"assets/sql-batch-2-3.webp":[1400,934],"assets/sql-batch-2-4.webp":[1400,934],"assets/sql-batch-2-5.webp":[1400,934],"assets/sql-batch-2-6.webp":[1400,934],"assets/sql-batch-2-7.webp":[1400,934],"assets/sql-batch-2-8.webp":[1400,934],"assets/sql-batch-2-9.webp":[1400,934],"assets/stripmate-kawah-ratu-group.webp":[1440,1800],"assets/stripmate-logo.webp":[557,200],"assets/stripmate-outdoor-2.webp":[1400,1400],"assets/stripmate-sumbing-group.webp":[1800,1013],"assets/stripmate-trekking-2.webp":[1080,1440],"assets/stripmate-trekking-3.webp":[1080,1440],"assets/stripmate-trekking-cover.webp":[1080,1440],"assets/system-coreva.webp":[1014,484],"assets/system-ipb-connect.webp":[1014,484],"assets/system-ipb-leap-contact.webp":[820,461],"assets/system-ipb-leap-hero.webp":[820,461],"assets/system-ipb-leap-logo.webp":[83,180],"assets/system-ipb-leap.webp":[820,461],"assets/system-itinerary.webp":[480,760],"assets/system-klh-score.webp":[1230,692],"assets/system-optima.webp":[1014,484],"assets/system-ylos.webp":[1014,484],"assets/testimonial-klhk-poster.webp":[960,540],"assets/testimonial-wmk-poster.webp":[960,540]};
 const photo = (src, alt = "", eager = false) => {
   const dimensions = imageDimensions[src];
   const size = dimensions ? ' width="' + dimensions[0] + '" height="' + dimensions[1] + '"' : "";
@@ -163,10 +242,12 @@ function updateWhatsAppLink(link, message = link.dataset.wa) {
 
 $("service-cards").innerHTML = services.map((service, index) =>
   '<article class="service-card" id="' + service.id + '">' +
-    '<div class="service-photo">' + photo("assets/" + service.photo + ".webp") + '<span>' + number(index) + '</span></div>' +
+    '<div class="service-photo">' + photo("assets/" + service.photo + ".webp", service.title, index < 3) + '<span>' + number(index) + '</span></div>' +
     '<div class="card-body"><h3>' + e(service.title) + '</h3><p>' + e(service.description) + '</p>' +
     '<h4>Yang kami tangani</h4>' + list(service.scope) +
-    '<a class="button button-whatsapp service-cta" data-wa="' + e(service.message) + '">Konsultasikan acara ini →</a></div></article>'
+    (service.optional ? '<p class="service-option">' + e(service.optional) + '</p>' : '') +
+    '<div class="service-digital"><h4>Sentuhan digital</h4><p>' + e(service.digital) + '</p></div>' +
+    '<a class="button button-whatsapp service-cta" data-wa="' + e(service.message) + '">Chat WhatsApp</a></div></article>'
 ).join("");
 
 $("benefit-cards").innerHTML = benefits.map(([title, description, symbol], index) =>
@@ -194,7 +275,7 @@ $("process-steps").innerHTML = steps.map(([title, description], index) =>
 
 const lpaCaption = "Foto tim Campus Innovate";
 const astraGallery = ["assets/astra-ecobiz-2.webp", "assets/astra-ecobiz-3.webp"];
-const featured = [28, 27, 29, 15];
+const featured = [14, 15, 27, 28];
 const allProjects = [
   ...featured.map(id => projects.find(project => project.id === id)),
   ...projects.filter(project => !featured.includes(project.id))
@@ -202,10 +283,14 @@ const allProjects = [
 
 function projectCard(project) {
   const caption = project.title + " — " + (project.period || project.year);
-  const image = project.image ? '<div class="project-image">' + photo(project.image, caption, true) + '</div>' : '';
-  return '<article class="project-card">' + image + '<div class="card-body"><p class="project-meta"><span>' + e(project.category) + '</span> · ' + '<span>' + e(project.period || project.year) + '</span>' +
-    '</p><h3>' + e(project.title) + '</h3><p>' + e(project.description) +
-    '</p><p class="project-scope">' + e(project.scope) + '</p><p class="gallery-count">' + e(String((project.image ? 1 : 0) + project.gallery.length)) + ' <span>foto dokumentasi</span></p><button class="text-button" type="button" aria-haspopup="dialog" aria-controls="project-dialog" aria-label="' + e("Lihat proyek " + project.title) + '" data-project="' + project.id + '">Lihat proyek →</button></div></article>';
+  const logo = IO_DATA.clientLogos.find(item => item.src === "assets/client-" + project.client + ".webp") || IO_DATA.clientLogos.find(item => item.name === "Stripmate" && project.client === "stripmate");
+  const brand = logo ? '<div class="project-client-logo">' + photo(logo.src, logo.name) + '</div>' : '';
+  const image = project.image ? '<div class="project-image">' + photo(project.image, caption, featured.includes(project.id)) + brand + '</div>' : '<div class="project-logo-cover">' + brand + '</div>';
+  const thumbs = project.gallery.slice(0,3);
+  const facts = [["Layanan",project.scope],["Bentuk acara",project.format || project.category],[project.participants ? "Peserta" : "Profil peserta",project.participants ? project.participants + " orang" : project.audience]];
+  return '<article class="project-card">' + image +
+    (thumbs.length ? '<div class="project-preview">' + thumbs.map((src,i) => photo(src,project.title + " — dokumentasi " + (i+2))).join('') + '</div>' : '') +
+    '<div class="card-body"><p class="project-meta">' + e(project.period || project.year) + '</p><h3>' + e(project.title) + '</h3><p>' + e(project.description) + '</p><dl class="portfolio-facts">' + facts.filter(([,v])=>v).map(([label,value])=>'<div><dt>'+e(label)+'</dt><dd>'+e(value)+'</dd></div>').join('') + '</dl><p class="gallery-count">' + ((project.image ? 1 : 0) + project.gallery.length ? e(String((project.image ? 1 : 0) + project.gallery.length)) + ' <span>foto dokumentasi</span>' : '<span>Profil proyek institusi</span>') + '</p><button class="text-button" type="button" aria-haspopup="dialog" aria-controls="project-dialog" aria-label="' + e("Lihat proyek " + project.title) + '" data-project="' + project.id + '">Lihat detail proyek</button></div></article>';
 }
 
 function caseStudyCard(study) {
@@ -248,7 +333,7 @@ if (IO_DATA.email) {
 const selector = $("brief-jenis");
 [...services.map(service => service.option), "Lainnya"].forEach(option => selector.add(new Option(option, option)));
 const requestedService = new URLSearchParams(location.search).get("acara")?.toLowerCase();
-const variant = services.find(service => service.id === requestedService);
+const variant = services.find(service => service.id === (requestedService === "gathering" ? "team-building" : requestedService));
 const portfolioDefault = "Dari gathering kantor sampai konferensi internasional.";
 let briefTypeEdited = false;
 selector.addEventListener("change", () => { briefTypeEdited = true; });
@@ -288,7 +373,7 @@ document.addEventListener("click", event => {
   const caption = project.id === 16 ? lpaCaption : (project.galleryCaption || "Dokumentasi");
   $("project-body").innerHTML = '<p class="eyebrow">' + e(project.category) + '</p><h2 id="project-title">' + e(project.title) +
     '</h2>' + (project.period ? '<p class="project-period">' + e(project.period) + '</p>' : '') + '<p>' + e(project.description) + '</p>' +
-    (project.facts?.length ? '<dl class="project-facts">' + project.facts.map(([label,value]) => '<div><dt>' + e(label) + '</dt><dd>' + e(value) + '</dd></div>').join('') + '</dl>' : '') +
+    ([["Layanan", project.scope], ["Bentuk acara", project.format || project.category], [project.participants ? "Peserta" : "Profil peserta", project.participants ? project.participants + " orang" : project.audience], ...(project.facts || []).filter(([label])=>!["Format","Peran","Yang ditangani"].includes(label))].length ? '<dl class="project-facts">' + [["Layanan", project.scope], ["Bentuk acara", project.format || project.category], [project.participants ? "Peserta" : "Profil peserta", project.participants ? project.participants + " orang" : project.audience], ...(project.facts || []).filter(([label])=>!["Format","Peran","Yang ditangani"].includes(label))].filter(([,value])=>value).map(([label,value]) => '<div><dt>' + e(label) + '</dt><dd>' + e(value) + '</dd></div>').join('') + '</dl>' : '') +
     (project.brandLogo ? '<div class="project-brand">' + photo(project.brandLogo, project.title) + '</div>' : '') +
     (project.image ? '<figure' + (project.portrait ? ' class="project-portrait"' : '') + '>' + photo(project.image, caption, true) + (project.id === 16 || project.galleryCaption ? '<figcaption>' + e(caption) + '</figcaption>' : '') + '</figure>' : '') +
     (project.gallery.length ? '<div class="project-gallery">' + project.gallery.map((src, index) => photo(src, (project.galleryCaption || project.title + ' — ' + t('Dokumentasi')) + ' ' + (index + 2), index < 2)).join("") + '</div>' : '') +

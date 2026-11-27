@@ -2,10 +2,14 @@
 
 Live: https://io.campusinnovate.com/
 
-Complete editable source is in [site-source/](site-source/README.md). The page HTML is [site-source/public/index.html](site-source/public/index.html); portfolio data is [site-source/public/assets/app.js](site-source/public/assets/app.js). The site now saves event briefs in a private Cloudflare D1 table before continuing to WhatsApp, so deploy the full Sites project rather than this static snapshot.
+Complete editable source: [site-source/](site-source/README.md). Page HTML: [site-source/public/index.html](site-source/public/index.html). Portfolio/services: [site-source/public/assets/app.js](site-source/public/assets/app.js). Our System: [site-source/public/assets/systems.js](site-source/public/assets/systems.js). Current brand/aurora styling: [site-source/public/assets/brand-refresh.css](site-source/public/assets/brand-refresh.css).
 
-The root `index.html`, `assets/`, `robots.txt` and `sitemap.xml` are matching public-page exports for compatibility. Apply future edits to `site-source/`, run `node scripts/prepare-site.mjs`, validate and publish through ChatGPT Sites, then refresh these exports. Preserve Site identity `appgprj_6af2a97417c48191954e9f651b24017e`, the public audience, custom domain and existing itinerary page.
+The site saves incoming briefs to a private D1 table before WhatsApp. Deploy the complete Sites source, not the static export alone. The root index.html/assets/robots.txt/sitemap.xml remain synchronized exports for compatibility. Preserve the Site identity, public audience, custom domain, existing lead storage/tracking and itinerary source. Run node scripts/prepare-site.mjs after edits, validate and build, then publish through Sites.
 
-This update: 26 projects and 22 clients & partners confirmed by the owner; five flexible FAQ answers; expanded scope/details; eight portfolios with 10–11 original photo files; two original participant videos; fixed WhatsApp button, glossy surfaces, aurora gradients and moving client marks; persistent brief collection. The real Google Ads action label for “Kirim Brief” remains pending account access. See source README for tracking setup, privacy boundaries and checks.
+Published version 32: full-width opposing client-logo tracks without fade masks; continuous navy/blue/gold aurora; larger animated hero figures (26 projects, 22 clients & partners, 2 countries); glossy shaped CTAs; revised five-service copy and process; Our System reasons, workflow and original KLH/IPB Leap/itinerary mockups; separately labeled Campus Innovate digital work; client logos and structured portfolio facts; 18 portfolio entries including two SQL training batches with twenty added original photos; organized four-column footer.
 
-Sites source commit: `8c701c9a51980759a364b416969558d432c4fc42`; published version: 31. Google Ads receipt is not claimed as verified.
+Per-event participant counts still require confirmed data. Static system photos can be replaced with actual videos when supplied; no video demo is implied. The itinerary shown is the existing demo, not a completed future event. Details and provenance: site-source/docs/quality-baseline.md and site-source/docs/redesign-media-sources.json.
+
+Google Ads action setup/status remains as documented in site-source/README.md; the real Kirim Brief conversion label is still pending account access. Twelve lead/tracking/form tests pass. Desktop UI and language checks completed; native mobile emulation was unavailable.
+
+Sites source commit: f150083385771c5156a573192799b35aae9bc183.

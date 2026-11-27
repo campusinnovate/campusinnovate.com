@@ -1,7 +1,7 @@
 const MAX_BODY = 8192;
 const json = (body, status = 200) => Response.json(body, { status, headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
 const text = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
-const services = new Set(['Gathering & Outing', 'Team Building', 'Seminar & Konferensi', 'Acara Perusahaan', 'Pelatihan & Workshop', 'Lainnya', '']);
+const services = new Set(['Gathering & Outing', 'Team Building', 'Seminar & Konferensi', 'Acara Perusahaan', 'Pelatihan & Workshop', 'Event Support', 'Lainnya', '']);
 const recentSubmissions = new Map();
 
 export async function handleBrief(request, env) {

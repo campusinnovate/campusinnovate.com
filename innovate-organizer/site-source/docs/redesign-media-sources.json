@@ -1,0 +1,140 @@
+{
+  "company_profile": {
+    "filename": "Company Profile Campus Innovate_20261126_161806_0000.pdf",
+    "library_file_id": "libfile_32e3b5eefa8881918fe9085185050385",
+    "pages": {
+      "klh_scoring": 31,
+      "ipb_leap": 27,
+      "coreva": 21,
+      "ipb_connect": 23,
+      "optima": 16,
+      "ylos": 20
+    }
+  },
+  "itinerary": {
+    "source": "public/itinerary/index.html",
+    "representation": "Screenshot of the existing public demo; not a completed event claim."
+  },
+  "sql_photos": [
+    {
+      "asset": "assets/sql-batch-1-1.webp",
+      "drive_id": "1UV25Yak7cQINIAXACBUGhxI5YJ7bfJPj",
+      "original_name": "FIN01068.JPG",
+      "source_folder": "sql1-camera"
+    },
+    {
+      "asset": "assets/sql-batch-1-2.webp",
+      "drive_id": "1zCsWVQVIIpHXQa_CrIJJtzsq9ObO1ADI",
+      "original_name": "FIN01057.JPG",
+      "source_folder": "sql1-camera"
+    },
+    {
+      "asset": "assets/sql-batch-1-3.webp",
+      "drive_id": "1V8MLhnMtZeBramP-TUwoHkT9mQc5VFit",
+      "original_name": "FIN01045.JPG",
+      "source_folder": "sql1-camera"
+    },
+    {
+      "asset": "assets/sql-batch-1-4.webp",
+      "drive_id": "17vG2A2U3nPnV8S_-wsoEX9jh18XJxSvA",
+      "original_name": "FIN01035.JPG",
+      "source_folder": "sql1-camera"
+    },
+    {
+      "asset": "assets/sql-batch-1-5.webp",
+      "drive_id": "1BQkwiZZUSObQMTXuonj9Tw3XUM3yJarN",
+      "original_name": "FIN01025.JPG",
+      "source_folder": "sql1-camera"
+    },
+    {
+      "asset": "assets/sql-batch-1-6.webp",
+      "drive_id": "1HLZcIdCaIOCXH_d8E5HktXjlL6SOF2Fv",
+      "original_name": "FIN01014.JPG",
+      "source_folder": "sql1-camera"
+    },
+    {
+      "asset": "assets/sql-batch-1-7.webp",
+      "drive_id": "11pd3umvULr0JqG4O96uBZKUXEp6TzksP",
+      "original_name": "FIN01002.JPG",
+      "source_folder": "sql1-camera"
+    },
+    {
+      "asset": "assets/sql-batch-1-8.webp",
+      "drive_id": "1-im19oIMd0-dDe3DGAELqrJru7wJwbij",
+      "original_name": "FIN00991.JPG",
+      "source_folder": "sql1-camera"
+    },
+    {
+      "asset": "assets/sql-batch-1-9.webp",
+      "drive_id": "1BuoZvhMIsO6fIQkAXubGpS9GcZMkUeom",
+      "original_name": "FIN00981.JPG",
+      "source_folder": "sql1-camera"
+    },
+    {
+      "asset": "assets/sql-batch-1-10.webp",
+      "drive_id": "1lWq40ARnrr62ciXXf9mjFU-grbB-jKwZ",
+      "original_name": "FIN00969.JPG",
+      "source_folder": "sql1-camera"
+    },
+    {
+      "asset": "assets/sql-batch-2-1.webp",
+      "drive_id": "1lvRxYQb4tjfdcvHa1vtLWkiJ7UjYmFHM",
+      "original_name": "FIN01331.JPG",
+      "source_folder": "sql2-photos"
+    },
+    {
+      "asset": "assets/sql-batch-2-2.webp",
+      "drive_id": "16hg8Pl9IJp-LiXeihqUKibxt5ACLHRyb",
+      "original_name": "FIN01323.JPG",
+      "source_folder": "sql2-photos"
+    },
+    {
+      "asset": "assets/sql-batch-2-3.webp",
+      "drive_id": "1SuRxtuXcNiVyz2xwZhGMKddcGuIX5bWA",
+      "original_name": "FIN01314.JPG",
+      "source_folder": "sql2-photos"
+    },
+    {
+      "asset": "assets/sql-batch-2-4.webp",
+      "drive_id": "1OBLWGcYe1i5w7Eeki_cnX-A1yMgypBm0",
+      "original_name": "FIN01305.JPG",
+      "source_folder": "sql2-photos"
+    },
+    {
+      "asset": "assets/sql-batch-2-5.webp",
+      "drive_id": "1fm2xTLg4qDBbgwqBjvdZsgsqa1JzewHW",
+      "original_name": "FIN01295.JPG",
+      "source_folder": "sql2-photos"
+    },
+    {
+      "asset": "assets/sql-batch-2-6.webp",
+      "drive_id": "1RxZiFWPOYt-Yb7Hd2zAbeIB14hmZUW1Y",
+      "original_name": "FIN01285.JPG",
+      "source_folder": "sql2-photos"
+    },
+    {
+      "asset": "assets/sql-batch-2-7.webp",
+      "drive_id": "1drogiXd-28wrpUt1DS6AzW-1nEIYKsqq",
+      "original_name": "FIN01276.JPG",
+      "source_folder": "sql2-photos"
+    },
+    {
+      "asset": "assets/sql-batch-2-8.webp",
+      "drive_id": "1Qp1CSvwMW-CtqfUAdL7UsBCb1qwF44AL",
+      "original_name": "FIN01267.JPG",
+      "source_folder": "sql2-photos"
+    },
+    {
+      "asset": "assets/sql-batch-2-9.webp",
+      "drive_id": "1kqiPoh2k91UJAxETcqiW7NzT7GTDxGiD",
+      "original_name": "FIN01258.JPG",
+      "source_folder": "sql2-photos"
+    },
+    {
+      "asset": "assets/sql-batch-2-10.webp",
+      "drive_id": "1s3XXcl-WYyNyJuBFPhf32PmzZhIfccPL",
+      "original_name": "FIN01248.JPG",
+      "source_folder": "sql2-photos"
+    }
+  ]
+}

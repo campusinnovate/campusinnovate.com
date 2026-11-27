@@ -74,3 +74,6 @@ test('failed form retains inputs, closes popup and does not report a lead',async
 test('popup blockers leave an accessible continuation link after saving',async()=>{
  const ui=briefUI({popupAllowed:false});await ui.submit();assert.equal(ui.elements['brief-continue'].hidden,false);assert.match(ui.elements['brief-continue'].href,/^https:\/\/wa.me\//);
 });
+test('accepts Event Support from the updated service selector', async()=>{
+ const res=await handleBrief(request({...valid,jenis:'Event Support'}),{DB:database()});assert.equal(res.status,201);
+});
