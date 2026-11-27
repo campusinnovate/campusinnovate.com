@@ -26,6 +26,6 @@ document.addEventListener('click',event=>{
 $('system-dialog').addEventListener('close',()=>{$('system-body').querySelectorAll('video').forEach(v=>v.pause());});
 $('stats-toggle').addEventListener('click',()=>{
  const paused=$('stats-toggle').getAttribute('aria-pressed')!=='true';
- $('stats-toggle').setAttribute('aria-pressed',String(paused));$('hero-stats').dataset.paused=String(paused);
- $('stats-toggle').setAttribute('aria-label',paused?'Putar animasi angka':'Jeda animasi angka');translateSiteTree($('stats-toggle'));
+ $('stats-toggle').setAttribute('aria-pressed',String(paused));$('hero-stats').dataset.paused=String(paused);$('main').dataset.motionPaused=String(paused);
+ $('stats-toggle').setAttribute('aria-label',paused?'Putar efek gerak':'Jeda efek gerak');translateSiteTree($('stats-toggle'));
 });

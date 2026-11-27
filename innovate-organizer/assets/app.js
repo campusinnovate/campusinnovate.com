@@ -340,7 +340,17 @@ selector.addEventListener("change", () => { briefTypeEdited = true; });
 
 function updateLocalizedContent() {
   const active = siteLanguage === "id" ? variant : null;
-  $("hero-headline").textContent = active ? active.headline : t(defaultHeadline);
+  const headlineText = active ? active.headline : t(defaultHeadline);
+  const headline = $("hero-headline");
+  headline.classList.toggle("hero-two-lines", headlineText === defaultHeadline);
+  if (headlineText === defaultHeadline) {
+    headline.replaceChildren();
+    const lines = ["Acara kantor dan institusi di Jabodetabek,", "beres dari konsep sampai laporan."];
+    lines.forEach((text, index) => {
+      if (index) headline.append(document.createTextNode(" "));
+      const span = document.createElement("span"); span.className = "hero-line"; span.textContent = text; headline.append(span);
+    });
+  } else headline.textContent = headlineText;
   document.querySelectorAll("[data-wa]").forEach(link => updateWhatsAppLink(link));
   updateWhatsAppLink($("hero-wa"), active ? active.message : greeting);
   for (const service of services) $(service.id).classList.toggle("is-highlight", service === active);

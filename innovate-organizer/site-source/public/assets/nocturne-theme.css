@@ -77,3 +77,60 @@ dialog{background:var(--nc-surface-raised);color:var(--nc-ink);border-color:var(
 @media(max-width:1050px){.header{border-radius:var(--nc-radius-lg)}}
 @media(prefers-reduced-motion:reduce){main::before,.hero::before{animation:none!important}}
 @media print{main,.hero,.section,.footer,dialog,.form-panel{background:white!important;color:#111!important}.hero::after{display:none}.section-head h2,.section-head h3,.card-body h3,.card-body h4,.card-body>p,.portfolio-facts dd,.form-grid label{color:#111!important}}
+
+/* Hero, proof and motion refinement — retain the supplied Nocturne palette. */
+@font-face{font-family:"Plus Jakarta Display";src:url("plus-jakarta-800.ttf") format("truetype");font-weight:800;font-style:normal;font-display:swap}
+.hero-content{width:min(1400px,calc(100% - 80px));padding-top:48px}
+.hero h1{font-family:"Plus Jakarta Display",Poppins,system-ui,sans-serif;font-weight:800;font-size:clamp(3rem,4.85vw,4.6rem);line-height:1.12;letter-spacing:-.055em;max-width:none;text-wrap:balance;color:var(--nc-palette-ice)}
+.hero-two-lines .hero-line{display:block;white-space:nowrap}
+.hero .eyebrow{font-size:.875rem;letter-spacing:.14em;margin-bottom:24px}
+.hero-lede{font-size:1.0625rem;max-width:825px;line-height:1.8;margin-top:28px}
+.hero-actions{margin-top:30px}.hero-actions .button{min-height:52px;font-size:.9375rem;padding-inline:27px}
+.hero{background:radial-gradient(ellipse at 0 100%,#1543a0b3,transparent 65%),linear-gradient(135deg,#032a5a 5%,#073272 55%,#1543a0);overflow:hidden}
+.hero::before{opacity:.25;filter:blur(60px);animation:none!important}
+.aurora-scene{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;isolation:isolate;opacity:.9}
+.aurora-scene i{position:absolute;display:block;pointer-events:none;filter:blur(35px);will-change:transform;border-radius:50%;mix-blend-mode:screen}
+.aurora-scene i:first-child{width:140%;height:39%;left:-20%;top:29%;transform:rotate(-21deg);background:linear-gradient(180deg,transparent 8%,#1543a000 18%,#2f5fd070 42%,#5b7cff99 53%,#1543a033 67%,transparent 88%);opacity:.65}
+.aurora-scene i:nth-child(2){width:125%;height:43%;left:-36%;top:62%;transform:rotate(18deg);background:linear-gradient(180deg,transparent 8%,#4a74a726 28%,#5b7cff73 50%,#1543a04d 67%,transparent 90%);opacity:.55}
+.aurora-scene i:nth-child(3){width:65%;height:95%;right:-30%;top:-10%;background:radial-gradient(ellipse at 50% 50%,#5b7cff99,#1543a059 44%,transparent 70%);opacity:.9;filter:blur(50px)}
+main::before{inset:-20%;background:radial-gradient(ellipse at 95% 25%,#5b7cff54,transparent 42%),radial-gradient(ellipse at 8% 70%,#1543a0b3,transparent 45%);filter:blur(50px);opacity:.8}
+.section:not(.brief)::before{background:radial-gradient(ellipse at 100% 20%,#5b7cff17,transparent 52%),radial-gradient(ellipse at 0 85%,#1543a04d,transparent 50%)}
+.hero-proof{position:relative;max-width:1040px;margin:36px auto 0}
+.proof-grid{padding:0;border:0;gap:18px;align-items:stretch}
+.proof-grid>div{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:auto 1fr;align-items:center;text-align:start;gap:0 18px;padding:24px 26px;min-height:142px;border:1px solid #7fa3d680;border-radius:24px;background:radial-gradient(ellipse at 100% 0,#5b7cff33,transparent 75%),linear-gradient(125deg,#12408fd9,#0b3473d9);backdrop-filter:blur(16px);box-shadow:inset 0 1px 0 #dceaf72b,0 16px 36px #08142633}
+.proof-grid>div::after{content:"";position:absolute;inset:-80%;z-index:-1;pointer-events:none;background:linear-gradient(115deg,transparent 39%,#dceaf717 49%,transparent 59%);transform:translateX(-30%)}
+.proof-grid strong{font-family:"Plus Jakarta Display",Poppins,sans-serif;font-weight:800;font-size:clamp(4rem,6vw,5.4rem);line-height:1;letter-spacing:-.07em;grid-row:span 2;background-image:linear-gradient(110deg,#dceaf7 20%,#bcd4f5 50%,#dceaf7 80%)}
+.proof-grid span{font-size:1.125rem;font-weight:600;line-height:1.35;color:var(--nc-ink)}.proof-grid small{font-size:.875rem;line-height:1.5;color:var(--nc-ink-muted)}.proof-grid>div:not(:last-child) span{grid-row:span 2}
+.proof-caption{margin:12px 0 0;justify-content:flex-end;min-height:36px}.motion-toggle{width:36px;height:36px;flex-basis:36px;background:#0b347380;backdrop-filter:blur(10px)}
+.hero-gallery{margin-top:0;padding-top:22px}
+.trust{padding-top:40px;padding-bottom:30px}.trust-heading{margin-bottom:22px}.trust-heading p{font-size:1.125rem;font-weight:600;color:var(--nc-ink)}
+#client-logos{padding:0;background:transparent;gap:18px;overflow:hidden}
+.logo-marquee{mix-blend-mode:normal;background:transparent;mask-image:none;-webkit-mask-image:none}.logo-track{padding:8px 0 16px}.logo-group{gap:18px;padding-inline-end:18px}
+#client-logos .logo-group li{width:196px;flex-basis:196px;height:118px;padding:22px;border-radius:20px;background:linear-gradient(140deg,#dceaf7,#bcd4f5);border:1px solid #dceaf799;box-shadow:inset 0 1px 0 #ffffff73,0 10px 24px #08142640}
+#client-logos .logo-group img{height:74px;object-fit:contain;mix-blend-mode:multiply;filter:none;opacity:1;max-width:100%}
+#client-logos .logo-group .client-logo-wide{width:286px;flex-basis:286px}
+main :is(.service-card,.project-card,.benefit-card,.partner-card,.support,.testimonial-grid figure),.system-card,.form-panel{background:radial-gradient(ellipse at 100% 0,#5b7cff21,transparent 62%),linear-gradient(140deg,#12408f80,#0b3473 65%);border-color:#4a74a799;box-shadow:inset 0 1px 0 #dceaf71f,0 16px 36px #08142640}
+main .benefit-grid>.benefit-card:nth-child(2){background:radial-gradient(ellipse at 100% 0,#5b7cff40,transparent 65%),linear-gradient(140deg,#12408f,#0b3473)}
+.brand-principles article,.closing-inner{box-shadow:inset 0 1px 0 #dceaf71f,0 20px 44px #0814264d;border-color:#4a74a799}
+.surface-motion{position:relative;isolation:isolate;overflow:hidden}
+.surface-motion::before{content:"";position:absolute;inset:-40%;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 80% 15%,#5b7cff4d,transparent 48%),radial-gradient(ellipse at 20% 85%,#1543a059,transparent 58%);filter:blur(24px);opacity:.45;transform:translate(-6%,0) rotate(-6deg)}
+.principle-tech.surface-motion::before{display:none}.principle-tech::after{z-index:-1}.principle-tech .principle-photo{z-index:-2}
+main :is(.service-card,.project-card,.benefit-card,.partner-card):not(.io-reveal-pending):hover,.system-card:hover{box-shadow:inset 0 1px 0 #dceaf733,0 24px 52px #08142673;border-color:var(--nc-line-strong)}
+.system-screen{background:radial-gradient(ellipse at 60% 0,#5b7cff59,transparent 72%),linear-gradient(140deg,#12408f,#0b3473)}
+@media(min-width:1600px){.hero h1{font-size:4.6rem;letter-spacing:-.06em}}
+@media(min-width:1100px) and (max-width:1230px){.hero h1{font-size:4.65vw;letter-spacing:-.06em}.hero-content{width:calc(100% - 56px)}.proof-grid>div{padding:24px 20px;gap:0 12px}.proof-grid strong{font-size:4.25rem}.proof-grid span{font-size:1rem}}
+@media(max-width:1099px){.hero-two-lines .hero-line{white-space:normal}.hero h1{font-size:clamp(2.75rem,5.6vw,3.8rem);max-width:900px}.hero-content{width:calc(100% - 48px)}.proof-grid>div{padding:22px 18px;gap:0 12px;grid-template-columns:1fr;text-align:center;justify-items:center}.proof-grid strong{font-size:4.4rem;grid-row:auto}.proof-grid span,.proof-grid>div:not(:last-child) span{grid-row:auto;font-size:1.0625rem}.proof-grid small{font-size:.875rem}.proof-caption{margin-top:14px}}
+@media(max-width:579px){.hero-content{width:calc(100% - 36px);padding-top:30px}.hero h1{font-size:clamp(2.25rem,8.5vw,3rem);line-height:1.12;letter-spacing:-.055em}.hero .eyebrow{font-size:.75rem;max-width:320px;letter-spacing:.1em}.hero-lede{font-size:1rem;line-height:1.8;margin-top:24px}.hero-actions .button{font-size:.875rem;min-height:50px;padding-inline:20px}.hero-proof{margin-top:30px}.proof-grid{gap:8px}.proof-grid>div{min-height:157px;padding:18px 8px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:8px;border-radius:18px}.proof-grid strong{font-size:3.2rem;line-height:1.05}.proof-grid span{font-size:.875rem;line-height:1.35}.proof-grid small{font-size:.75rem;line-height:1.4;max-width:98px}.proof-caption{margin-top:12px}.hero-gallery{margin-top:-4px}.trust{padding-top:32px}.trust-heading p{font-size:1rem}.logo-group{gap:12px;padding-inline-end:12px}#client-logos{gap:10px}#client-logos .logo-group li{width:170px;flex-basis:170px;height:104px;padding:20px;border-radius:18px}#client-logos .logo-group img{height:64px}#client-logos .logo-group .client-logo-wide{width:250px;flex-basis:250px}}
+@media(prefers-reduced-motion:no-preference){
+ @keyframes io-aurora-ribbon{0%,100%{transform:translate3d(-6%,-5%,0) rotate(-24deg) scaleY(.9)}50%{transform:translate3d(9%,13%,0) rotate(-12deg) scaleY(1.2)}}
+ @keyframes io-aurora-ribbon-two{0%,100%{transform:translate3d(0,5%,0) rotate(18deg)}50%{transform:translate3d(12%,-9%,0) rotate(30deg)}}
+ @keyframes io-aurora-bloom{0%,100%{transform:translate3d(0,-4%,0) scale(.9);opacity:.65}50%{transform:translate3d(-15%,12%,0) scale(1.15);opacity:1}}
+ @keyframes io-card-aura{0%,100%{transform:translate3d(-6%,-3%,0) rotate(-6deg);opacity:.35}50%{transform:translate3d(9%,10%,0) rotate(12deg);opacity:.7}}
+ @keyframes io-proof-sheen{0%,100%{transform:translateX(-25%)}50%{transform:translateX(25%)}}
+ .aurora-scene i:first-child{animation:io-aurora-ribbon 12s ease-in-out infinite}.aurora-scene i:nth-child(2){animation:io-aurora-ribbon-two 16s ease-in-out infinite}.aurora-scene i:nth-child(3){animation:io-aurora-bloom 14s ease-in-out infinite}
+ .surface-motion::before{animation:io-card-aura 12s ease-in-out infinite;animation-delay:var(--motion-phase,0s);animation-play-state:paused}.surface-motion.is-in-view::before{animation-play-state:running}
+ .proof-grid>div::after{animation:io-proof-sheen 10s ease-in-out infinite}.proof-grid[data-paused=true]>div::after{animation-play-state:paused}
+ main[data-motion-paused=true]::before,main[data-motion-paused=true] .aurora-scene i,main[data-motion-paused=true] .surface-motion::before,main[data-motion-paused=true] .proof-grid>div,main[data-motion-paused=true] .proof-grid strong,main[data-motion-paused=true] .proof-grid>div::after{animation-play-state:paused!important}
+}
+@media(prefers-reduced-motion:reduce){.aurora-scene i,.surface-motion::before,.proof-grid>div::after{animation:none!important}.aurora-scene i{will-change:auto}.surface-motion::before{opacity:.3}}
+@media print{.aurora-scene{display:none}.surface-motion::before,.proof-grid>div::after{display:none}}

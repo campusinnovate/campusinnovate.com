@@ -1,6 +1,8 @@
 "use strict";
 
 const localeRows = `
+Jeda efek gerak|Pause visual motion|إيقاف الحركة المرئية مؤقتًا|暂停视觉动效
+Putar efek gerak|Resume visual motion|استئناف الحركة المرئية|恢复视觉动效
 Pilih bahasa|Choose language|اختر اللغة|选择语言
 Lewati navigasi|Skip navigation|تجاوز التنقل|跳过导航
 Navigasi utama|Main navigation|التنقل الرئيسي|主导航

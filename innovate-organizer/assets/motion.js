@@ -39,5 +39,17 @@
   preference.addEventListener("change", event => {
     if (event.matches) release();
   });
+  const surfaces = Array.from(document.querySelectorAll(".brand-principles article,.service-card,.benefit-card,.project-card,.partner-card,.system-card,.closing-inner,.form-panel"));
+  const surfaceObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => entry.target.classList.toggle("is-in-view", entry.isIntersecting));
+  }, { threshold: 0.05 });
+  surfaces.forEach((surface, index) => {
+    surface.classList.add("surface-motion");
+    surface.style.setProperty("--motion-phase", `${-(index % 5) * 1.7}s`);
+    surfaceObserver.observe(surface);
+  });
+  preference.addEventListener("change", event => {
+    if (event.matches) { surfaceObserver.disconnect(); surfaces.forEach(surface => surface.classList.remove("is-in-view")); }
+  });
   window.addEventListener("beforeprint", release);
 })();

@@ -84,3 +84,8 @@ Browser checks: dark page/card/form surfaces verified, text inherits #DCEAF7, re
 ## Supplied Nocturne design system (27 November 2026)
 
 The uploaded `Nocturne.zip` supersedes earlier inferred palette treatments. It adds authoritative deep navy #032A5A, royal blue #1543A0 and electric decorative glow #5B7CFF to the four original reference colors. The new Nocturne token and adapter styles are the last stylesheet layer. Regular surfaces use the supplied #0B3473/#12408F without shadows, primary controls use #2F5FD0 with white text, and floating elements use the supplied raised shadow. Hero texture and aurora are adapted from the archive. Detailed provenance, mapping, scope and measured contrast are in `nocturne-integration.md`. Existing structure, copy, Poppins type, media, backend and tracking are preserved. Browser verification and all twelve existing tests pass; no new mobile browser pass is claimed.
+
+
+## Hero/aurora, proof, logo and lower-card polish (27 November 2026)
+
+User requested stronger moving aurora, a different larger hero font in two lines, larger infographic text without the previous team caption, clearer client logos, and gradient/shadow/motion treatment on lower shapes. Implementation and browser verification are documented in `nocturne-integration.md`. The header copy retains its exact words; only the requested caption is removed. The headline and proof figures use locally hosted Plus Jakarta Sans 800; body Poppins, Nocturne colors, portfolio, backend and tracking remain. Effects can be paused and honor reduced motion; lower-card effects run only in view. Existing tests pass.
