@@ -10,7 +10,9 @@ The site uses the Sites Vinext starter to retain the existing HTML design while 
 - `public/index.html`: original page HTML, SEO, form and FAQ.
 - `public/assets/app.js`: services, portfolio descriptions, scopes and galleries.
 - `public/assets/languages.js`: language dictionaries.
-- `public/assets/style.css`, `motion.js`: existing visual design and motion.
+- `public/assets/style.css`: base layout and controls.
+- `public/assets/brand-refresh.css`: authoritative four-color reference theme (#DCEAF7, #4A74A7, #142A44, #081426), centered gallery hero, bento principles, responsive surfaces and motion.
+- `public/assets/motion.js`, `systems.js`: progressive reveals, system showcase and figure motion controls.
 - `public/assets/tracking.js`: conversion tracking; contains the existing WhatsApp Ads action and a deliberately empty destination for the pending “Kirim Brief” action.
 - `public/assets/brief.js`: save first, then continue to WhatsApp.
 - `worker/leads.mjs`, `app/api/brief/route.ts`: validated, anonymous write-only lead endpoint.
