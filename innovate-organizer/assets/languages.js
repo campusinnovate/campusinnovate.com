@@ -1,6 +1,12 @@
 "use strict";
 
 const localeRows = `
+Konsultasi gratis|Free consultation|استشارة مجانية|免费咨询
+via WhatsApp|via WhatsApp|عبر واتساب|通过 WhatsApp
+Konsultasi gratis via WhatsApp|Free consultation via WhatsApp|استشارة مجانية عبر واتساب|通过 WhatsApp 免费咨询
+Dokumentasi Student Entrepreneur Expo IPB|Student Entrepreneur Expo IPB event photos|صور معرض رواد الأعمال الطلابي في IPB|IPB 学生创业博览会活动照片
+Dokumentasi pelepasan ekspor bersama DPMA IPB University|Export ceremony with DPMA IPB University|حفل إطلاق التصدير مع DPMA بجامعة IPB|与 IPB 大学 DPMA 举行的出口启运仪式
+
 Jeda efek gerak|Pause visual motion|إيقاف الحركة المرئية مؤقتًا|暂停视觉动效
 Putar efek gerak|Resume visual motion|استئناف الحركة المرئية|恢复视觉动效
 Pilih bahasa|Choose language|اختر اللغة|选择语言

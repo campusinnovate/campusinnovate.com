@@ -89,3 +89,10 @@ The uploaded `Nocturne.zip` supersedes earlier inferred palette treatments. It a
 ## Hero/aurora, proof, logo and lower-card polish (27 November 2026)
 
 User requested stronger moving aurora, a different larger hero font in two lines, larger infographic text without the previous team caption, clearer client logos, and gradient/shadow/motion treatment on lower shapes. Implementation and browser verification are documented in `nocturne-integration.md`. The header copy retains its exact words; only the requested caption is removed. The headline and proof figures use locally hosted Plus Jakarta Sans 800; body Poppins, Nocturne colors, portfolio, backend and tracking remain. Effects can be paused and honor reduced motion; lower-card effects run only in view. Existing tests pass.
+
+
+## Hero documentary gallery, information labels and WhatsApp CTA (27 November 2026)
+
+The two top-gallery screen previews are replaced with existing documentary assets: Student Entrepreneur Expo IPB (`project-25.webp`) and DPMA IPB University export ceremony (`project-20.webp`). Six tiles remain; the systems portfolio retains its IPB Leap/live-scoring mockups. Decorative SVG icons and shaped labels clarify section eyebrows, service scope/digital labels, project facts and FAQ. Original text nodes are preserved for translations, including modal facts. The floating WhatsApp control now visibly reads “Konsultasi gratis” / “via WhatsApp”, with an accessible translated name, responsive pill sizing and the existing phone, message and delegated tracking attributes. No backend, database or lead/conversion behavior changes.
+
+Validation: JavaScript syntax checks and all twelve existing lead/tracking tests pass. The managed preview started, but no browser-control tool was exposed in this turn; no new visual browser verification is claimed. Preview was stopped.

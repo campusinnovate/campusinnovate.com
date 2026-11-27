@@ -390,7 +390,57 @@ document.addEventListener("click", event => {
     '<h3>' + e(project.scope) + '</h3>' + list(project.deliverables) +
     '<a class="button button-whatsapp" data-tracking-location="project-' + project.id + '" data-wa="' + e(project.contactMessage || greeting) + '">' + e(project.contactLabel || "Konsultasi Gratis via WhatsApp") + '</a>';
   $("project-body").querySelectorAll("[data-wa]").forEach(link => updateWhatsAppLink(link));
+  decorateProjectFacts($("project-body"));
+  addInfoIcon($("project-body").querySelector(".eyebrow"), "photo", "info-pill");
   translateSiteTree($("project-body"));
   $("project-dialog").showModal();
 }, true);
 
+
+
+// Decorative information icons preserve the original text nodes for translation.
+const infoSymbols = {
+  sparkle: "m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6L12 3Z",
+  service: "M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 7h18v13H3V7Zm0 6a25 25 0 0 0 18 0M10 12h4v4h-4z",
+  system: "M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 3h6m-3-3v6",
+  photo: "M5 5h14a2 2 0 0 1 2 2v12H3V7a2 2 0 0 1 2-2Zm-2 11 5-5 4 4 3-3 6 6M15 9h.01",
+  people: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.9M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-7.9a4 4 0 0 1 0 7.8",
+  check: "m7 12 3 3 7-7M5 3h14v18H5V3Z",
+  info: "M12 16v-4m0-4h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z",
+  calendar: "M4 5h16v16H4V5Zm3-3v6m10-6v6M4 10h16m-12 4h3m2 3h3",
+  chat: "M21 11a9 9 0 0 1-9 9 10 10 0 0 1-4-1l-5 2 1.5-5A9 9 0 1 1 21 11ZM8 10h8m-8 4h5"
+};
+function addInfoIcon(element, symbol, extraClass = "") {
+  if (!element || element.querySelector(":scope > .info-icon")) return;
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  icon.setAttribute("viewBox", "0 0 24 24");
+  icon.setAttribute("aria-hidden", "true");
+  icon.setAttribute("focusable", "false");
+  icon.classList.add("info-icon");
+  const path = document.createElementNS(icon.namespaceURI, "path");
+  path.setAttribute("d", infoSymbols[symbol] || infoSymbols.info);
+  icon.append(path);
+  const text = document.createElement("span");
+  while (element.firstChild) text.append(element.firstChild);
+  element.append(icon, text);
+  element.classList.add("with-info-icon");
+  if (extraClass) element.classList.add(extraClass);
+}
+function decorateProjectFacts(root) {
+  root.querySelectorAll(".portfolio-facts > div, .project-facts > div").forEach((fact, index) => {
+    addInfoIcon(fact.querySelector("dt"), ["service", "calendar", "people"][index % 3]);
+  });
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const sectionSymbols = {teknologi:"sparkle",layanan:"service","our-system":"system",workfolio:"photo",faq:"info",brief:"check"};
+  document.querySelectorAll(".section-head .eyebrow, .system-heading-row .eyebrow, .closing .eyebrow").forEach(label => {
+    const section = label.closest("section");
+    addInfoIcon(label, sectionSymbols[section?.id] || "calendar", "info-pill");
+  });
+  document.querySelectorAll(".service-card h4").forEach(label => {
+    addInfoIcon(label, label.closest(".service-digital") ? "system" : "check", "info-caption");
+  });
+  document.querySelectorAll(".system-reasons h3").forEach((label,index) => addInfoIcon(label, ["info","check","people","photo"][index]));
+  document.querySelectorAll(".faq-list summary").forEach(label => addInfoIcon(label, "chat"));
+  decorateProjectFacts(document);
+});
