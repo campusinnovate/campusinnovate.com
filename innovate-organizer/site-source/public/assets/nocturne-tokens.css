@@ -1,0 +1,151 @@
+/* Nocturne — generated from tokens.json */
+:root, [data-theme="dark"] {
+  --nc-palette-ice: #dceaf7; /* Palet inti #DCEAF7 — biru es. Teks utama di tema gelap, latar lembut di tema terang. */
+  --nc-palette-steel: #4a74a7; /* Palet inti #4A74A7 — biru baja. Warna aksi utama (tombol primer, ikon aktif). Teks putih di atasnya 4.8:1. */
+  --nc-palette-navy: #142a44; /* Palet inti #142A44 — navy keabuan. Blok ilustrasi dan tumpukan pil; tidak lagi dipakai sebagai latar. */
+  --nc-palette-midnight: #081426; /* Palet inti #081426 — tengah malam. Bagian terdalam (footer, overlay, bayangan) di tema gelap; teks utama di tema terang. */
+  --nc-palette-deep: #032a5a; /* Biru navy pekat dari company profile Innovate Organizer. Latar halaman tema gelap — warna paling dominan. */
+  --nc-palette-royal: #1543a0; /* Biru kobalt terang dari gradasi company profile. Ujung terang gradasi latar dan cahaya buram (nc-aurora) — bukan untuk teks. */
+  --nc-palette-glow: #5b7cff; /* Turunan dari cahaya biru elektrik pada referensi. Hanya untuk aksen dekoratif, sorotan dan glow — jangan untuk teks panjang. */
+  --nc-bg: var(--nc-palette-deep); /* Latar halaman — navy pekat #032A5A di tema gelap. */
+  --nc-surface: #0b3473; /* Kartu, panel, input. */
+  --nc-surface-raised: #12408f; /* Elemen terangkat: hover baris, navbar, badge netral. */
+  --nc-line: #1f4f9e; /* Garis pemisah dan border kartu (dekoratif, bukan border kontrol). */
+  --nc-line-strong: #7fa3d6; /* Border kontrol (input, tombol sekunder) — ≥3:1 terhadap bg dan surface di kedua tema. */
+  --nc-ink: var(--nc-palette-ice); /* Teks utama di bg, surface dan surface-raised (≥11:1 di kedua tema). */
+  --nc-ink-muted: #b4c8e6; /* Teks sekunder, label, caption di bg, surface dan surface-raised (≥6:1). */
+  --nc-primary: #2f5fd0; /* Isi tombol primer dan status aktif — biru kobalt cerah di tema gelap, biru baja di tema terang. Satu aksi primer per tampilan. */
+  --nc-primary-hover: #3d6ee0; /* Hover tombol primer. */
+  --nc-on-primary: #ffffff; /* Teks/ikon di atas primary (≥4.6:1 di kedua tema). Jangan pakai palette-ice di atas primary. */
+  --nc-accent-text: #bcd4f5; /* Tautan dan teks berwarna aksen di bg, surface dan surface-raised (≥5.8:1). */
+  --nc-accent-soft: #1a4ba3; /* Latar lembut untuk badge info, highlight, baris terpilih; teksnya accent-text. */
+  --nc-glow: var(--nc-palette-glow); /* Glow dekoratif, titik sorot, ilustrasi. Bukan untuk teks. */
+  --nc-focus-ring: #bcd4f5; /* Cincin fokus keyboard 2px dengan jarak 2px; ≥3:1 di kedua tema. */
+  --nc-success: #7ad9b4; /* Status berhasil — teks dan ikon di bg/surface. */
+  --nc-warning: #f5c952; /* Status peringatan — teks dan ikon di bg/surface. */
+  --nc-danger: #ffb0b0; /* Error dan aksi destruktif — teks dan ikon di bg/surface. */
+  --nc-shadow-raised: 0 12px 32px #0814268c; /* Kartu yang melayang, dropdown, modal. */
+  --nc-shadow-glow: 0 0 32px #5b7cff59; /* Sorotan untuk CTA utama atau kartu unggulan — maksimal satu per tampilan. */
+}
+[data-theme="light"] {
+  --nc-bg: #f5f9fd;
+  --nc-surface: #ffffff;
+  --nc-surface-raised: #eaf2fa;
+  --nc-line: #c9daec;
+  --nc-line-strong: #6d8db3;
+  --nc-ink: var(--nc-palette-midnight);
+  --nc-ink-muted: #46607f;
+  --nc-primary: var(--nc-palette-steel);
+  --nc-primary-hover: #3a5f8c;
+  --nc-accent-text: #3a5f8c;
+  --nc-accent-soft: var(--nc-palette-ice);
+  --nc-glow: var(--nc-palette-glow);
+  --nc-focus-ring: #4a74a7;
+  --nc-success: #1e7a57;
+  --nc-warning: #8a5a00;
+  --nc-danger: #b3261e;
+  --nc-shadow-raised: 0 8px 24px #142a441f;
+  --nc-shadow-glow: 0 0 24px #5b7cff33;
+}
+:root {
+  --nc-space-1: 4px; /* Jarak ikon–teks rapat. */
+  --nc-space-2: 8px; /* Jarak antar elemen kecil, padding badge. */
+  --nc-space-3: 12px; /* Gap antar tombol dan field. */
+  --nc-space-4: 16px; /* Padding tombol horizontal, gap grid kecil. */
+  --nc-space-6: 24px; /* Padding kartu. */
+  --nc-space-8: 32px; /* Jarak antar kelompok konten. */
+  --nc-space-12: 48px; /* Padding section di mobile. */
+  --nc-space-16: 64px; /* Padding section di desktop. */
+  --nc-space-24: 96px; /* Jarak antar section besar landing page. */
+  --nc-radius-sm: 8px; /* Input kecil, tag, tooltip. */
+  --nc-radius-md: 14px; /* Input, dropdown, alert. */
+  --nc-radius-lg: 24px; /* Kartu dan panel. */
+  --nc-radius-pill: 999px; /* Tombol, badge, chip — bentuk pil adalah ciri khas sistem ini. */
+  --nc-grain-opacity: 0.4; /* Kekuatan bintik kertas (nc-texture-paper). Turunkan ke 0.25 untuk area baca panjang. */
+  --nc-grain-size: 220px; /* Ukuran ubin noise. Lebih kecil = butir lebih halus. */
+  --nc-fabric-opacity: 0.35; /* Kekuatan serat anyaman (nc-texture-fabric). */
+  --nc-aurora-opacity: 0.85; /* Kekuatan cahaya biru buram (nc-aurora) di belakang tekstur. */
+  --nc-aurora-blur: 60px; /* Seberapa buram cahaya aurora. */
+  --nc-font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --nc-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --nc-text-display: 700 56px/60px var(--nc-font-sans); /* Hero landing page, satu per halaman. */
+  --nc-text-h1: 700 40px/48px var(--nc-font-sans); /* Judul halaman. */
+  --nc-text-h2: 600 28px/36px var(--nc-font-sans); /* Judul section. */
+  --nc-text-h3: 600 20px/28px var(--nc-font-sans); /* Judul kartu dan sub-section. */
+  --nc-text-body-lg: 400 18px/28px var(--nc-font-sans); /* Lead paragraf di bawah hero. */
+  --nc-text-body: 400 16px/26px var(--nc-font-sans); /* Teks isi default. */
+  --nc-text-body-sm: 400 14px/22px var(--nc-font-sans); /* Teks UI padat, deskripsi kartu. */
+  --nc-text-label: 600 14px/20px var(--nc-font-sans); /* Label tombol, input dan navigasi. */
+  --nc-text-caption: 500 12px/16px var(--nc-font-sans); /* Eyebrow, metadata, badge — boleh uppercase. */
+  --nc-text-code: 500 13px/20px var(--nc-font-mono); /* Kode warna, snippet, nilai teknis. */
+}
+.display {
+  font-family: var(--nc-font-sans);
+  font-size: 56px;
+  line-height: 60px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.h1 {
+  font-family: var(--nc-font-sans);
+  font-size: 40px;
+  line-height: 48px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.h2 {
+  font-family: var(--nc-font-sans);
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.h3 {
+  font-family: var(--nc-font-sans);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.body-lg {
+  font-family: var(--nc-font-sans);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.body {
+  font-family: var(--nc-font-sans);
+  font-size: 16px;
+  line-height: 26px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.body-sm {
+  font-family: var(--nc-font-sans);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.label {
+  font-family: var(--nc-font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.caption {
+  font-family: var(--nc-font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.code {
+  font-family: var(--nc-font-mono);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+}

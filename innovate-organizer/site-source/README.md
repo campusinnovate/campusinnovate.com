@@ -11,7 +11,9 @@ The site uses the Sites Vinext starter to retain the existing HTML design while 
 - `public/assets/app.js`: services, portfolio descriptions, scopes and galleries.
 - `public/assets/languages.js`: language dictionaries.
 - `public/assets/style.css`: base layout and controls.
-- `public/assets/brand-refresh.css`: authoritative four-color reference theme (#DCEAF7, #4A74A7, #142A44, #081426), navy-dominant surfaces, steel-blue aurora, ice text/highlights, centered gallery hero, bento principles and responsive motion.
+- `public/assets/brand-refresh.css`: existing layout, centered gallery hero, bento principles and responsive motion.
+- `public/assets/nocturne-tokens.css`: user-supplied Nocturne design tokens, namespaced with `--nc-` to avoid variable collisions.
+- `public/assets/nocturne-theme.css`: authoritative Nocturne color, border, radius and shadow layer. Background #032A5A, royal #1543A0, decorative glow #5B7CFF, surfaces #0B3473/#12408F, primary #2F5FD0 with white text. Source: uploaded Nocturne.zip; see docs/nocturne-integration.md.
 - `public/assets/motion.js`, `systems.js`: progressive reveals, system showcase and figure motion controls.
 - `public/assets/tracking.js`: conversion tracking; contains the existing WhatsApp Ads action and a deliberately empty destination for the pending “Kirim Brief” action.
 - `public/assets/brief.js`: save first, then continue to WhatsApp.
