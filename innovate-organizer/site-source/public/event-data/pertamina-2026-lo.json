@@ -1,27 +1,47 @@
 [
   {
-    "name": "Dicky Adisaputra",
-    "phone": "6282213409500",
-    "bus": null
-  },
-  {
     "name": "Nava Olivia Rahmahhhhh",
     "phone": "6281290774332",
-    "bus": null
-  },
-  {
-    "name": "Muhammad Fadhil Indrawan",
-    "phone": "6281223431769",
-    "bus": null
+    "bus": 1,
+    "alias": "Nava",
+    "role": "Project leader + LO",
+    "day1": "Control room & time keeper",
+    "day2": "Command post tenda utama"
   },
   {
     "name": "Faiza Nurina Andini",
     "phone": "6281310796484",
-    "bus": null
+    "bus": 2,
+    "alias": "Faiza",
+    "role": "PIC narasumber, MC + LO",
+    "day1": "Liaison narasumber & MC",
+    "day2": "Panggung: MC & Tim PF"
   },
   {
     "name": "Muhamad Tirta Fabiansyah",
     "phone": "6285846063664",
-    "bus": null
+    "bus": 3,
+    "alias": "Patir",
+    "role": "PIC influencer + LO",
+    "day1": "Registrasi & distribusi kit",
+    "day2": "Registrasi & distribusi alat"
+  },
+  {
+    "name": "Dicky Adisaputra",
+    "phone": "6282213409500",
+    "bus": 4,
+    "alias": "Dicky",
+    "role": "Logistik, media + LO",
+    "day1": "Operator multimedia & dokumentasi",
+    "day2": "Transport & dokumentasi"
+  },
+  {
+    "name": "Muhammad Fadhil Indrawan",
+    "phone": "6281223431769",
+    "bus": 5,
+    "alias": "Fadhil",
+    "role": "Logistik + LO",
+    "day1": "Logistik & kit, mic runner",
+    "day2": "Venue & zona tanam A–C"
   }
 ]

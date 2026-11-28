@@ -1,0 +1,501 @@
+{
+  "version": "coord-20261128",
+  "event": "Capacity Building & Aksi Sobat Bumi · Beasiswa Pertamina 2026",
+  "dates": "2–4 Desember 2026",
+  "participants": {
+    "total": 295,
+    "female": 153,
+    "male": 142
+  },
+  "rooms": [
+    [
+      "Peserta putri",
+      47,
+      153,
+      "W2 Deluxe Twin 13 · W3 Deluxe King 15 · W3 Deluxe Twin 19"
+    ],
+    [
+      "Peserta putra",
+      34,
+      142,
+      "W2 Deluxe Twin 31 · W2 Junior Suite 2 · W3 Deluxe Twin 1"
+    ],
+    [
+      "Narasumber",
+      1,
+      3,
+      "W3 Deluxe King"
+    ],
+    [
+      "Tim Pertamina Foundation",
+      3,
+      7,
+      "1 kamar 3 putri · 1 kamar 2 putra · 1 Junior Suite manager"
+    ],
+    [
+      "Tim EO Innovate Organizer",
+      2,
+      5,
+      "1 kamar 2 putri · 1 kamar 3 putra"
+    ]
+  ],
+  "buses": [
+    {
+      "bus": 1,
+      "female": 32,
+      "male": 27,
+      "total": 59,
+      "lo": "Nava"
+    },
+    {
+      "bus": 2,
+      "female": 32,
+      "male": 27,
+      "total": 59,
+      "lo": "Faiza"
+    },
+    {
+      "bus": 3,
+      "female": 32,
+      "male": 27,
+      "total": 59,
+      "lo": "Patir"
+    },
+    {
+      "bus": 4,
+      "female": 28,
+      "male": 31,
+      "total": 59,
+      "lo": "Dicky"
+    },
+    {
+      "bus": 5,
+      "female": 29,
+      "male": 30,
+      "total": 59,
+      "lo": "Fadhil"
+    }
+  ],
+  "groups": [
+    {
+      "team": 1,
+      "count": 20
+    },
+    {
+      "team": 2,
+      "count": 20
+    },
+    {
+      "team": 3,
+      "count": 20
+    },
+    {
+      "team": 4,
+      "count": 20
+    },
+    {
+      "team": 5,
+      "count": 20
+    },
+    {
+      "team": 6,
+      "count": 20
+    },
+    {
+      "team": 7,
+      "count": 20
+    },
+    {
+      "team": 8,
+      "count": 20
+    },
+    {
+      "team": 9,
+      "count": 20
+    },
+    {
+      "team": 10,
+      "count": 20
+    },
+    {
+      "team": 11,
+      "count": 19
+    },
+    {
+      "team": 12,
+      "count": 19
+    },
+    {
+      "team": 13,
+      "count": 19
+    },
+    {
+      "team": 14,
+      "count": 19
+    },
+    {
+      "team": 15,
+      "count": 19
+    }
+  ],
+  "contacts": [
+    {
+      "name": "Nava Olivia Rahmahhhhh",
+      "phone": "6281290774332",
+      "bus": 1,
+      "alias": "Nava",
+      "role": "Project leader + LO",
+      "day1": "Control room & time keeper",
+      "day2": "Command post tenda utama"
+    },
+    {
+      "name": "Faiza Nurina Andini",
+      "phone": "6281310796484",
+      "bus": 2,
+      "alias": "Faiza",
+      "role": "PIC narasumber, MC + LO",
+      "day1": "Liaison narasumber & MC",
+      "day2": "Panggung: MC & Tim PF"
+    },
+    {
+      "name": "Muhamad Tirta Fabiansyah",
+      "phone": "6285846063664",
+      "bus": 3,
+      "alias": "Patir",
+      "role": "PIC influencer + LO",
+      "day1": "Registrasi & distribusi kit",
+      "day2": "Registrasi & distribusi alat"
+    },
+    {
+      "name": "Dicky Adisaputra",
+      "phone": "6282213409500",
+      "bus": 4,
+      "alias": "Dicky",
+      "role": "Logistik, media + LO",
+      "day1": "Operator multimedia & dokumentasi",
+      "day2": "Transport & dokumentasi"
+    },
+    {
+      "name": "Muhammad Fadhil Indrawan",
+      "phone": "6281223431769",
+      "bus": 5,
+      "alias": "Fadhil",
+      "role": "Logistik + LO",
+      "day1": "Logistik & kit, mic runner",
+      "day2": "Venue & zona tanam A–C"
+    }
+  ],
+  "days": [
+    {
+      "id": 1,
+      "date": "Rabu, 2 Desember 2026",
+      "title": "Capacity Building",
+      "place": "Wisma UT Pondok Cabe",
+      "start": "08:00",
+      "rows": [
+        {
+          "start": "08:00",
+          "end": "09:00",
+          "title": "Registrasi dan briefing",
+          "detail": "Lobi Convention Hall · scan QR & kit peserta",
+          "internal": false
+        },
+        {
+          "start": "09:00",
+          "end": "09:10",
+          "title": "Pembukaan acara & Indonesia Raya",
+          "detail": "Convention Hall",
+          "internal": false
+        },
+        {
+          "start": "09:10",
+          "end": "09:25",
+          "title": "Sambutan Pertamina Foundation",
+          "detail": "Agus Mashud S. Asngari",
+          "internal": false
+        },
+        {
+          "start": "09:25",
+          "end": "09:45",
+          "title": "Keynote speech",
+          "detail": "Arya Dwi Paramita",
+          "internal": false
+        },
+        {
+          "start": "09:45",
+          "end": "09:55",
+          "title": "Seremonial dan dokumentasi",
+          "detail": "Pemukulan gong & foto bersama",
+          "internal": false
+        },
+        {
+          "start": "09:55",
+          "end": "10:30",
+          "title": "Coffee break",
+          "detail": "",
+          "internal": false
+        },
+        {
+          "start": "10:30",
+          "end": "12:00",
+          "title": "Materi PF dan Beasiswa Pertamina",
+          "detail": "",
+          "internal": false
+        },
+        {
+          "start": "12:00",
+          "end": "13:30",
+          "title": "Makan siang dan check-in penginapan",
+          "detail": "",
+          "internal": false
+        },
+        {
+          "start": "13:30",
+          "end": "15:00",
+          "title": "Materi Pertamina Business",
+          "detail": "",
+          "internal": false
+        },
+        {
+          "start": "15:00",
+          "end": "15:30",
+          "title": "Coffee break",
+          "detail": "",
+          "internal": false
+        },
+        {
+          "start": "15:30",
+          "end": "17:00",
+          "title": "Materi Self Development",
+          "detail": "",
+          "internal": false
+        },
+        {
+          "start": "17:00",
+          "end": "19:00",
+          "title": "Istirahat dan persiapan malam",
+          "detail": "",
+          "internal": false
+        },
+        {
+          "start": "19:00",
+          "end": "21:00",
+          "title": "Capacity Building Sustainability",
+          "detail": "Di akhir sesi: pengingat kumpul ASB pukul 05.30. Titik sesi malam menunggu konfirmasi PF.",
+          "internal": false
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "date": "Kamis, 3 Desember 2026",
+      "title": "Aksi Sobat Bumi & sesi sore",
+      "place": "Wisma UT → KHDTK Parungpanjang → Wisma UT",
+      "start": "05:00",
+      "rows": [
+        {
+          "start": "05:00",
+          "end": "05:30",
+          "title": "Briefing crew & cek armada",
+          "detail": "Internal EO · 13 crew",
+          "internal": true
+        },
+        {
+          "start": "05:30",
+          "end": "06:00",
+          "title": "Kumpul & scan QR naik bus",
+          "detail": "Lobi Wisma UT",
+          "internal": false
+        },
+        {
+          "start": "06:00",
+          "end": "07:00",
+          "title": "Perjalanan ke KHDTK Parungpanjang",
+          "detail": "",
+          "internal": false
+        },
+        {
+          "start": "07:00",
+          "end": "07:45",
+          "title": "Tiba, absensi & ambil alat tanam",
+          "detail": "Boots + ponco · kumpul per tim. Waktu pembagian alat masih perlu konfirmasi PF.",
+          "internal": false
+        },
+        {
+          "start": "07:45",
+          "end": "08:05",
+          "title": "Pembukaan & sambutan",
+          "detail": "Tenda utama",
+          "internal": false
+        },
+        {
+          "start": "08:05",
+          "end": "08:30",
+          "title": "Briefing keselamatan & teknis tanam",
+          "detail": "Pengelola KHDTK & petani",
+          "internal": false
+        },
+        {
+          "start": "08:30",
+          "end": "11:00",
+          "title": "Penanaman per zona",
+          "detail": "15 tim · 2–3 petani per tim",
+          "internal": false
+        },
+        {
+          "start": "11:00",
+          "end": "11:15",
+          "title": "Kembali ke tenda & cuci tangan",
+          "detail": "",
+          "internal": false
+        },
+        {
+          "start": "11:15",
+          "end": "11:45",
+          "title": "Penanaman simbolis, penutupan & foto",
+          "detail": "Tenda utama",
+          "internal": false
+        },
+        {
+          "start": "11:45",
+          "end": "12:00",
+          "title": "Absensi & naik bus",
+          "detail": "Cek per bus",
+          "internal": false
+        },
+        {
+          "start": "12:00",
+          "end": "13:15",
+          "title": "Perjalanan kembali ke Wisma UT",
+          "detail": "",
+          "internal": false
+        },
+        {
+          "start": "13:15",
+          "end": "14:00",
+          "title": "Makan siang & ishoma",
+          "detail": "Wisma UT · salat dan istirahat",
+          "internal": false
+        },
+        {
+          "start": "14:00",
+          "end": "15:00",
+          "title": "Role play: Andai Aku Jadi Direksi Pertamina",
+          "detail": "Brief → discuss → decide → present ke panel",
+          "internal": false
+        },
+        {
+          "start": "15:00",
+          "end": "18:00",
+          "title": "Sosialisasi Desa Energi Berdikari",
+          "detail": "Hybrid di Wisma UT; ruang/pendopo dan siaran daring menunggu konfirmasi PF.",
+          "internal": false
+        },
+        {
+          "start": "18:00",
+          "end": null,
+          "title": "Penutupan dan agenda internal",
+          "detail": "Sampai selesai · info keberangkatan Inaugurasi 4 Desember",
+          "internal": false
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "date": "Jumat, 4 Desember 2026",
+      "title": "Inaugurasi",
+      "place": "Ballroom Grha Pertamina, Jakarta Pusat",
+      "start": null,
+      "fixed": true,
+      "note": "Jam bus berangkat dari Wisma UT dan sarapan/meal box menunggu PF. Peserta harus sudah tiba pukul 06.00.",
+      "rows": [
+        {
+          "start": "06:00",
+          "end": null,
+          "title": "Peserta sudah di Grha Pertamina",
+          "detail": "Titik kedatangan · jam bus berangkat masih TBC",
+          "internal": false
+        },
+        {
+          "start": "06:30",
+          "end": "08:55",
+          "title": "Registrasi QR & menempati kursi",
+          "detail": "Duduk paling lambat pukul 08.25",
+          "internal": false
+        },
+        {
+          "start": "09:00",
+          "end": "11:00",
+          "title": "Acara inti Inaugurasi",
+          "detail": "Susunan mengikuti arahan protokol",
+          "internal": false
+        },
+        {
+          "start": "11:00",
+          "end": "13:30",
+          "title": "Makan siang & ramah tamah",
+          "detail": "Salat Jumat ±11.45 · lalu check-out & kepulangan",
+          "internal": false
+        }
+      ]
+    }
+  ],
+  "confirmations": {
+    "Wisma UT": [
+      "Akses Wisma UT sejak subuh",
+      "Layout lantai dan posisi kamar Wisma 2/Wisma 3",
+      "Titik, foto dan jarak pendopo dari wisma"
+    ],
+    "PF · 2 Desember": [
+      "Penempatan koper sebelum check-in",
+      "Teknis registrasi peserta sebelum pukul 08.00",
+      "Waktu pembagian merchandise",
+      "Waktu pembagian snack pagi",
+      "PIC MC PF dan briefing/naskah MC",
+      "Operator dari PF",
+      "Blackman untuk gong dan panggung",
+      "Minimal 4 pembawa baki dan pita pemukul gong",
+      "Coffee break: prasmanan atau box dan pembagiannya",
+      "Vendor dan PIC konsumsi",
+      "Lokasi dan format makan siang",
+      "Mobilisasi: 1 koorlap dan 4 crew zona wisma",
+      "Reminder sesi: EO masuk grup atau melalui PF",
+      "Presensi siang dan tindak lanjut peserta tidak kembali",
+      "LO Coach Rene",
+      "PIC lahan"
+    ],
+    "PF · 3 Desember": [
+      "Denah ASB: tenda, kursi, presensi, sound dan genset",
+      "Daftar nama 300 tamu undangan",
+      "Presensi digital awardee dan presensi tamu",
+      "Tanda terima dan waktu pembagian boots/ponco; usulan dibagi hari 1 belum disetujui",
+      "Ketersediaan meja pembagian alat",
+      "Waktu pengumuman kelompok ASB",
+      "Kesiapan sekop, bibit, lubang dan pembagian teknis oleh KHDTK",
+      "Banner dan perlengkapan pendukung",
+      "Tempat duduk per kelompok dan posisi tamu saat menanam",
+      "Bentuk, jumlah dan posisi signage",
+      "Titik tanam pasti tiap zona",
+      "Lokasi/waktu snack dan makan siang serta snack sore"
+    ],
+    "PF · 4 Desember": [
+      "Persetujuan minimal 2 crew EO mendampingi 5 bus; jam berangkat dan sarapan/meal box"
+    ]
+  },
+  "additionalCrew": [
+    "Nazaf",
+    "Zeta",
+    "Tika",
+    "Amol",
+    "Arum",
+    "Radit",
+    "Nasrul",
+    "Arya"
+  ],
+  "mc": {
+    "formal": "Rubi",
+    "informal": "Satria",
+    "status": "Booking menunggu approval kesediaan"
+  },
+  "source": "Koordinasi_Teknis_PF_CB_ASB_2026.pdf"
+}

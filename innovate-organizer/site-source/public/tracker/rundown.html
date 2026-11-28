@@ -9,6 +9,8 @@
 <script defer src="/tracker/assets/35f4f974f4b2bcd4.js"></script>
 <script defer src="/tracker/assets/56d57737c916acbe.js"></script>
 <link rel="stylesheet" href="/event-ui/mobile.css?v=4e86eb8efbb7">
+<link rel="stylesheet" href="/event-ui/coordination.css?v=ab498ba5dcb9">
+<script defer src="/event-ui/navigation.js?v=2a39c8dc5404"></script>
 </head>
 <body class="event-mobile" data-event-page="rundown">
 <x-dc>
@@ -189,21 +191,18 @@ a{color:#0b4ab8}a:hover{color:#06317d}
 </style>
 </helmet>
 <div style="font-family: Poppins, 'Segoe UI', Arial, sans-serif; color: #0a1f3f; background: #eef2fa;">
-<section style="position: relative; overflow: hidden; background: #021c3c; color: #ffffff; padding-bottom: 72px;" class="event-hero">
-  <div aria-hidden="true" class="sky" style="position: absolute; inset: 0; background-image: radial-gradient(60% 60% at 50% 35%, rgba(27,92,214,0.7), rgba(2,28,60,0) 70%), repeating-linear-gradient(90deg, rgba(59,130,246,0.10) 0px, rgba(59,130,246,0.10) 2px, rgba(59,130,246,0) 2px, rgba(59,130,246,0) 64px), linear-gradient(180deg, #021c3c 0%, #04306a 70%, #0a3f8f 100%);"></div>
-  <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden;"><div class="glow" style="background: radial-gradient(circle, rgba(11,74,184,0.85), rgba(11,74,184,0) 70%);"></div><div class="glow" style="background: radial-gradient(circle, rgba(2,28,60,0.8), rgba(2,28,60,0) 65%); animation-delay: -8s, -4s; animation-direction: reverse;"></div></div>
-  <div aria-hidden="true" class="orb" style="position: absolute; right: -110px; top: 40px; width: 240px; height: 240px;"><div class="spinA" style="position: absolute; inset: 0; border-radius: 999px; border: 36px solid rgba(255,194,26,0.95); border-top-color: rgba(255,194,26,0.12); border-left-color: rgba(255,194,26,0.45);"></div><div class="spinB" style="position: absolute; inset: -26px; border-radius: 999px; border: 2px dashed rgba(96,165,250,0.6);"></div><div class="spinC" style="position: absolute; inset: -26px;"><span style="position: absolute; left: -7px; top: 50%; margin-top: -7px; width: 14px; height: 14px; border-radius: 999px; background: #ffc21a; box-shadow: 0 0 18px #ffc21a;"></span></div></div>
-  <header class="nav wrap event-topbar" style="position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding-top: 20px; padding-bottom: 20px;">
+<div class="portal-topbar"><header class="wrap event-topbar">
     <a href="/tracker" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #ffffff;">
       <img src="/tracker/assets/e0d94931c8cae6c9.png" alt="Logo Innovate Organizer" style="height: 36px; width: auto; display: block;">
       <span style="display: flex; flex-direction: column; line-height: 1.1;"><span style="font-weight: 800; font-size: 15px;">Innovate Organizer</span><span style="font-size: 11px; color: #9fb4dc;">Client Portal · Pertamina Foundation</span></span>
     </a>
-    <nav aria-label="Halaman portal" style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px;"><a class="l" href="/tracker">Ringkasan</a><a class="l on" href="/tracker/rundown">Rundown</a><a class="l" href="/tracker/panitia">Panitia</a><a class="l" href="/tracker/peserta">Peserta</a><a class="l" href="/tracker/logistik">Logistik &amp; Lokasi</a>
-      <a class="btn" href="/tracker/kontak" aria-label="Halaman Hubungi PIC" style="background: #ffc21a; color: #021c3c; min-height: 40px; display: inline-flex; align-items: center; gap: 8px;"><svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="#021c3c" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.1.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"></path></svg>Hubungi PIC</a>
-    </nav>
-  </header>
+    <nav class="portal-desktop-nav" aria-label="Navigasi tracker"><a href="/tracker">Ringkasan</a><a href="/tracker/rundown" aria-current="page">Rundown</a><a href="/tracker/panitia">Tim &amp; persiapan</a><a href="/tracker/peserta">Peserta &amp; bus</a><a href="/tracker/logistik">Logistik</a><a href="/tracker/kontak">LO &amp; PIC</a><a href="/itinerary/">Panduan peserta</a></nav><details class="portal-menu"><summary aria-label="Buka menu navigasi">Menu <span aria-hidden="true">☰</span></summary><nav aria-label="Menu mobile"><a href="/tracker">Ringkasan</a><a href="/tracker/rundown" aria-current="page">Rundown</a><a href="/tracker/panitia">Tim &amp; persiapan</a><a href="/tracker/peserta">Peserta &amp; bus</a><a href="/tracker/logistik">Logistik</a><a href="/tracker/kontak">LO &amp; PIC</a><a href="/itinerary/">Panduan peserta</a></nav></details></header></div><section style="position: relative; overflow: hidden; background: #021c3c; color: #ffffff; padding-bottom: 72px;" class="event-hero">
+  <div aria-hidden="true" class="sky" style="position: absolute; inset: 0; background-image: radial-gradient(60% 60% at 50% 35%, rgba(27,92,214,0.7), rgba(2,28,60,0) 70%), repeating-linear-gradient(90deg, rgba(59,130,246,0.10) 0px, rgba(59,130,246,0.10) 2px, rgba(59,130,246,0) 2px, rgba(59,130,246,0) 64px), linear-gradient(180deg, #021c3c 0%, #04306a 70%, #0a3f8f 100%);"></div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden;"><div class="glow" style="background: radial-gradient(circle, rgba(11,74,184,0.85), rgba(11,74,184,0) 70%);"></div><div class="glow" style="background: radial-gradient(circle, rgba(2,28,60,0.8), rgba(2,28,60,0) 65%); animation-delay: -8s, -4s; animation-direction: reverse;"></div></div>
+  <div aria-hidden="true" class="orb" style="position: absolute; right: -110px; top: 40px; width: 240px; height: 240px;"><div class="spinA" style="position: absolute; inset: 0; border-radius: 999px; border: 36px solid rgba(255,194,26,0.95); border-top-color: rgba(255,194,26,0.12); border-left-color: rgba(255,194,26,0.45);"></div><div class="spinB" style="position: absolute; inset: -26px; border-radius: 999px; border: 2px dashed rgba(96,165,250,0.6);"></div><div class="spinC" style="position: absolute; inset: -26px;"><span style="position: absolute; left: -7px; top: 50%; margin-top: -7px; width: 14px; height: 14px; border-radius: 999px; background: #ffc21a; box-shadow: 0 0 18px #ffc21a;"></span></div></div>
+
   <div class="wrap" style="position: relative; display: flex; flex-direction: column; gap: 12px; padding-top: 36px;">
-    <span class="pill an" style="align-self: flex-start; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #ffffff;">Rundown Acara · 2–3 Desember 2026</span>
+    <span class="pill an" style="align-self: flex-start; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #ffffff;">Rundown Acara · 2–4 Desember 2026</span>
     <h1 class="an d1" style="margin: 0; font-size: clamp(30px, 4vw, 46px); line-height: 1.12; font-weight: 800; letter-spacing: -0.02em; max-width: 820px;">Susun ulang agenda, jam menyesuaikan otomatis</h1>
     <p class="an d2" style="margin: 0; font-size: 13px; line-height: 1.6; color: #b9c9e6; max-width: 620px;">Seret agenda ke atas atau ke bawah, atau pakai tombol ↑ ↓. Durasi tetap, jam mulai dan selesai dihitung ulang. Nama, durasi, dan PIC bisa diedit manual.</p>
   </div>
@@ -215,10 +214,10 @@ a{color:#0b4ab8}a:hover{color:#06317d}
         <sc-for list="{{ days }}" as="d" hint-placeholder-count="2"><button class="btn" type="button" sc-camel-on-click="{{ d.pick }}" style="{{ d.style }}">{{ d.label }}</button></sc-for>
       </div>
       <label style="display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: #5b6b8c;">Jam mulai
-        <input class="in" type="time" value="{{ start }}" sc-camel-on-change="{{ setStart }}" style="width: 120px;">
+        <input class="in" type="time" disabled="{{ fixedDay }}" value="{{ start }}" sc-camel-on-change="{{ setStart }}" style="width: 120px;">
       </label>
     </div>
-    <div class="card an d1" style="padding: 16px 18px; margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center;">
+    <p class="coord-callout">{{ dayNote }}</p><div class="card an d1" style="padding: 16px 18px; margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center;">
       <span style="font-size: 15px; font-weight: 700;">{{ dayTitle }}</span>
       <span style="font-size: 12px; color: #5b6b8c;">{{ dayPlace }}</span>
       <span style="margin-left: auto; font-size: 12px; color: #5b6b8c;">{{ start }} – {{ endTime }} · total {{ totalDur }}</span>
@@ -229,29 +228,30 @@ a{color:#0b4ab8}a:hover{color:#06317d}
           <span></span><span>Waktu</span><span>Agenda</span><span>Durasi (mnt)</span><span>Detail</span><span style="text-align: right;">Urutan</span>
         </div>
         <sc-for list="{{ rundown }}" as="r" hint-placeholder-count="8">
-          <div draggable="true" sc-camel-on-drag-start="{{ r.dragStart }}" sc-camel-on-drag-over="{{ r.dragOver }}" sc-camel-on-drop="{{ r.drop }}" sc-camel-on-drag-end="{{ r.dragEnd }}" style="display: grid; grid-template-columns: 30px 120px minmax(0, 1fr) 100px minmax(0, 0.9fr) 116px; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 14px; cursor: grab; transition: background .2s, transform .2s; {{ r.rowStyle }}" class="event-grid rundown-row">
+          <div draggable="{{ !fixedDay }}" sc-camel-on-drag-start="{{ r.dragStart }}" sc-camel-on-drag-over="{{ r.dragOver }}" sc-camel-on-drop="{{ r.drop }}" sc-camel-on-drag-end="{{ r.dragEnd }}" style="display: grid; grid-template-columns: 30px 120px minmax(0, 1fr) 100px minmax(0, 0.9fr) 116px; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 14px; cursor: grab; transition: background .2s, transform .2s; {{ r.rowStyle }}" class="event-grid rundown-row">
             <span class="rundown-drag" aria-hidden="true" style="color: #8a9bbd; font-size: 16px; text-align: center;">⋮⋮</span>
-            <span class="rundown-time" style="font-weight: 700; font-size: 14px; color: #0b4ab8;">{{ r.from }} – {{ r.to }}</span>
+            <span class="rundown-time" style="font-weight: 700; font-size: 14px; color: #0b4ab8;">{{ r.timeLabel }}</span>
             <textarea class="in rundown-title" aria-label="Nama agenda" rows="2" value="{{ r.title }}" sc-camel-on-change="{{ r.setTitle }}"></textarea>
-            <label class="rundown-duration"><span>Menit</span><input class="in" aria-label="Durasi dalam menit" type="number" min="0" step="5" value="{{ r.dur }}" sc-camel-on-change="{{ r.setDur }}"></label>
+            <sc-if value="{{ !r.fixed }}"><label class="rundown-duration"><span>Menit</span><input class="in" aria-label="Durasi dalam menit" disabled="{{ r.fixed }}" type="number" min="0" step="5" value="{{ r.dur }}" sc-camel-on-change="{{ r.setDur }}"></label></sc-if><sc-if value="{{ r.fixed }}"><span class="rundown-duration protocol-label">Protokol PF</span></sc-if>
             <textarea class="in rundown-detail" aria-label="Detail" rows="2" value="{{ r.pic }}" sc-camel-on-change="{{ r.setPic }}"></textarea>
             <span class="rundown-actions" style="display: flex; gap: 5px; justify-content: flex-end;">
-              <button class="ib" type="button" aria-label="Naikkan" sc-camel-on-click="{{ r.up }}">↑</button>
-              <button class="ib" type="button" aria-label="Turunkan" sc-camel-on-click="{{ r.down }}">↓</button>
-              <button class="ib" type="button" aria-label="Hapus agenda" sc-camel-on-click="{{ r.remove }}" style="color: #b42318;">×</button>
+              <button class="ib" type="button" aria-label="Naikkan" disabled="{{ r.fixed }}" sc-camel-on-click="{{ r.up }}">↑</button>
+              <button class="ib" type="button" aria-label="Turunkan" disabled="{{ r.fixed }}" sc-camel-on-click="{{ r.down }}">↓</button>
+              <button class="ib" type="button" aria-label="Hapus agenda" disabled="{{ r.fixed }}" sc-camel-on-click="{{ r.remove }}" style="color: #b42318;">×</button>
             </span>
           </div>
         </sc-for>
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px;">
-          <button class="btn" type="button" sc-camel-on-click="{{ addAgenda }}" style="background: #0b4ab8; color: #ffffff;">+ Tambah agenda</button>
+          <button class="btn" type="button" disabled="{{ fixedDay }}" sc-camel-on-click="{{ addAgenda }}" style="background: #0b4ab8; color: #ffffff;">+ Tambah agenda</button>
           <span style="font-size: 12px; color: #5b6b8c;">Selesai pukul <b style="color: #0a1f3f;">{{ endTime }}</b></span>
         </div>
       </div>
     </div>
-    <p class="an d3" style="margin: 14px 0 0; font-size: 11px; color: #5b6b8c;">Hari 3 (Jumat, 4 Desember): check-out dan keberangkatan 9 bus ke Grha Pertamina untuk Inaugurasi, sesuai jadwal panitia.</p>
+
   </div>
 </section>
 <p id="tracker-save-note" role="status" class="tracker-save-note">Perubahan tersimpan di browser ini; belum disinkronkan ke perangkat lain.</p>
+<p id="tracker-save-note" class="tracker-save-note" role="status">Acuan koordinasi 28 November 2026. Edit tersimpan di browser ini; belum tersinkron antarperangkat.</p>
 <footer style="background: #021c3c; color: #ffffff; padding: 48px 0 28px;" class="event-footer">
   <div class="wrap event-grid" style="display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: 32px; align-items: center;">
     <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -268,7 +268,7 @@ a{color:#0b4ab8}a:hover{color:#06317d}
 class TrackerLogic extends DCLogic {
   componentDidMount() {
     try {
-      const saved = JSON.parse(localStorage.getItem('io-tracker-pf2026:rundown:v1') || 'null');
+      const saved = JSON.parse(localStorage.getItem('io-tracker-pf2026:rundown:coord-20261128') || 'null');
       if (saved && saved.state && Object.keys(this.state).every(key => key in saved.state)) {
         this.n = Math.max(this.n || 0, Number(saved.counter) || 0);
         this.setState(saved.state);
@@ -277,33 +277,14 @@ class TrackerLogic extends DCLogic {
   }
   setState(update, callback) {
     super.setState(update, callback);
-    try { localStorage.setItem('io-tracker-pf2026:rundown:v1', JSON.stringify({state:this.state, counter:this.n || 0})); }
+    try { localStorage.setItem('io-tracker-pf2026:rundown:coord-20261128', JSON.stringify({state:this.state, counter:this.n || 0})); }
     catch { const note = document.getElementById('tracker-save-note'); if (note) note.textContent = 'Penyimpanan browser tidak tersedia. Perubahan hanya berlaku sampai halaman ditutup.'; }
   }
 }
 class Component extends TrackerLogic {
   constructor(props) {
     super(props);
-    let n = 0;
-    const R = (title, dur, pic) => ({ id: 'r' + (++n), title, dur, pic });
-    this.state = { day: 0, dragId: null, overId: null, days: [
-      { label: 'Hari 1 · Rabu, 2 Des', title: 'Capacity Building', place: 'Wisma UT Pondok Cabe · Convention Hall', start: '07:00', items: [
-        R('Kedatangan & check-in kamar', 60, 'Meja registrasi, name tag, kelompok & kamar, distribusi kit'),
-        R('Registrasi & briefing', 60, 'Usher ke Convention Hall; MC & operator stand-by'),
-        R('Opening & sesi PF & Beasiswa Pertamina', 105, 'Gong seremoni, opening bumper, bumper sambutan; MC'),
-        R('Sesi Pertamina Business & Self Development', 375, 'Koordinasi pembicara; usher atur alur & tempat duduk'),
-        R('Istirahat & ISHOMA', 120, 'Rekap kehadiran sesi siang'),
-        R('Fun Night (BBQ) & sesi Sustainability', 120, 'Fasilitator ice breaking; rekap kehadiran hari 1') ] },
-      { label: 'Hari 2 · Kamis, 3 Des', title: 'Aksi Sobat Bumi', place: 'Wisma UT → KHDTK Parungpanjang, Kab. Bogor', start: '06:00', items: [
-        R('Sarapan & briefing di Wisma UT', 45, 'Pembagian manifest bus per kelompok'),
-        R('Boarding 9 bus sesuai manifest', 15, 'Koordinator per bus, cek jumlah penumpang'),
-        R('Perjalanan ke KHDTK Parungpanjang', 75, 'Pemantauan konvoi; dokumentasi keberangkatan'),
-        R('Registrasi, distribusi sepatu boot & jas hujan', 30, 'Tim teknis di meja registrasi & distribusi alat'),
-        R('Pembukaan, sambutan, briefing teknis tanam', 30, 'MC, sound system, dokumentasi'),
-        R('Penanaman simbolis & per kelompok', 120, '35 petani pendamping; drone & kru video; konten influencer'),
-        R('Penutupan, foto bersama, testimoni', 30, 'MC, video testimoni, pengembalian alat'),
-        R('Boarding kembali ke Wisma UT', 15, 'Koordinator bus; tim teknis mulai bongkar') ] }
-    ] };
+    this.state = {day:0,dragId:null,overId:null,days:[{"label": "Hari 1 · 2 Des", "title": "Capacity Building", "place": "Wisma UT Pondok Cabe", "start": "08:00", "fixed": false, "note": "", "items": [{"id": "d1r0", "title": "Registrasi dan briefing", "dur": 60, "pic": "Lobi Convention Hall · scan QR & kit peserta", "at": "08:00", "until": "09:00", "tbc": false}, {"id": "d1r1", "title": "Pembukaan acara & Indonesia Raya", "dur": 10, "pic": "Convention Hall", "at": "09:00", "until": "09:10", "tbc": false}, {"id": "d1r2", "title": "Sambutan Pertamina Foundation", "dur": 15, "pic": "Agus Mashud S. Asngari", "at": "09:10", "until": "09:25", "tbc": false}, {"id": "d1r3", "title": "Keynote speech", "dur": 20, "pic": "Arya Dwi Paramita", "at": "09:25", "until": "09:45", "tbc": false}, {"id": "d1r4", "title": "Seremonial dan dokumentasi", "dur": 10, "pic": "Pemukulan gong & foto bersama", "at": "09:45", "until": "09:55", "tbc": false}, {"id": "d1r5", "title": "Coffee break", "dur": 35, "pic": "", "at": "09:55", "until": "10:30", "tbc": false}, {"id": "d1r6", "title": "Materi PF dan Beasiswa Pertamina", "dur": 90, "pic": "", "at": "10:30", "until": "12:00", "tbc": false}, {"id": "d1r7", "title": "Makan siang dan check-in penginapan", "dur": 90, "pic": "", "at": "12:00", "until": "13:30", "tbc": false}, {"id": "d1r8", "title": "Materi Pertamina Business", "dur": 90, "pic": "", "at": "13:30", "until": "15:00", "tbc": false}, {"id": "d1r9", "title": "Coffee break", "dur": 30, "pic": "", "at": "15:00", "until": "15:30", "tbc": false}, {"id": "d1r10", "title": "Materi Self Development", "dur": 90, "pic": "", "at": "15:30", "until": "17:00", "tbc": false}, {"id": "d1r11", "title": "Istirahat dan persiapan malam", "dur": 120, "pic": "", "at": "17:00", "until": "19:00", "tbc": false}, {"id": "d1r12", "title": "Capacity Building Sustainability", "dur": 120, "pic": "Di akhir sesi: pengingat kumpul ASB pukul 05.30. Titik sesi malam menunggu konfirmasi PF.", "at": "19:00", "until": "21:00", "tbc": false}]}, {"label": "Hari 2 · 3 Des", "title": "Aksi Sobat Bumi & sesi sore", "place": "Wisma UT → KHDTK Parungpanjang → Wisma UT", "start": "05:00", "fixed": false, "note": "", "items": [{"id": "d2r0", "title": "Briefing crew & cek armada", "dur": 30, "pic": "Internal EO · 13 crew", "at": "05:00", "until": "05:30", "tbc": false}, {"id": "d2r1", "title": "Kumpul & scan QR naik bus", "dur": 30, "pic": "Lobi Wisma UT", "at": "05:30", "until": "06:00", "tbc": false}, {"id": "d2r2", "title": "Perjalanan ke KHDTK Parungpanjang", "dur": 60, "pic": "", "at": "06:00", "until": "07:00", "tbc": false}, {"id": "d2r3", "title": "Tiba, absensi & ambil alat tanam", "dur": 45, "pic": "Boots + ponco · kumpul per tim. Waktu pembagian alat masih perlu konfirmasi PF.", "at": "07:00", "until": "07:45", "tbc": false}, {"id": "d2r4", "title": "Pembukaan & sambutan", "dur": 20, "pic": "Tenda utama", "at": "07:45", "until": "08:05", "tbc": false}, {"id": "d2r5", "title": "Briefing keselamatan & teknis tanam", "dur": 25, "pic": "Pengelola KHDTK & petani", "at": "08:05", "until": "08:30", "tbc": false}, {"id": "d2r6", "title": "Penanaman per zona", "dur": 150, "pic": "15 tim · 2–3 petani per tim", "at": "08:30", "until": "11:00", "tbc": false}, {"id": "d2r7", "title": "Kembali ke tenda & cuci tangan", "dur": 15, "pic": "", "at": "11:00", "until": "11:15", "tbc": false}, {"id": "d2r8", "title": "Penanaman simbolis, penutupan & foto", "dur": 30, "pic": "Tenda utama", "at": "11:15", "until": "11:45", "tbc": false}, {"id": "d2r9", "title": "Absensi & naik bus", "dur": 15, "pic": "Cek per bus", "at": "11:45", "until": "12:00", "tbc": false}, {"id": "d2r10", "title": "Perjalanan kembali ke Wisma UT", "dur": 75, "pic": "", "at": "12:00", "until": "13:15", "tbc": false}, {"id": "d2r11", "title": "Makan siang & ishoma", "dur": 45, "pic": "Wisma UT · salat dan istirahat", "at": "13:15", "until": "14:00", "tbc": false}, {"id": "d2r12", "title": "Role play: Andai Aku Jadi Direksi Pertamina", "dur": 60, "pic": "Brief → discuss → decide → present ke panel", "at": "14:00", "until": "15:00", "tbc": false}, {"id": "d2r13", "title": "Sosialisasi Desa Energi Berdikari", "dur": 180, "pic": "Hybrid di Wisma UT; ruang/pendopo dan siaran daring menunggu konfirmasi PF.", "at": "15:00", "until": "18:00", "tbc": false}, {"id": "d2r14", "title": "Penutupan dan agenda internal", "dur": 0, "pic": "Sampai selesai · info keberangkatan Inaugurasi 4 Desember", "at": "18:00", "until": null, "tbc": true}]}, {"label": "Hari 3 · 4 Des", "title": "Inaugurasi", "place": "Ballroom Grha Pertamina, Jakarta Pusat", "start": "06:00", "fixed": true, "note": "Jam bus berangkat dari Wisma UT dan sarapan/meal box menunggu PF. Peserta harus sudah tiba pukul 06.00.", "items": [{"id": "d3r0", "title": "Peserta sudah di Grha Pertamina", "dur": 0, "pic": "Titik kedatangan · jam bus berangkat masih TBC", "at": "06:00", "until": null, "tbc": true}, {"id": "d3r1", "title": "Registrasi QR & menempati kursi", "dur": 145, "pic": "Duduk paling lambat pukul 08.25", "at": "06:30", "until": "08:55", "tbc": false}, {"id": "d3r2", "title": "Acara inti Inaugurasi", "dur": 120, "pic": "Susunan mengikuti arahan protokol", "at": "09:00", "until": "11:00", "tbc": false}, {"id": "d3r3", "title": "Makan siang & ramah tamah", "dur": 150, "pic": "Salat Jumat ±11.45 · lalu check-out & kepulangan", "at": "11:00", "until": "13:30", "tbc": false}]}]};
     this.nid = () => 'n' + Date.now() + Math.floor(Math.random() * 1000);
   }
   toMin(t) { const p = String(t || '00:00').split(':'); return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0); }
@@ -318,7 +299,7 @@ class Component extends TrackerLogic {
   renderVals() {
     const s = this.state; const D = s.days[s.day];
     let cur = this.toMin(D.start);
-    const rundown = D.items.map((r) => { const from = this.fmt(cur); cur += Math.max(0, r.dur || 0); return { ...r, from, to: this.fmt(cur),
+    const rundown = D.items.map((r) => { const from = D.fixed ? r.at.replace(':','.') : this.fmt(cur); cur += Math.max(0, r.dur || 0); const to = D.fixed ? (r.until ? r.until.replace(':','.') : '') : (r.tbc && !r.dur ? 'selesai (TBC)' : this.fmt(cur)); return { ...r, from, to, fixed:!!D.fixed, timeLabel:from+(to?' – '+to:''),
       rowStyle: s.overId === r.id && s.dragId && s.dragId !== r.id ? 'background: #dfe7fb; outline: 2px dashed #0b4ab8; transform: scale(1.01);' : s.dragId === r.id ? 'background: #fff4d1; opacity: 0.7;' : 'background: #f6f8fd;',
       setTitle: (e) => this.patch(r.id, (x) => ({ ...x, title: e.target.value })), setPic: (e) => this.patch(r.id, (x) => ({ ...x, pic: e.target.value })),
       setDur: (e) => this.patch(r.id, (x) => ({ ...x, dur: Math.max(0, parseInt(e.target.value, 10) || 0) })),
@@ -328,9 +309,9 @@ class Component extends TrackerLogic {
       drop: (e) => { e.preventDefault(); this.dropOn(r.id); }, dragEnd: () => this.setState({ dragId: null, overId: null }) }; });
     const total = D.items.reduce((a, r) => a + (r.dur || 0), 0);
     return {
-      days: s.days.map((d, i) => ({ label: d.label, pick: () => this.setState({ day: i }), style: i === s.day ? 'background: #0b4ab8; color: #ffffff;' : 'background: #ffffff; color: #0a1f3f; border: 1px solid #d3dcec;' })),
+      fixedDay:!!D.fixed, dayNote:D.note || (D.items.some(r=>r.tbc&&!r.dur)?"Jam selesai sesi terakhir masih TBC.":"Jam dan durasi mengikuti acuan koordinasi; perubahan manual dihitung ulang."), days: s.days.map((d, i) => ({ label: d.label, pick: () => this.setState({ day: i }), style: i === s.day ? 'background: #0b4ab8; color: #ffffff;' : 'background: #ffffff; color: #0a1f3f; border: 1px solid #d3dcec;' })),
       dayTitle: D.title, dayPlace: D.place, start: D.start, setStart: (e) => this.setDay((d) => ({ ...d, start: e.target.value || '00:00' })),
-      rundown, totalDur: this.dur(total), endTime: this.fmt(this.toMin(D.start) + total),
+      rundown, totalDur: D.fixed ? 'jadwal protokol PF' : this.dur(total), endTime: D.fixed ? '13.30 (acuan PF)' : (D.items.some(r=>r.tbc&&!r.dur) ? 'TBC' : this.fmt(this.toMin(D.start) + total)),
       addAgenda: () => this.setItems((a) => a.concat([{ id: this.nid(), title: 'Agenda baru', dur: 30, pic: '[Detail]' }]))
     };
   }

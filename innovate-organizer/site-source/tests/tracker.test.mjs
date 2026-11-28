@@ -20,16 +20,16 @@ test('tracker pages use normal native documents, local assets and valid portal r
  }
 });
 test('preparation progress updates, survives reload and keeps task IDs unique',()=>{
- const {c,data}=instantiate('index');let view=c.renderVals();assert.equal(view.overall,0);view.phases[0].items[0].toggle();assert.equal(c.renderVals().doneCount,1);
+ const {c,data}=instantiate('index');let view=c.renderVals();const initial=view.doneCount;view.phases.flatMap(p=>p.items).find(item=>!item.done).toggle();assert.equal(c.renderVals().doneCount,initial+1);
  c.setState({newPhase:'Tahap tambahan',newWhen:'H+1'});c.renderVals().addPhase();
- const restored=instantiate('index',data).c;assert.equal(restored.renderVals().doneCount,1);assert.ok(restored.state.phases.some(x=>x.name==='Tahap tambahan'));
+ const restored=instantiate('index',data).c;assert.equal(restored.renderVals().doneCount,initial+1);assert.ok(restored.state.phases.some(x=>x.name==='Tahap tambahan'));
  restored.setState({newPhase:'Tahap berikutnya'});restored.renderVals().addPhase();assert.equal(new Set(restored.state.phases.map(x=>x.id)).size,restored.state.phases.length);
 });
 test('rundown edits recalculate times, reorder rows and remain isolated from other pages',()=>{
- const {c,data}=instantiate('rundown');c.renderVals().rundown[0].setDur({target:{value:'30'}});assert.equal(c.renderVals().rundown[0].to,'07.30');
+ const {c,data}=instantiate('rundown');c.renderVals().rundown[0].setDur({target:{value:'30'}});assert.equal(c.renderVals().rundown[0].to,'08.30');
  const first=c.state.days[0].items[0].id;c.renderVals().rundown[0].down();assert.equal(c.state.days[0].items[1].id,first);
  const restored=instantiate('rundown',data).c;assert.equal(restored.state.days[0].items[1].dur,30);
- assert.equal(instantiate('index',data).c.renderVals().doneCount,0);
+ assert.equal(instantiate('index',data).c.renderVals().doneCount,instantiate('index').c.renderVals().doneCount);
 });
 test('participants can be added and filtered; blocked storage keeps the interface usable',()=>{
  const {c}=instantiate('peserta');const before=c.state.peserta.length;c.setState({nNama:'Peserta Uji',nKamar:'A-103',nKampus:'Kampus Uji',nJk:'P'});c.renderVals().addPeserta();assert.equal(c.state.peserta.length,before+1);c.renderVals().filters[2].pick();assert.ok(c.renderVals().peserta.every(p=>p.jk==='P'));
