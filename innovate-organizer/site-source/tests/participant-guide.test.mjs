@@ -23,8 +23,11 @@ test('room search matches room and participant text, ignores case and returns an
  c.renderVals().setQ({target:{value:'  NAMA PESERTA  '}});assert.equal(c.renderVals().rooms.length,6);
  c.setState({q:'nama-yang-tidak-ada'});assert.equal(c.renderVals().rooms.length,0);assert.equal(c.renderVals().empty,true);
 });
-test('unfilled LO contacts stay placeholders with no active contact action',()=>{
- const los=logic().renderVals().los;assert.equal(los.length,9);
- assert.ok(los.every(lo=>lo.has===false&&lo.none===true&&lo.phone===''));
- assert.ok(html.includes('<sc-if value="{{ l.has }}"'));
+test('the five confirmed LO contacts preserve name/number pairings without assigning buses',()=>{
+ const expected=JSON.parse(readFileSync('public/event-data/pertamina-2026-lo.json','utf8'));
+ const los=logic().renderVals().los;assert.equal(los.length,5);
+ assert.deepEqual(Array.from(los,l=>({name:l.name,phone:l.phone.replace(/^\+/,''),bus:l.bus})),expected);
+ assert.ok(los.every(lo=>lo.has===true&&lo.none===false&&lo.bus===null));
+ const contact=readFileSync('public/tracker/kontak.html','utf8');
+ for(const lo of expected){assert.ok(contact.includes(lo.name));assert.ok(contact.includes('https://wa.me/'+lo.phone));}
 });
